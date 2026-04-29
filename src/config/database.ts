@@ -9,7 +9,7 @@ export async function connectDatabase(): Promise<Db> {
     await client.connect();
     db = client.db();
 
-    db.collection("Clients").createIndex(
+    db.collection("Clientes").createIndex(
       { Cpf: 1 },
       { unique: true }
     );
