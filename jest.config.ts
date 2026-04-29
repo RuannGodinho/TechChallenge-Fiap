@@ -6,6 +6,9 @@
 import type {Config} from 'jest';
 
 const config: Config = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+
   // All imported modules in your tests should be mocked automatically
   // automock: false,
 
@@ -21,8 +24,13 @@ const config: Config = {
   // Indicates whether the coverage information should be collected while executing the test
   collectCoverage: true,
 
-  // An array of glob patterns indicating a set of files for which coverage information should be collected
-  // collectCoverageFrom: undefined,
+  collectCoverageFrom: [
+    "src/**/*.ts",
+    "!src/**/*.d.ts",
+    "!src/main.ts",
+    "!src/**/index.ts",
+    "!src/config/**"
+  ],
 
   // The directory where Jest should output its coverage files
   coverageDirectory: "coverage",
