@@ -1,0 +1,60 @@
+import request from 'supertest';
+import app from '../../app';
+import { ServicoRepository } from '../../src/Repository/ServicoRepository';
+import { Servico } from '../../src/Entities/Servico';
+
+describe('Integração - Rotas de Serviços', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test('deve retornar 400 quando dados obrigatórios estiverem ausentes', async () => {
+    const response = await request(app)
+      .post('/api/servicos')
+      .send({ Nome: 'Troca de óleo', Preco: 249.99 });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'Nome, Descricao, and Preco are required' });
+  });
+
+  test('deve criar serviço com sucesso', async () => {
+    jest.spyOn(ServicoRepository.prototype, 'createServico').mockResolvedValue();
+
+    const response = await request(app)
+      .post('/api/servicos')
+      .send({ Nome: 'Troca de óleo', Descricao: 'Troca de óleo completo com filtro', Preco: 249.99 });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({ Nome: 'Troca de óleo', Descricao: 'Troca de óleo completo com filtro', Preco: 249.99 });
+  });
+
+  test('deve retornar 404 ao buscar serviço inexistente', async () => {
+    jest.spyOn(ServicoRepository.prototype, 'getServicoById').mockResolvedValue(null);
+
+    const response = await request(app).get('/api/servicos/id-inexistente');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'Service not found' });
+  });
+
+  test('deve retornar 404 ao atualizar serviço inexistente', async () => {
+    jest.spyOn(ServicoRepository.prototype, 'getServicoById').mockResolvedValue(null);
+
+    const response = await request(app)
+      .put('/api/servicos/id-inexistente')
+      .send({ Nome: 'Troca de óleo', Descricao: 'Troca de óleo completo com filtro', Preco: 249.99 });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'Service not found' });
+  });
+
+  test('deve retornar 204 ao deletar serviço existente', async () => {
+    const existingServico = new Servico('Troca de óleo', 'Troca de óleo completo com filtro', 249.99);
+    jest.spyOn(ServicoRepository.prototype, 'getServicoById').mockResolvedValue(existingServico);
+    jest.spyOn(ServicoRepository.prototype, 'deleteServico').mockResolvedValue();
+
+    const response = await request(app).delete('/api/servicos/existing-id');
+
+    expect(response.status).toBe(204);
+  });
+});

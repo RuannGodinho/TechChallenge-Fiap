@@ -21,6 +21,10 @@ router.get("/servicos", async (req: Request, res: Response) => {
 router.get("/servicos/:id", async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
+
+        if (id === ':id')
+            return res.status(400).json({ error: "ID do serviço é obrigatório" });
+
         const service = await servicoController.getServicoById(id);
 
         if (!service) {
@@ -49,6 +53,10 @@ router.post("/servicos", async (req: Request, res: Response) => {
 router.put("/servicos/:id", async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
+
+        if (id === ':id')
+            return res.status(400).json({ error: "ID do serviço é obrigatório" });
+
         const { Nome, Descricao, Preco } = req.body;
 
         const service = await servicoController.updateServico(id, { Nome, Descricao, Preco });
@@ -66,6 +74,10 @@ router.put("/servicos/:id", async (req: Request, res: Response) => {
 router.delete("/servicos/:id", async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
+
+        if (id === ':id')
+            return res.status(400).json({ error: "ID do serviço é obrigatório" });
+
         const deleted = await servicoController.deleteServico(id);
 
         if (!deleted) {

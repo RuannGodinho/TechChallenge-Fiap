@@ -21,6 +21,10 @@ router.get("/veiculos", async (req: Request, res: Response) => {
 router.get("/veiculos/:id", async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
+
+        if (id === ':id')
+            return res.status(400).json({ error: "ID do veículo é obrigatório" });
+
         const Veiculo = await veiculoController.getVeiculoById(id);
 
         if (!Veiculo) {
@@ -42,13 +46,17 @@ router.post("/veiculos", async (req: Request, res: Response) => {
         const Veiculo = await veiculoController.criarVeiculo({ Placa, Modelo, Ano, Marca });
         return res.status(201).json(Veiculo);
     } catch (error: any) {
-        return res.status(500).json({ error: "Internal server error " + error.message });
+        return res.status(500).json({ error: error.message });
     }
 });
 
 router.put("/veiculos/:id", async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
+
+        if (id === ':id')
+            return res.status(400).json({ error: "ID do veículo é obrigatório" });
+
         const { Placa, Modelo, Ano, Marca } = req.body;
 
         const Veiculo = await veiculoController.atualizarVeiculo(id, { Placa, Modelo, Ano, Marca });
@@ -59,13 +67,17 @@ router.put("/veiculos/:id", async (req: Request, res: Response) => {
 
         return res.json(Veiculo);
     } catch (error: any) {
-        return res.status(500).json({ error: "Internal server error " + error.message });
+        return res.status(500).json({ error: error.message });
     }
 });
 
 router.delete("/veiculos/:id", async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
+
+        if (id === ':id')
+            return res.status(400).json({ error: "ID do veículo é obrigatório" });
+
         const deleted = await veiculoController.deletarVeiculo(id);
 
         if (!deleted) {

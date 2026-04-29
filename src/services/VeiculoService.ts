@@ -1,6 +1,7 @@
 import { Veiculo } from '../Entities/Veiculo';
 import { IVeiculoRepository } from '../Interfaces/IVeiculoRepository';
 import { IVeiculoService } from '../Interfaces/IVeiculoService';
+import { PlacaValidator } from '../validators/PlacaValidator';
 
 export class VeiculoService implements IVeiculoService {
     constructor(private repo: IVeiculoRepository) {}
@@ -15,6 +16,10 @@ export class VeiculoService implements IVeiculoService {
 
     async criarVeiculo(veiculoData: Omit<Veiculo, 'id'>): Promise<Veiculo> {
         const veiculo = new Veiculo(veiculoData.Placa, veiculoData.Modelo, veiculoData.Ano, veiculoData.Marca);
+
+        if (!PlacaValidator.isValid(veiculo.Placa)) 
+            throw new Error("Placa inválida");
+        
         await this.repo.criarVeiculo(veiculo);
         return veiculo;
     }
@@ -24,6 +29,10 @@ export class VeiculoService implements IVeiculoService {
         if (!existing) return null;
 
         const updated = { ...existing, ...veiculoData };
+
+        if(veiculoData.Placa && !PlacaValidator.isValid(veiculoData.Placa)) 
+            throw new Error("Placa inválida");
+        
         await this.repo.atualizarVeiculo(id, updated);
         return updated;
     }
