@@ -22,7 +22,7 @@ router.get('/pecas/:id', async (req: Request, res: Response) => {
     const id = req.params.id as string;
 
     if (id === ':id')
-      return res.status(400).json({ error: "ID do cliente é obrigatório" });
+      return res.status(400).json({ error: "ID da peça é obrigatório" });
 
     const peca = await pecaController.getPecaById(id);
 
@@ -55,7 +55,7 @@ router.put('/pecas/:id', async (req: Request, res: Response) => {
     const id = req.params.id as string;
     
     if (id === ':id')
-      return res.status(400).json({ error: "ID do cliente é obrigatório" });    
+      return res.status(400).json({ error: "ID da peça é obrigatório" });    
 
     const { Nome, Descricao, Tipo, Preco } = req.body;
 
@@ -76,7 +76,7 @@ router.delete('/pecas/:id', async (req: Request, res: Response) => {
     const id = req.params.id as string;
 
     if (id === ':id')
-      return res.status(400).json({ error: "ID do cliente é obrigatório" });
+      return res.status(400).json({ error: "ID da peça é obrigatório" });
 
     const deleted = await pecaController.deletePeca(id);
 
