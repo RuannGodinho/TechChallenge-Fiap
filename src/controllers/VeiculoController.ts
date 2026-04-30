@@ -1,5 +1,5 @@
 import { Veiculo } from '../Entities/Veiculo';
-import { IVeiculoService } from '../Interfaces/IVeiculoService';
+import { IVeiculoService } from '../Interfaces/Veiculo/IVeiculoService';
 
 export class VeiculoController {
     constructor(private service: IVeiculoService) {}

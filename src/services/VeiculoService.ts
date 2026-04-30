@@ -1,6 +1,6 @@
 import { Veiculo } from '../Entities/Veiculo';
-import { IVeiculoRepository } from '../Interfaces/IVeiculoRepository';
-import { IVeiculoService } from '../Interfaces/IVeiculoService';
+import { IVeiculoRepository } from '../Interfaces/Veiculo/IVeiculoRepository';
+import { IVeiculoService } from '../Interfaces/Veiculo/IVeiculoService';
 import { PlacaValidator } from '../validators/PlacaValidator';
 
 export class VeiculoService implements IVeiculoService {

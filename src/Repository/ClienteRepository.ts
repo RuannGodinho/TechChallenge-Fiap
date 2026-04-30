@@ -1,7 +1,7 @@
 import { Collection, Db, ObjectId } from "mongodb";
 import { connectDatabase } from "../config/database";
 import { Cliente } from "../Entities/Cliente";
-import { IClienteRepository } from "../Interfaces/IClienteRepository";
+import { IClienteRepository } from "../Interfaces/Cliente/IClienteRepository";
 
 export class ClienteRepository implements IClienteRepository {
     private clientes = new Map<string, Cliente>();

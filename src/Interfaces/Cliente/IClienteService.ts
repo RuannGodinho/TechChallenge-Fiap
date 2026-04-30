@@ -1,4 +1,4 @@
-import { Cliente } from '../Entities/Cliente';
+import { Cliente } from '../../Entities/Cliente';
 
 export interface IClienteService {
     getAllClientes(): Promise<Cliente[]>;

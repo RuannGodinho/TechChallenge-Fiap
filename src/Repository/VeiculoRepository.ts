@@ -1,7 +1,7 @@
 import { Collection, Db, ObjectId } from "mongodb";
 import { connectDatabase } from "../config/database";
 import { Veiculo } from "../Entities/Veiculo";
-import { IVeiculoRepository } from "../Interfaces/IVeiculoRepository";
+import { IVeiculoRepository } from "../Interfaces/Veiculo/IVeiculoRepository";
 
 export class VeiculoRepository implements IVeiculoRepository {
     async getCollection(): Promise<Collection<Veiculo>> {

@@ -1,5 +1,5 @@
 import { Cliente } from '../Entities/Cliente';
-import { IClienteService } from '../Interfaces/IClienteService';
+import { IClienteService } from '../Interfaces/Cliente/IClienteService';
 
 export class ClienteController {
     constructor(private service: IClienteService) {}

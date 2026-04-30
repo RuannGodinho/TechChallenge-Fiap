@@ -1,4 +1,4 @@
-import { Servico } from '../Entities/Servico';
+import { Servico } from '../../Entities/Servico';
 
 export interface IServicoService {
     getAllServicos(): Promise<Servico[]>;

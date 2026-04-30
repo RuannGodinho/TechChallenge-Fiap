@@ -1,6 +1,6 @@
 import { Servico } from '../Entities/Servico';
-import { IServicoRepository } from '../Interfaces/IServicoRepository'
-import { IServicoService } from '../Interfaces/IServicoService';
+import { IServicoRepository } from '../Interfaces/Servico/IServicoRepository'
+import { IServicoService } from '../Interfaces/Servico/IServicoService';
 
 export class ServicoService implements IServicoService {
     constructor(private repo: IServicoRepository) {}

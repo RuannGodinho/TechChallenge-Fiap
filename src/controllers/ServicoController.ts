@@ -1,5 +1,5 @@
 import { Servico } from '../Entities/Servico';
-import { IServicoService } from '../Interfaces/IServicoService';
+import { IServicoService } from '../Interfaces/Servico/IServicoService';
 
 export class ServicoController {
     constructor(private service: IServicoService) {}

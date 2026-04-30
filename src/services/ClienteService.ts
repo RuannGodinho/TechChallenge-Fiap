@@ -1,7 +1,7 @@
 import { cpfValidator } from 'cpf-cnpj-validator';
 import { Cliente } from '../Entities/Cliente';
-import { IClienteRepository } from '../Interfaces/IClienteRepository';
-import { IClienteService } from '../Interfaces/IClienteService';
+import { IClienteRepository } from '../Interfaces/Cliente/IClienteRepository';
+import { IClienteService } from '../Interfaces/Cliente/IClienteService';
 
 export class ClienteService implements IClienteService {
     constructor(private repo: IClienteRepository) {}

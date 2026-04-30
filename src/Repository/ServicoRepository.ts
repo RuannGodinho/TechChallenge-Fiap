@@ -1,7 +1,7 @@
 import { Collection, Db, ObjectId } from "mongodb";
 import { connectDatabase } from "../config/database";
 import { Servico } from "../Entities/Servico";
-import { IServicoRepository } from "../Interfaces/IServicoRepository";
+import { IServicoRepository } from "../Interfaces/Servico/IServicoRepository";
 
 export class ServicoRepository implements IServicoRepository {
     async getCollection(): Promise<Collection<Servico>> {
