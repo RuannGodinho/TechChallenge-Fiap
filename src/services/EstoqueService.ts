@@ -22,12 +22,12 @@ export class EstoqueService implements IEstoqueService {
         movimentacaoData.Origem
       );
 
-      var peca = await this.pecaRepo.getPecaById(movimentacao.PecaId);
+      const peca = await this.pecaRepo.getPecaById(movimentacao.PecaId);
       if (!peca) {
         throw new Error('Peça não encontrada para a movimentação de estoque');
       }
 
-      var estoque = await this.repo.getEstoqueByPecaId(movimentacao.PecaId);
+      const estoque = await this.repo.getEstoqueByPecaId(movimentacao.PecaId);
 
       if(movimentacao.Tipo === 'ENTRADA') 
         estoque ? await this.repo.updateEstoque(movimentacao.PecaId, estoque.Quantidade + movimentacao.Quantidade) : await this.repo.createEstoque(new Estoque(movimentacao.PecaId, movimentacao.Quantidade));  

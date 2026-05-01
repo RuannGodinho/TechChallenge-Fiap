@@ -1,11 +1,14 @@
 import request from 'supertest';
 import app from '../../app';
 import { connectDatabase, closeDatabase } from '../../src/config/database';
+import { getAuthToken } from '../Helper/getAuthToken';
 
 let db: any;
+let _token: string;
 
 beforeAll(async () => {
   db = await connectDatabase();
+  _token = await getAuthToken();
 });
 
 afterAll(async () => {
@@ -29,7 +32,8 @@ describe('Integração - Rotas de Peças', () => {
         Tipo: 'PECA',
         Preco: 100,
         ...data
-      });
+      })
+      .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(201);
 
@@ -44,7 +48,8 @@ describe('Integração - Rotas de Peças', () => {
         Descricao: 'Cilindro de freio',
         Tipo: 'PECA',
         Preco: 159.9,
-      });
+      })
+      .auth(_token, { type: 'bearer' });
 
     expect(createResponse.status).toBe(201);
     expect(createResponse.body).toMatchObject({
@@ -54,13 +59,13 @@ describe('Integração - Rotas de Peças', () => {
       Preco: 159.9,
     });
 
-    const listResponse = await request(app).get('/api/pecas');
+    const listResponse = await request(app).get('/api/pecas').auth(_token, { type: 'bearer' });
     expect(listResponse.status).toBe(200);
 
     const inserted = listResponse.body.find((item: any) => item.Nome === 'Cilindro');
     expect(inserted).toBeDefined();
 
-    const getResponse = await request(app).get(`/api/pecas/${inserted._id}`);
+    const getResponse = await request(app).get(`/api/pecas/${inserted._id}`).auth(_token, { type: 'bearer' });
     expect(getResponse.status).toBe(200);
     expect(getResponse.body.Nome).toBe('Cilindro');
   });
@@ -73,8 +78,8 @@ describe('Integração - Rotas de Peças', () => {
         Descricao: 'Filtro de ar',
         Tipo: 'INVALIDO',
         Preco: 49.9,
-      });
-
+      })
+      .auth(_token, { type: 'bearer' });
     expect(response.status).toBe(500);
     expect(response.body.error).toContain('Tipo inválido. Use PECA ou INSUMO');
   });
@@ -93,7 +98,8 @@ describe('Integração - Rotas de Peças', () => {
         Descricao: 'Amortecedor dianteiro atualizado',
         Tipo: 'INSUMO',
         Preco: 329.9,
-      });
+      })
+      .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
@@ -109,18 +115,19 @@ describe('Integração - Rotas de Peças', () => {
       Preco: 89.9,
     });
 
-    const response = await request(app).delete(`/api/pecas/${peca._id}`);
+    const response = await request(app).delete(`/api/pecas/${peca._id}`).auth(_token, { type: 'bearer' });
     expect(response.status).toBe(204);
 
-    const getResponse = await request(app).get(`/api/pecas/${peca._id}`);
+    const getResponse = await request(app).get(`/api/pecas/${peca._id}`).auth(_token, { type: 'bearer' });
     expect(getResponse.status).toBe(404);
   });
 
   test('deve retornar 400 ao usar id inválido de rota', async () => {
     const response = await request(app)
       .put('/api/pecas/:id')
-      .send({ Nome: 'Novo Nome' });
-
+      .send({ Nome: 'Novo Nome' })
+      .auth(_token, { type: 'bearer' });
+      
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: 'ID da peça é obrigatório' });
   });

@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "dev": "tsx watch ./src/main/server.ts",
+    "dev": "node --env-file=.env --import tsx ./src/main/server.ts",
     "test": "jest",
-    "coverage": "jest --coverage"
+    "coverage": "jest --coverage",
+    "sonar": "node --env-file=.env -e \"process.env.SONAR_TOKEN && require('child_process').spawnSync('npx',['sonar-scanner',`-Dsonar.token=${process.env.SONAR_TOKEN}`,`-Dsonar.login=${process.env.SONAR_TOKEN}`],{stdio:'inherit',shell:true})\""
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",
@@ -16,6 +17,7 @@
     "http-errors": "~1.6.3",
     "jade": "~1.11.0",
     "jest": "^30.3.0",
+    "jsonwebtoken": "^9.0.3",
     "mongodb": "7.2",
     "morgan": "~1.9.1",
     "nodemon": "^3.1.14"
@@ -23,7 +25,9 @@
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/supertest": "^6.0.3",
+    "sonarqube-scanner": "^4.3.6",
     "supertest": "^6.3.3",
     "ts-jest": "^29.4.9",
     "tsx": "^4.21.0",

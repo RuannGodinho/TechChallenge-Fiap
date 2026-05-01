@@ -2,13 +2,14 @@ import { Router, Request, Response } from 'express';
 import { PecaController } from '../controllers/PecaController';
 import { PecaService } from '../services/PecaService';
 import { PecaRepository } from '../Repository/PecaRepository';
+import { authMiddleware } from '../middleware/AuthMiddleware';
 
 const router = Router();
 const pecaRepo = new PecaRepository();
 const pecaService = new PecaService(pecaRepo);
 const pecaController = new PecaController(pecaService);
 
-router.get('/pecas', async (req: Request, res: Response) => {
+router.get('/pecas', authMiddleware, async (req: Request, res: Response) => {
   try {
     const pecas = await pecaController.getAllPecas();
     return res.json(pecas);
@@ -17,7 +18,7 @@ router.get('/pecas', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/pecas/:id', async (req: Request, res: Response) => {
+router.get('/pecas/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
 
@@ -36,7 +37,7 @@ router.get('/pecas/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/pecas', async (req: Request, res: Response) => {
+router.post('/pecas', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { Nome, Descricao, Tipo, Preco } = req.body;
     if (!Nome || !Descricao || !Tipo || Preco == null) {
@@ -50,7 +51,7 @@ router.post('/pecas', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/pecas/:id', async (req: Request, res: Response) => {
+router.put('/pecas/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
     
@@ -71,7 +72,7 @@ router.put('/pecas/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/pecas/:id', async (req: Request, res: Response) => {
+router.delete('/pecas/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
 

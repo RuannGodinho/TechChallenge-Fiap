@@ -1,11 +1,14 @@
 import request from 'supertest';
 import app from '../../app';
 import { connectDatabase, closeDatabase } from '../../src/config/database';
+import { getAuthToken } from '../Helper/getAuthToken';
 
 let db: any;
+let _token: string;
 
 beforeAll(async () => {
   db = await connectDatabase();
+  _token = await getAuthToken();
 });
 
 afterAll(async () => {
@@ -28,7 +31,8 @@ describe('Integração - Rotas de Estoque', () => {
         Descricao: 'Descrição teste',
         Tipo: 'PECA',
         Preco: 50
-      });
+      })
+      .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(201);
 
@@ -45,13 +49,14 @@ describe('Integração - Rotas de Estoque', () => {
         Tipo: 'ENTRADA',
         Quantidade: 12,
         Origem: 'compra',
-      });
+      })
+      .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(201);
     expect(response.body.Tipo).toBe('ENTRADA');
     expect(response.body.Quantidade).toBe(12);
 
-    const estoqueResponse = await request(app).get(`/api/estoque/${pecaId}`);
+    const estoqueResponse = await request(app).get(`/api/estoque/${pecaId}`).auth(_token, { type: 'bearer' });
     expect(estoqueResponse.status).toBe(200);
     expect(estoqueResponse.body.Quantidade).toBe(12);
   });
@@ -67,7 +72,8 @@ describe('Integração - Rotas de Estoque', () => {
         Tipo: 'ENTRADA',
         Quantidade: 8,
         Origem: 'compra',
-      });
+      })
+      .auth(_token, { type: 'bearer' });
 
     const response = await request(app)
       .post('/api/estoque/movimentacoes')
@@ -76,13 +82,14 @@ describe('Integração - Rotas de Estoque', () => {
         Tipo: 'SAIDA',
         Quantidade: 3,
         Origem: 'ordem',
-      });
+      })
+      .auth(_token, { type: 'bearer' });;
 
     expect(response.status).toBe(201);
     expect(response.body.Tipo).toBe('SAIDA');
     expect(response.body.Quantidade).toBe(3);
 
-    const estoqueResponse = await request(app).get(`/api/estoque/${pecaId}`);
+    const estoqueResponse = await request(app).get(`/api/estoque/${pecaId}`).auth(_token, { type: 'bearer' });
     expect(estoqueResponse.status).toBe(200);
     expect(estoqueResponse.body.Quantidade).toBe(5);
   });
@@ -97,7 +104,8 @@ describe('Integração - Rotas de Estoque', () => {
         Tipo: 'SAIDA',
         Quantidade: 1,
         Origem: 'ordem',
-      });
+      })
+      .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(500);
     expect(response.body.error).toContain('Não há estoque para a peça especificada');
@@ -114,12 +122,13 @@ describe('Integração - Rotas de Estoque', () => {
         Tipo: 'ENTRADA',
         Quantidade: 20,
         Origem: 'compra',
-      });
+      })
+      .auth(_token, { type: 'bearer' });
 
-    const deleteResponse = await request(app).delete(`/api/estoque/${pecaId}`);
+    const deleteResponse = await request(app).delete(`/api/estoque/${pecaId}`).auth(_token, { type: 'bearer' });
     expect(deleteResponse.status).toBe(204);
 
-    const getResponse = await request(app).get(`/api/estoque/${pecaId}`);
+    const getResponse = await request(app).get(`/api/estoque/${pecaId}`).auth(_token, { type: 'bearer' });
     expect(getResponse.status).toBe(404);
   });
 });

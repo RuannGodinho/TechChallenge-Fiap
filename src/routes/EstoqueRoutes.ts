@@ -51,7 +51,7 @@ router.get('/estoque/:pecaId', async (req: Request, res: Response) => {
 
 router.post('/estoque/movimentacoes', async (req: Request, res: Response) => {
   try {
-    const { PecaId, Tipo, Quantidade, Data, Origem } = req.body;
+    const { PecaId, Tipo, Quantidade, Origem } = req.body;
     if (!PecaId || !Tipo || Quantidade == null ) {
       return res.status(400).json({ error: 'PecaId, Tipo and Quantidade are required' });
     }
