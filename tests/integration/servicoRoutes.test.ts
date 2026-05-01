@@ -2,8 +2,15 @@ import request from 'supertest';
 import app from '../../app';
 import { ServicoRepository } from '../../src/Repository/ServicoRepository';
 import { Servico } from '../../src/Entities/Servico';
+import { getAuthToken } from '../Helper/getAuthToken';
 
 describe('Integração - Rotas de Serviços', () => {
+let _token: string;
+
+  beforeAll (async () => {
+      _token = await getAuthToken();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -11,7 +18,8 @@ describe('Integração - Rotas de Serviços', () => {
   test('deve retornar 400 quando dados obrigatórios estiverem ausentes', async () => {
     const response = await request(app)
       .post('/api/servicos')
-      .send({ Nome: 'Troca de óleo', Preco: 249.99 });
+      .send({ Nome: 'Troca de óleo', Preco: 249.99 })
+      .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: 'Nome, Descricao, and Preco are required' });
@@ -22,7 +30,8 @@ describe('Integração - Rotas de Serviços', () => {
 
     const response = await request(app)
       .post('/api/servicos')
-      .send({ Nome: 'Troca de óleo', Descricao: 'Troca de óleo completo com filtro', Preco: 249.99 });
+      .send({ Nome: 'Troca de óleo', Descricao: 'Troca de óleo completo com filtro', Preco: 249.99 })
+      .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(201);
     expect(response.body).toMatchObject({ Nome: 'Troca de óleo', Descricao: 'Troca de óleo completo com filtro', Preco: 249.99 });
@@ -31,7 +40,7 @@ describe('Integração - Rotas de Serviços', () => {
   test('deve retornar 404 ao buscar serviço inexistente', async () => {
     jest.spyOn(ServicoRepository.prototype, 'getServicoById').mockResolvedValue(null);
 
-    const response = await request(app).get('/api/servicos/id-inexistente');
+    const response = await request(app).get('/api/servicos/id-inexistente').auth(_token, { type: 'bearer' });;
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'Service not found' });
@@ -42,7 +51,8 @@ describe('Integração - Rotas de Serviços', () => {
 
     const response = await request(app)
       .put('/api/servicos/id-inexistente')
-      .send({ Nome: 'Troca de óleo', Descricao: 'Troca de óleo completo com filtro', Preco: 249.99 });
+      .send({ Nome: 'Troca de óleo', Descricao: 'Troca de óleo completo com filtro', Preco: 249.99 })
+      .auth(_token, { type: 'bearer' });;
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'Service not found' });
@@ -53,7 +63,7 @@ describe('Integração - Rotas de Serviços', () => {
     jest.spyOn(ServicoRepository.prototype, 'getServicoById').mockResolvedValue(existingServico);
     jest.spyOn(ServicoRepository.prototype, 'deleteServico').mockResolvedValue();
 
-    const response = await request(app).delete('/api/servicos/existing-id');
+    const response = await request(app).delete('/api/servicos/existing-id').auth(_token, { type: 'bearer' });;
 
     expect(response.status).toBe(204);
   });

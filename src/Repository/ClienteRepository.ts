@@ -23,6 +23,12 @@ export class ClienteRepository implements IClienteRepository {
         return await collection.findOne({ _id: new ObjectId(id) });
      }
 
+    async getClienteByCpf(cpf: string): Promise<Cliente | null> {
+        const collection = await this.getCollection();
+
+        return await collection.findOne({ Cpf: cpf });
+    }
+
     async testeMockCliente(id: string): Promise<string> {
         return "Ruann Correa Godinho";
     }

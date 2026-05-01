@@ -19,6 +19,20 @@ export class ClienteService implements IClienteService {
         return cliente;
     }
 
+    async getClienteByCpf(cpf: string): Promise<Cliente | null> {
+        const strippedCpf = cpfValidator.strip(cpf);
+
+        if (!cpfValidator.isValid(strippedCpf))
+            throw new Error("CPF inválido");
+
+        const cliente = await this.repo.getClienteByCpf(strippedCpf);
+
+        if (cliente != null)
+            cliente.Cpf = cpfValidator.format(cliente.Cpf);
+
+        return cliente;
+    }
+
     async criarCliente(clienteData: Omit<Cliente, 'id'>): Promise<Cliente> {
         try {
         const cliente = new Cliente(clienteData.Nome, clienteData.Email, clienteData.Cpf, clienteData.Telefone);
@@ -29,6 +43,9 @@ export class ClienteService implements IClienteService {
         cliente.Cpf = cpfValidator.strip(cliente.Cpf);
         
         await this.repo.criarCliente(cliente);
+
+        cliente.Cpf = cpfValidator.format(cliente.Cpf);
+
         return cliente;
         } catch (error: any) {
             throw new Error("Erro ao criar cliente:" + error.message);

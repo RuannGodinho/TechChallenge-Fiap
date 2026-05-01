@@ -4,6 +4,7 @@ import { EstoqueService } from '../services/EstoqueService';
 import { EstoqueRepository } from '../Repository/EstoqueRepository';
 import { MovimentacaoEstoqueRepository } from '../Repository/MovimentacaoEstoqueRepository';
 import { PecaRepository } from '../Repository/PecaRepository';
+import { authMiddleware } from '../middleware/AuthMiddleware';
 
 const router = Router();
 const estoqueRepo = new EstoqueRepository();
@@ -12,7 +13,7 @@ const pecaRepository = new PecaRepository();
 const estoqueService = new EstoqueService(estoqueRepo, movimentacaoRepo, pecaRepository);
 const estoqueController = new EstoqueController(estoqueService);
 
-router.get('/estoque', async (_req: Request, res: Response) => {
+router.get('/estoque', authMiddleware, async (_req: Request, res: Response) => {
   try {
     const estoque = await estoqueController.getAllEstoque();
     return res.json(estoque);
@@ -21,7 +22,7 @@ router.get('/estoque', async (_req: Request, res: Response) => {
   }
 });
 
-router.get('/estoque/movimentacoes', async (_req: Request, res: Response) => {
+router.get('/estoque/movimentacoes', authMiddleware, async (_req: Request, res: Response) => {
   try {
     const estoque = await estoqueController.listaMovimentacoes();
     return res.json(estoque);
@@ -30,7 +31,7 @@ router.get('/estoque/movimentacoes', async (_req: Request, res: Response) => {
   }
 });
 
-router.get('/estoque/:pecaId', async (req: Request, res: Response) => {
+router.get('/estoque/:pecaId', authMiddleware, async (req: Request, res: Response) => {
   try {
     const pecaId = req.params.pecaId as string;
 
@@ -49,7 +50,7 @@ router.get('/estoque/:pecaId', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/estoque/movimentacoes', async (req: Request, res: Response) => {
+router.post('/estoque/movimentacoes', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { PecaId, Tipo, Quantidade, Origem } = req.body;
     if (!PecaId || !Tipo || Quantidade == null ) {
@@ -70,7 +71,7 @@ router.post('/estoque/movimentacoes', async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/estoque/:pecaId', async (req: Request, res: Response) => {
+router.delete('/estoque/:pecaId', authMiddleware, async (req: Request, res: Response) => {
   try {
     const pecaId = req.params.pecaId as string;
 

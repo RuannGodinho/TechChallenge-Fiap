@@ -22,4 +22,9 @@ router.post('/login', async (req, res) => {
   return res.status(200).json({ token: result.token });
 });
 
+// rota protegida de teste
+router.get('/me', authMiddleware, (req, res) => {
+  return res.json({ user: (req as any).user });
+});
+
 export default router;

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { ServicoController } from '../controllers/ServicoController';
 import { ServicoService } from '../services/ServicoService';
 import { ServicoRepository } from '../Repository/ServicoRepository';
+import { authMiddleware } from '../middleware/AuthMiddleware';
 
 const router = Router();
 
@@ -9,7 +10,7 @@ const servicoRepo = new ServicoRepository();
 const servicoService = new ServicoService(servicoRepo);
 const servicoController = new ServicoController(servicoService);
 
-router.get("/servicos", async (req: Request, res: Response) => {
+router.get("/servicos", authMiddleware, async (req: Request, res: Response) => {
     try {
         const servicos = await servicoController.getAllServicos();
         return res.json(servicos);
@@ -18,7 +19,7 @@ router.get("/servicos", async (req: Request, res: Response) => {
     }
 });
 
-router.get("/servicos/:id", async (req: Request, res: Response) => {
+router.get("/servicos/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
 
@@ -37,7 +38,7 @@ router.get("/servicos/:id", async (req: Request, res: Response) => {
     }
 });
 
-router.post("/servicos", async (req: Request, res: Response) => {
+router.post("/servicos", authMiddleware, async (req: Request, res: Response) => {
     try {
         const { Nome, Descricao, Preco } = req.body;
         if (!Nome || !Descricao || Preco == null)
@@ -50,7 +51,7 @@ router.post("/servicos", async (req: Request, res: Response) => {
     }
 });
 
-router.put("/servicos/:id", async (req: Request, res: Response) => {
+router.put("/servicos/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
 
@@ -71,7 +72,7 @@ router.put("/servicos/:id", async (req: Request, res: Response) => {
     }
 });
 
-router.delete("/servicos/:id", async (req: Request, res: Response) => {
+router.delete("/servicos/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
 

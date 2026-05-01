@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { ClienteController } from '../controllers/ClienteController';
 import { ClienteService } from '../services/ClienteService';
 import { ClienteRepository } from '../Repository/ClienteRepository';
+import { authMiddleware } from '../middleware/AuthMiddleware';
 
 const router = Router();
 
@@ -9,7 +10,7 @@ const clienteRepo = new ClienteRepository();
 const clienteService = new ClienteService(clienteRepo);
 const clienteController = new ClienteController(clienteService);
 
-router.get("/clientes", async (req: Request, res: Response) => {
+router.get("/clientes", authMiddleware,  async (req: Request, res: Response) => {
     try {
         const clientes = await clienteController.getAllClientes();
         return res.json(clientes);
@@ -18,7 +19,26 @@ router.get("/clientes", async (req: Request, res: Response) => {
     }
 });
 
-router.get("/clientes/:id", async (req: Request, res: Response) => {
+router.get("/clientes/cpf/:cpf", authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const cpf = req.params.cpf as string;
+
+        if (!cpf)
+            return res.status(400).json({ error: "CPF do cliente é obrigatório" });
+
+        const cliente = await clienteController.getClienteByCpf(cpf);
+
+        if (!cliente) {
+            return res.status(404).json({ error: "Cliente não encontrado" });
+        }
+
+        return res.json(cliente);
+    } catch (error: any) {
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+router.get("/clientes/:id", authMiddleware,  async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
 
@@ -37,7 +57,7 @@ router.get("/clientes/:id", async (req: Request, res: Response) => {
     }
 });
 
-router.post("/clientes", async (req: Request, res: Response) => {
+router.post("/clientes", authMiddleware, async (req: Request, res: Response) => {
     try {
         const { Nome, Email, Cpf, Telefone } = req.body;
         if (!Nome || !Email || !Cpf || !Telefone)
@@ -50,7 +70,7 @@ router.post("/clientes", async (req: Request, res: Response) => {
     }
 });
 
-router.put("/clientes/:id", async (req: Request, res: Response) => {
+router.put("/clientes/:id", authMiddleware,  async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
 
@@ -70,7 +90,7 @@ router.put("/clientes/:id", async (req: Request, res: Response) => {
     }
 });
 
-router.delete("/clientes/:id", async (req: Request, res: Response) => {
+router.delete("/clientes/:id", authMiddleware,  async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
 

@@ -12,6 +12,10 @@ export class ClienteController {
         return await this.service.getClienteById(id);
     }
 
+    async getClienteByCpf(cpf: string): Promise<Cliente | null> {
+        return await this.service.getClienteByCpf(cpf);
+    }
+
     async criarCliente(clienteData: Omit<Cliente, 'id'>): Promise<Cliente> {
         return await this.service.criarCliente(clienteData);
     }

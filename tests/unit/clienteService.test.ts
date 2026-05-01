@@ -33,10 +33,10 @@ describe('ClienteService', () => {
     expect(repo.criarCliente).toHaveBeenCalledWith(expect.objectContaining({
       Nome: payload.Nome,
       Email: payload.Email,
-      Cpf: '11144477735',
+      Cpf: '111.444.777-35',
       Telefone: payload.Telefone,
     }));
-    expect(cliente.Cpf).toBe('11144477735');
+    expect(cliente.Cpf).toBe('111.444.777-35');
   });
 
   test('Deve validar CPF dos clientes - CPF inválido rejeita criação', async () => {

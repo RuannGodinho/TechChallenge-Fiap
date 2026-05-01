@@ -2,8 +2,15 @@ import request from 'supertest';
 import app from '../../app';
 import { VeiculoRepository } from '../../src/Repository/VeiculoRepository';
 import { Veiculo } from '../../src/Entities/Veiculo';
+import { getAuthToken } from '../Helper/getAuthToken';
 
 describe('Integração - Rotas de Veículos', () => {
+  let _token: string;
+  
+    beforeAll (async () => {
+        _token = await getAuthToken();
+    });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -11,7 +18,8 @@ describe('Integração - Rotas de Veículos', () => {
   test('deve retornar 400 quando dados obrigatórios estiverem ausentes', async () => {
     const response = await request(app)
       .post('/api/veiculos')
-      .send({ Modelo: 'Civic', Ano: 2022, Marca: 'Honda' });
+      .send({ Modelo: 'Civic', Ano: 2022, Marca: 'Honda' })
+      .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: 'Placa, Modelo, Ano, and Marca are required' });
@@ -22,7 +30,8 @@ describe('Integração - Rotas de Veículos', () => {
 
     const response = await request(app)
       .post('/api/veiculos')
-      .send({ Placa: 'ABC1234', Modelo: 'Civic', Ano: 2022, Marca: 'Honda' });
+      .send({ Placa: 'ABC1234', Modelo: 'Civic', Ano: 2022, Marca: 'Honda' })
+      .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(201);
     expect(response.body).toMatchObject({ Placa: 'ABC1234', Modelo: 'Civic', Ano: 2022, Marca: 'Honda' });
@@ -31,7 +40,7 @@ describe('Integração - Rotas de Veículos', () => {
   test('deve retornar 404 ao buscar veículo inexistente', async () => {
     jest.spyOn(VeiculoRepository.prototype, 'getVeiculoById').mockResolvedValue(null);
 
-    const response = await request(app).get('/api/veiculos/id-inexistente');
+    const response = await request(app).get('/api/veiculos/id-inexistente').auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'Veiculo not found' });
@@ -42,7 +51,8 @@ describe('Integração - Rotas de Veículos', () => {
 
     const response = await request(app)
       .put('/api/veiculos/id-inexistente')
-      .send({ Placa: 'ABC1234', Modelo: 'Civic', Ano: 2022, Marca: 'Honda' });
+      .send({ Placa: 'ABC1234', Modelo: 'Civic', Ano: 2022, Marca: 'Honda' })
+      .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'Veiculo not found' });
@@ -53,7 +63,7 @@ describe('Integração - Rotas de Veículos', () => {
     jest.spyOn(VeiculoRepository.prototype, 'getVeiculoById').mockResolvedValue(existingVeiculo);
     jest.spyOn(VeiculoRepository.prototype, 'deletarVeiculo').mockResolvedValue();
 
-    const response = await request(app).delete('/api/veiculos/existing-id');
+    const response = await request(app).delete('/api/veiculos/existing-id').auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(204);
   });
