@@ -1,6 +1,7 @@
 import { MongoClient, Db } from "mongodb";
 
-export const client = new MongoClient("mongodb://localhost:27017/Node-Fiap");
+const mongoUrl = process.env.MONGODB_URI || "mongodb://localhost:27017/Node-Fiap";
+export const client = new MongoClient(mongoUrl);
 
 let db: Db | null = null;
 

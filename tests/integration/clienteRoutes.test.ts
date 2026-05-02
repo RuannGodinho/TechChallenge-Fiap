@@ -1,23 +1,37 @@
 import request from "supertest";
 import app from "../../app";
 import { getAuthToken } from "../Helper/getAuthToken";
+import { MongoMemoryServer } from "mongodb-memory-server";
 import { connectDatabase, closeDatabase } from '../../src/config/database';
 
 describe("Integração - Rotas de Clientes", () => {
+let mongoServer: MongoMemoryServer;
 let _token: string;
-let db: any;
 
 beforeAll(async () => {
-  db = await connectDatabase();
+  mongoServer = await MongoMemoryServer.create();
+  const mongoUri = mongoServer.getUri();
+  process.env.MONGODB_URI = mongoUri;
+  
+  // Conecta ao banco de dados em memória
+  await connectDatabase();
   _token = await getAuthToken();
+});
+
+afterEach(async () => {
+  const db = await connectDatabase();
+  const collections = await db.listCollections().toArray();
+
+  for (const collection of collections) {
+    await db.collection(collection.name).deleteMany({});
+  }
+
+  jest.clearAllMocks();
 });
 
 afterAll(async () => {
   await closeDatabase();
-});
-
-beforeEach(async () => {
-  await db.collection('Clientes').deleteMany({});
+  await mongoServer.stop();
 });
 
 

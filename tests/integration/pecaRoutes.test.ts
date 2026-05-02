@@ -2,24 +2,37 @@ import request from 'supertest';
 import app from '../../app';
 import { connectDatabase, closeDatabase } from '../../src/config/database';
 import { getAuthToken } from '../Helper/getAuthToken';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 
-let db: any;
+let mongoServer: MongoMemoryServer;
 let _token: string;
 
 beforeAll(async () => {
-  db = await connectDatabase();
+  mongoServer = await MongoMemoryServer.create();
+  const mongoUri = mongoServer.getUri();
+  process.env.MONGODB_URI = mongoUri;
+  
+  // Conecta ao banco de dados em memória
+  await connectDatabase();
   _token = await getAuthToken();
+});
+
+afterEach(async () => {
+  const db = await connectDatabase();
+  const collections = await db.listCollections().toArray();
+
+  for (const collection of collections) {
+    await db.collection(collection.name).deleteMany({});
+  }
+
+  jest.clearAllMocks();
 });
 
 afterAll(async () => {
   await closeDatabase();
+  await mongoServer.stop();
 });
 
-beforeEach(async () => {
-  await db.collection('Pecas').deleteMany({});
-  await db.collection('Estoque').deleteMany({});
-  await db.collection('MovimentacoesEstoque').deleteMany({});
-});
 
 describe('Integração - Rotas de Peças', () => {
 
