@@ -5,6 +5,7 @@ import { MovimentacaoEstoque } from '../Entities/Estoque/MovimentacaoEstoque';
 import { IMovimentacaoEstoqueRepository } from '../Interfaces/MovimentacaoEstoque/IMovimentacaoEstoqueRepository';
 import { IPecaRepository } from '../Interfaces/Peca/IPecaRepository';
 import { ObjectId } from 'bson';
+import { TipoMovimentacao } from '../validators/TipoMovimentacao';
 
 export class EstoqueService implements IEstoqueService {
   constructor(private repo: IEstoqueRepository, private movimentacaoRepo: IMovimentacaoEstoqueRepository, private pecaRepo: IPecaRepository) {}
@@ -21,6 +22,11 @@ export class EstoqueService implements IEstoqueService {
         movimentacaoData.Data,
         movimentacaoData.Origem
       );
+
+          const tiposValidos = [TipoMovimentacao.ENTRADA, TipoMovimentacao.SAIDA];
+      
+          if (!tiposValidos.includes(movimentacao.Tipo.toUpperCase() as any)) 
+              throw new Error("Tipo inválido. Use ENTRADA ou SAIDA");
 
       const peca = await this.pecaRepo.getPecaById(movimentacao.PecaId);
       if (!peca) {

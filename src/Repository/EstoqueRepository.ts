@@ -21,12 +21,12 @@ export class EstoqueRepository implements IEstoqueRepository {
 
   async updateEstoque(pecaId: ObjectId, quantidade: number): Promise<void> {
     const collection = await this.getCollection();
-    await collection.updateOne({ PecaId: pecaId }, { $set: { Quantidade: quantidade } });
+    await collection.updateOne({ PecaId: new ObjectId(pecaId) }, { $set: { Quantidade: quantidade } });
   }
 
   async getEstoqueByPecaId(pecaId: ObjectId): Promise<Estoque | null> {
     const collection = await this.getCollection();
-    return await collection.findOne({ PecaId: pecaId });
+    return await collection.findOne({ PecaId: new ObjectId(pecaId) });
   }
 
   async deleteEstoque(pecaId: ObjectId): Promise<void> {
