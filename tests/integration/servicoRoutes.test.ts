@@ -1,7 +1,7 @@
 import request from 'supertest';
 import app from '../../app';
-import { ServicoRepository } from '../../src/Repository/ServicoRepository';
-import { Servico } from '../../src/Entities/Servico';
+import { ServicoRepository } from '../../src/Repository/servico-repository';
+import { Servico } from '../../src/Entities/servico';
 import { getAuthToken } from '../Helper/getAuthToken';
 
 describe('Integração - Rotas de Serviços', () => {

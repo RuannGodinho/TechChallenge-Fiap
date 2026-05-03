@@ -1,7 +1,7 @@
 import request from 'supertest';
 import app from '../../app';
-import { VeiculoRepository } from '../../src/Repository/VeiculoRepository';
-import { Veiculo } from '../../src/Entities/Veiculo';
+import { VeiculoRepository } from '../../src/Repository/veiculo-repository';
+import { Veiculo } from '../../src/Entities/veiculo';
 import { getAuthToken } from '../Helper/getAuthToken';
 
 describe('Integração - Rotas de Veículos', () => {

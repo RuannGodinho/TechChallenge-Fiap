@@ -1,6 +1,6 @@
 import { Collection, Db, ObjectId } from 'mongodb';
 import { connectDatabase } from '../config/database';
-import { OrdemServico } from '../Entities/OrdemServico';
+import { OrdemServico } from '../Entities/ordem-servico';
 import { IOrdemServicoRepository } from '../Interfaces/OrdemServico/ordem-servico-repository.interface';
 
 export class OrdemServicoRepository implements IOrdemServicoRepository {

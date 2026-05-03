@@ -43,7 +43,7 @@ describe('ClienteService', () => {
     // Arrange
     const invalidPayload = {
       nome: 'Cliente Inválido',
-      Email: 'invalido@teste.com',
+      email: 'invalido@teste.com',
       cpf: '000.000.000-00',
       telefone: '11999999999',
     };

@@ -1,4 +1,4 @@
-import { OrdemServico } from "../Entities/OrdemServico";
+import { OrdemServico } from "../Entities/ordem-servico";
 import { IOrdemServicoService } from "../Interfaces/OrdemServico/ordem-servico-service.interface";
 
 export class OrdemServicoController {

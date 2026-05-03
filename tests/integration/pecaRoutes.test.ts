@@ -4,7 +4,7 @@ import { getAuthToken } from '../Helper/getAuthToken';
 
 const pecasStore = new Map<string, any>();
 
-jest.mock('../../src/Repository/PecaRepository', () => ({
+jest.mock('../../src/Repository/peca-repository', () => ({
   PecaRepository: jest.fn().mockImplementation(() => ({
     getAllPecas: jest.fn(async () => Array.from(pecasStore.values())),
     getPecaById: jest.fn(async (id: string | ObjectId) => {

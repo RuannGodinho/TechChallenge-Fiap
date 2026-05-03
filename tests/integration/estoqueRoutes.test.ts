@@ -6,7 +6,7 @@ const pecasStore = new Map<string, any>();
 const estoqueStore = new Map<string, any>();
 const movimentacoesStore: any[] = [];
 
-jest.mock('../../src/Repository/PecaRepository', () => ({
+jest.mock('../../src/Repository/peca-repository', () => ({
   PecaRepository: jest.fn().mockImplementation(() => ({
     getAllPecas: jest.fn(async () => Array.from(pecasStore.values())),
     getPecaById: jest.fn(async (id: string | ObjectId) => {
@@ -30,7 +30,7 @@ jest.mock('../../src/Repository/PecaRepository', () => ({
   })),
 }));
 
-jest.mock('../../src/Repository/EstoqueRepository', () => ({
+jest.mock('../../src/Repository/estoque-repository', () => ({
   EstoqueRepository: jest.fn().mockImplementation(() => ({
     getAllEstoque: jest.fn(async () => Array.from(estoqueStore.values())),
     getEstoqueByPecaId: jest.fn(async (pecaId: string | ObjectId) => {
@@ -54,7 +54,7 @@ jest.mock('../../src/Repository/EstoqueRepository', () => ({
   })),
 }));
 
-jest.mock('../../src/Repository/MovimentacaoEstoqueRepository', () => ({
+jest.mock('../../src/Repository/movimentacao-estoque-repository', () => ({
   MovimentacaoEstoqueRepository: jest.fn().mockImplementation(() => ({
     createMovimentacao: jest.fn(async (movimentacao: any) => {
       movimentacoesStore.push({ ...movimentacao, pecaId: movimentacao.pecaId.toString() });
