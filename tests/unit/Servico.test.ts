@@ -1,4 +1,4 @@
-import { Servico } from '../../src/Entities/Servico';
+import { Servico } from '../../src/Entities/servico';
 
 describe('Servico', () => {
   test('deve criar instância de Servico com todos os atributos', () => {

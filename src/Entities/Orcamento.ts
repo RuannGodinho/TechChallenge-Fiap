@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
-import { Servico } from "./Servico";
-import { Peca } from "./Estoque/Peca";
+import { Servico } from "./servico";
+import { Peca } from "./Estoque/peca";
 
 export class Orcamento {
    ordemServicoId: ObjectId;

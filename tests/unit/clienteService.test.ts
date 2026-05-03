@@ -1,5 +1,5 @@
-import { ClienteService } from '../../src/services/ClienteService';
-import { Cliente } from '../../src/Entities/Cliente';
+import { ClienteService } from '../../src/services/cliente-service';
+import { Cliente } from '../../src/Entities/cliente';
 
 describe('ClienteService', () => {
   let repo: any;
@@ -43,7 +43,7 @@ describe('ClienteService', () => {
     // Arrange
     const invalidPayload = {
       nome: 'Cliente Inválido',
-      email: 'invalido@teste.com',
+      Email: 'invalido@teste.com',
       cpf: '000.000.000-00',
       telefone: '11999999999',
     };

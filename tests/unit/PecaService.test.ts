@@ -1,6 +1,6 @@
-import { PecaService } from '../../src/services/PecaService';
+import { PecaService } from '../../src/services/peca-service';
 import { ObjectId } from 'mongodb';
-import { Peca } from '../../src/Entities/Estoque/Peca';
+import { Peca } from '../../src/Entities/Estoque/peca';
 
 describe('PecaService', () => {
   const getAllPecasMock = jest.fn();

@@ -1,13 +1,13 @@
 import { ObjectId } from 'mongodb';
 import { connectDatabase } from '../../src/config/database';
-import { ClienteRepository } from '../../src/Repository/ClienteRepository';
-import { PecaRepository } from '../../src/Repository/PecaRepository';
-import { EstoqueRepository } from '../../src/Repository/EstoqueRepository';
-import { MovimentacaoEstoqueRepository } from '../../src/Repository/MovimentacaoEstoqueRepository';
-import { OrdemServicoRepository } from '../../src/Repository/OrdemServicoRepository';
-import { OrcamentoRepository } from '../../src/Repository/OrcamentoRepository';
-import { ServicoRepository } from '../../src/Repository/ServicoRepository';
-import { VeiculoRepository } from '../../src/Repository/VeiculoRepository';
+import { ClienteRepository } from '../../src/Repository/cliente-repository';
+import { PecaRepository } from '../../src/Repository/peca-repository';
+import { EstoqueRepository } from '../../src/Repository/estoque-repository';
+import { MovimentacaoEstoqueRepository } from '../../src/Repository/movimentacao-estoque-repository';
+import { OrdemServicoRepository } from '../../src/Repository/ordem-servico-repository';
+import { OrcamentoRepository } from '../../src/Repository/orcamento-repository';
+import { ServicoRepository } from '../../src/Repository/servico-repository';
+import { VeiculoRepository } from '../../src/Repository/veiculo-repository';
 
 jest.mock('../../src/config/database', () => ({
   connectDatabase: jest.fn(),

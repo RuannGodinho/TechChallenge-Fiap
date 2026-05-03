@@ -1,4 +1,4 @@
-import { PlacaValidator } from '../../src/validators/PlacaValidator';
+import { PlacaValidator } from '../../src/validators/placa-validator';
 
 describe('PlacaValidator', () => {
   test('deve validar placas no formato antigo', () => {

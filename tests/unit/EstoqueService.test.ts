@@ -1,7 +1,7 @@
-import { EstoqueService } from '../../src/services/EstoqueService';
+import { EstoqueService } from '../../src/services/estoque-service';
 import { ObjectId } from 'mongodb';
-import { Estoque } from '../../src/Entities/Estoque/Estoque';
-import { MovimentacaoEstoque } from '../../src/Entities/Estoque/MovimentacaoEstoque';
+import { Estoque } from '../../src/Entities/Estoque/estoque';
+import { MovimentacaoEstoque } from '../../src/Entities/Estoque/movimentacao-estoque';
 
 describe('EstoqueService', () => {
   const getAllEstoqueMock = jest.fn();

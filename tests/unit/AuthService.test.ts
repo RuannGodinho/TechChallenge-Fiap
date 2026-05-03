@@ -1,4 +1,4 @@
-import { AuthService, verifyToken } from '../../src/services/AuthService';
+import { AuthService, verifyToken } from '../../src/services/auth-service';
 
 describe('AuthService', () => {
   const authService = new AuthService();

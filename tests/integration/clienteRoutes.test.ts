@@ -4,7 +4,7 @@ import { getAuthToken } from "../Helper/getAuthToken";
 
 const clientesStore = new Map<string, any>();
 
-jest.mock('../../src/Repository/ClienteRepository', () => ({
+jest.mock('../../src/Repository/cliente-repository', () => ({
   ClienteRepository: jest.fn().mockImplementation(() => ({
     getAllClientes: jest.fn(async () => Array.from(clientesStore.values())),
     getClienteById: jest.fn(async (id: string | ObjectId) => {

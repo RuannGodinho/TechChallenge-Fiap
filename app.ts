@@ -1,13 +1,13 @@
 ﻿import express from 'express';
-import clienteRoutes from './src/routes/ClienteRoutes';
-import veiculoRoutes from './src/routes/VeiculoRoutes';
-import servicoRoutes from './src/routes/ServicoRoutes';
-import pecaRoutes from './src/routes/PecaRoutes';
-import estoqueRoutes from './src/routes/EstoqueRoutes';
-import authRoutes from './src/routes/AuthRoutes';
-import ordemServicoRoutes from './src/routes/OrdemServicoRoutes';
-import orcamentoRoutes from './src/routes/OrcamentoRoutes';
-import { normalizeBodyCase } from './src/middleware/normalizeBodyCase';
+import clienteRoutes from './src/routes/cliente-routes';
+import veiculoRoutes from './src/routes/veiculo-routes';
+import servicoRoutes from './src/routes/servico-routes';
+import pecaRoutes from './src/routes/peca-routes';
+import estoqueRoutes from './src/routes/estoque-routes';
+import authRoutes from './src/routes/auth-routes';
+import ordemServicoRoutes from './src/routes/ordem-servico-routes';
+import orcamentoRoutes from './src/routes/orcamento-routes';
+import { normalizeBodyCase } from './src/middleware/normalize-body-case';
 
 const app = express();
 
