@@ -19,6 +19,11 @@ export class OrdemServicoRepository implements IOrdemServicoRepository {
     return await collection.find().toArray();
   }
 
+  async getOSById(id: string): Promise<OrdemServico | null> {
+    const collection = await this.getCollection();
+    return await collection.findOne({ _id: new ObjectId(id) });
+  }   
+
   async updateOrdemServico(id: string, updates: Partial<OrdemServico>): Promise<OrdemServico | null> {
     const collection = await this.getCollection();
     const result = await collection.findOneAndUpdate(

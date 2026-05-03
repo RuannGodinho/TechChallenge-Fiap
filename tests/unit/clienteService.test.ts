@@ -20,10 +20,10 @@ describe('ClienteService', () => {
   test('Deve validar CPF dos clientes - CPF válido aceita criação', async () => {
     // Arrange
     const payload = {
-      Nome: 'Cliente Exemplo',
-      Email: 'cliente@teste.com',
-      Cpf: '111.444.777-35',
-      Telefone: '11999999999',
+      nome: 'Cliente Exemplo',
+      email: 'cliente@teste.com',
+      cpf: '111.444.777-35',
+      telefone: '11999999999',
     };
 
     // Act
@@ -31,21 +31,21 @@ describe('ClienteService', () => {
 
     // Assert
     expect(repo.criarCliente).toHaveBeenCalledWith(expect.objectContaining({
-      Nome: payload.Nome,
-      Email: payload.Email,
-      Cpf: '111.444.777-35',
-      Telefone: payload.Telefone,
+      nome: payload.nome,
+      email: payload.email,
+      cpf: '111.444.777-35',
+      telefone: payload.telefone,
     }));
-    expect(cliente.Cpf).toBe('111.444.777-35');
+    expect(cliente.cpf).toBe('111.444.777-35');
   });
 
   test('Deve validar CPF dos clientes - CPF inválido rejeita criação', async () => {
     // Arrange
     const invalidPayload = {
-      Nome: 'Cliente Inválido',
-      Email: 'invalido@teste.com',
-      Cpf: '000.000.000-00',
-      Telefone: '11999999999',
+      nome: 'Cliente Inválido',
+      email: 'invalido@teste.com',
+      cpf: '000.000.000-00',
+      telefone: '11999999999',
     };
 
     // Act / Assert
@@ -63,21 +63,21 @@ describe('ClienteService', () => {
 
     // Assert
     expect(cliente).not.toBeNull();
-    expect(cliente?.Cpf).toBe('111.444.777-35');
+    expect(cliente?.cpf).toBe('111.444.777-35');
   });
 
   test('Deve tratar dados sensíveis com validações adequadas - CPF é sanitizado ao atualizar cliente', async () => {
     // Arrange
     const existing = new Cliente('Nome', 'email@teste.com', '11144477735', '11999999999');
     repo.getClienteById.mockResolvedValue(existing);
-    const updates = { Cpf: '111.444.777-35' };
+    const updates = { cpf: '111.444.777-35' };
 
     // Act
     const updated = await service.atualizarCliente('any-id', updates);
 
     // Assert
-    expect(repo.atualizarCliente).toHaveBeenCalledWith('any-id', expect.objectContaining({ Cpf: '11144477735' }));
-    expect(updated?.Cpf).toBe('11144477735');
+    expect(repo.atualizarCliente).toHaveBeenCalledWith('any-id', expect.objectContaining({ cpf: '11144477735' }));
+    expect(updated?.cpf).toBe('11144477735');
   });
 
   test('Deve oferecer CRUD de clientes - não deletar cliente inexistente', async () => {

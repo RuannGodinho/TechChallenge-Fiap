@@ -5,9 +5,9 @@ describe('Veiculo', () => {
     const veiculo = new Veiculo('ABC1234', 'Civic', 2022, 'Honda');
 
     expect(veiculo).toBeInstanceOf(Veiculo);
-    expect(veiculo.Placa).toBe('ABC1234');
-    expect(veiculo.Modelo).toBe('Civic');
-    expect(veiculo.Ano).toBe(2022);
-    expect(veiculo.Marca).toBe('Honda');
+    expect(veiculo.placa).toBe('ABC1234');
+    expect(veiculo.modelo).toBe('Civic');
+    expect(veiculo.ano).toBe(2022);
+    expect(veiculo.marca).toBe('Honda');
   });
 });

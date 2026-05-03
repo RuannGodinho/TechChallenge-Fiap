@@ -1,13 +1,13 @@
 import { ObjectId } from "mongodb";
 
 export class OrdemPecaItem {
-    PecaId: ObjectId;
-    Quantidade: number;
-    ValorUnitario: number;
+    pecaId: ObjectId;
+    quantidade: number;
+    valorUnitario: number;
 
-    constructor(PecaId: ObjectId, Quantidade: number, ValorUnitario: number) {
-        this.PecaId = PecaId;
-        this.Quantidade = Quantidade;
-        this.ValorUnitario = ValorUnitario;
+    constructor(pecaId: ObjectId, quantidade: number, valorUnitario: number) {
+        this.pecaId = pecaId;
+        this.quantidade = quantidade;
+        this.valorUnitario = valorUnitario;
     }
 }

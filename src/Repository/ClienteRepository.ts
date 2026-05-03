@@ -26,7 +26,7 @@ export class ClienteRepository implements IClienteRepository {
     async getClienteByCpf(cpf: string): Promise<Cliente | null> {
         const collection = await this.getCollection();
 
-        return await collection.findOne({ Cpf: cpf });
+        return await collection.findOne({ cpf: cpf });
     }
 
     async testeMockCliente(id: string): Promise<string> {

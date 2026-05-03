@@ -15,9 +15,9 @@ export class VeiculoService implements IVeiculoService {
     }
 
     async criarVeiculo(veiculoData: Omit<Veiculo, 'id'>): Promise<Veiculo> {
-        const veiculo = new Veiculo(veiculoData.Placa, veiculoData.Modelo, veiculoData.Ano, veiculoData.Marca);
+        const veiculo = new Veiculo(veiculoData.placa, veiculoData.modelo, veiculoData.ano, veiculoData.marca);
 
-        if (!PlacaValidator.isValid(veiculo.Placa)) 
+        if (!PlacaValidator.isValid(veiculo.placa)) 
             throw new Error("Placa inválida");
         
         await this.repo.criarVeiculo(veiculo);
@@ -30,7 +30,7 @@ export class VeiculoService implements IVeiculoService {
 
         const updated = { ...existing, ...veiculoData };
 
-        if(veiculoData.Placa && !PlacaValidator.isValid(veiculoData.Placa)) 
+        if(veiculoData.placa && !PlacaValidator.isValid(veiculoData.placa)) 
             throw new Error("Placa inválida");
         
         await this.repo.atualizarVeiculo(id, updated);

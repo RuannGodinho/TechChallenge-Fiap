@@ -40,12 +40,12 @@ router.get("/veiculos/:id", authMiddleware, async (req: Request, res: Response) 
 
 router.post("/veiculos", authMiddleware, async (req: Request, res: Response) => {
     try {
-        const { Placa, Modelo, Ano, Marca } = req.body;
-        if (!Placa || !Modelo || !Ano || !Marca)
-            return res.status(400).json({ error: "Placa, Modelo, Ano, and Marca are required" });
+        const { placa, modelo, ano, marca } = req.body;
+        if (!placa || !modelo || !ano || !marca)
+            return res.status(400).json({ error: "placa, modelo, ano e marca são obrigatórios" });
 
-        const Veiculo = await veiculoController.criarVeiculo({ Placa, Modelo, Ano, Marca });
-        return res.status(201).json(Veiculo);
+        const veiculo = await veiculoController.criarVeiculo({ placa, modelo, ano, marca });
+        return res.status(201).json(veiculo);
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
     }
@@ -58,15 +58,15 @@ router.put("/veiculos/:id", authMiddleware, async (req: Request, res: Response) 
         if (id === ':id')
             return res.status(400).json({ error: "ID do veículo é obrigatório" });
 
-        const { Placa, Modelo, Ano, Marca } = req.body;
+        const { placa, modelo, ano, marca } = req.body;
 
-        const Veiculo = await veiculoController.atualizarVeiculo(id, { Placa, Modelo, Ano, Marca });
+        const veiculo = await veiculoController.atualizarVeiculo(id, { placa, modelo, ano, marca });
 
-        if (!Veiculo) {
+        if (!veiculo) {
             return res.status(404).json({ error: "Veiculo not found" });
         }
 
-        return res.json(Veiculo);
+        return res.json(veiculo);
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
     }

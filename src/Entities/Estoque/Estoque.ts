@@ -1,11 +1,11 @@
 import { ObjectId } from "mongodb";
 
 export class Estoque {
-    PecaId: ObjectId;
-    Quantidade: number;
+    pecaId: ObjectId;
+    quantidade: number;
 
-    constructor(PecaId: ObjectId, Quantidade: number) {
-        this.PecaId = PecaId;
-        this.Quantidade = Quantidade;
+    constructor(pecaId: ObjectId, quantidade: number) {
+        this.pecaId = pecaId;
+        this.quantidade = quantidade;
     }
 }

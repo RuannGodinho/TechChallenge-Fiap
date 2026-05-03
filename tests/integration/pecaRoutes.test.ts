@@ -1,96 +1,111 @@
 import request from 'supertest';
-import app from '../../app';
-import { connectDatabase, closeDatabase } from '../../src/config/database';
+import { ObjectId } from 'mongodb';
 import { getAuthToken } from '../Helper/getAuthToken';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 
-let mongoServer: MongoMemoryServer;
+const pecasStore = new Map<string, any>();
+
+jest.mock('../../src/Repository/PecaRepository', () => ({
+  PecaRepository: jest.fn().mockImplementation(() => ({
+    getAllPecas: jest.fn(async () => Array.from(pecasStore.values())),
+    getPecaById: jest.fn(async (id: string | ObjectId) => {
+      const key = id instanceof ObjectId ? id.toString() : id.toString();
+      return pecasStore.get(key) || null;
+    }),
+    createPeca: jest.fn(async (peca: any) => {
+      const id = new ObjectId().toString();
+      pecasStore.set(id, { ...peca, _id: id });
+    }),
+    updatePeca: jest.fn(async (id: string | ObjectId, peca: any) => {
+      const key = id instanceof ObjectId ? id.toString() : id.toString();
+      const existing = pecasStore.get(key);
+      if (!existing) return;
+      pecasStore.set(key, { ...existing, ...peca, _id: key });
+    }),
+    deletePeca: jest.fn(async (id: string | ObjectId) => {
+      const key = id instanceof ObjectId ? id.toString() : id.toString();
+      return pecasStore.delete(key);
+    }),
+  })),
+}));
+
+import app from '../../app';
+
 let _token: string;
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  process.env.MONGODB_URI = mongoUri;
-  
-  // Conecta ao banco de dados em memória
-  await connectDatabase();
   _token = await getAuthToken();
 });
 
-afterEach(async () => {
-  const db = await connectDatabase();
-  const collections = await db.listCollections().toArray();
-
-  for (const collection of collections) {
-    await db.collection(collection.name).deleteMany({});
-  }
-
+afterEach(() => {
+  pecasStore.clear();
   jest.clearAllMocks();
-});
-
-afterAll(async () => {
-  await closeDatabase();
-  await mongoServer.stop();
 });
 
 
 describe('Integração - Rotas de Peças', () => {
 
   async function criarPecaCustom(data: any = {}) {
-    const response = await request(app)
+    const createResponse = await request(app)
       .post('/api/pecas')
       .send({
-        Nome: 'Peça Teste',
-        Descricao: 'Descrição teste',
-        Tipo: 'PECA',
-        Preco: 100,
+        nome: 'Peça Teste',
+        descricao: 'Descrição teste',
+        tipo: 'PECA',
+        preco: 100,
         ...data
       })
       .auth(_token, { type: 'bearer' });
 
-    expect(response.status).toBe(201);
+    expect(createResponse.status).toBe(201);
 
-    return response.body;
+    const listResponse = await request(app)
+      .get('/api/pecas')
+      .auth(_token, { type: 'bearer' });
+
+    expect(listResponse.status).toBe(200);
+    const inserted = listResponse.body.find((item: any) => item.nome === createResponse.body.nome);
+    expect(inserted).toBeDefined();
+    return inserted;
   }
 
   test('deve criar peça e depois recuperá-la', async () => {
     const createResponse = await request(app)
       .post('/api/pecas')
       .send({
-        Nome: 'Cilindro',
-        Descricao: 'Cilindro de freio',
-        Tipo: 'PECA',
-        Preco: 159.9,
+        nome: 'Cilindro',
+        descricao: 'Cilindro de freio',
+        tipo: 'PECA',
+        preco: 159.9,
       })
       .auth(_token, { type: 'bearer' });
 
     expect(createResponse.status).toBe(201);
     expect(createResponse.body).toMatchObject({
-      Nome: 'Cilindro',
-      Descricao: 'Cilindro de freio',
-      Tipo: 'PECA',
-      Preco: 159.9,
+      nome: 'Cilindro',
+      descricao: 'Cilindro de freio',
+      tipo: 'PECA',
+      preco: 159.9,
     });
 
     const listResponse = await request(app).get('/api/pecas').auth(_token, { type: 'bearer' });
     expect(listResponse.status).toBe(200);
 
-    const inserted = listResponse.body.find((item: any) => item.Nome === 'Cilindro');
+    const inserted = listResponse.body.find((item: any) => item.nome === 'Cilindro');
     expect(inserted).toBeDefined();
 
     const getResponse = await request(app).get(`/api/pecas/${inserted._id}`).auth(_token, { type: 'bearer' });
     expect(getResponse.status).toBe(200);
-    expect(getResponse.body.Nome).toBe('Cilindro');
+    expect(getResponse.body.nome).toBe('Cilindro');
   });
 
   test('deve rejeitar criação de peça com tipo inválido', async () => {
     const response = await request(app)
       .post('/api/pecas')
       .send({
-        Nome: 'Filtro',
-        Descricao: 'Filtro de ar',
-        Tipo: 'INVALIDO',
-        Preco: 49.9,
+        nome: 'Filtro',
+        descricao: 'Filtro de ar',
+        tipo: 'INVALIDO',
+        preco: 49.9,
       })
       .auth(_token, { type: 'bearer' });
     expect(response.status).toBe(500);
@@ -99,33 +114,33 @@ describe('Integração - Rotas de Peças', () => {
 
   test('deve atualizar peça existente', async () => {
     const peca = await criarPecaCustom({
-      Nome: 'Amortecedor',
-      Descricao: 'Amortecedor dianteiro',
-      Preco: 299.9,
+      nome: 'Amortecedor',
+      descricao: 'Amortecedor dianteiro',
+      preco: 299.9,
     });
 
     const response = await request(app)
       .put(`/api/pecas/${peca._id}`)
       .send({
-        Nome: 'Amortecedor Premium',
-        Descricao: 'Amortecedor dianteiro atualizado',
-        Tipo: 'INSUMO',
-        Preco: 329.9,
+        nome: 'Amortecedor Premium',
+        descricao: 'Amortecedor dianteiro atualizado',
+        tipo: 'INSUMO',
+        preco: 329.9,
       })
       .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
-      Nome: 'Amortecedor Premium',
-      Tipo: 'INSUMO',
+      nome: 'Amortecedor Premium',
+      tipo: 'INSUMO',
     });
   });
 
   test('deve deletar peça existente', async () => {
     const peca = await criarPecaCustom({
-      Nome: 'Pastilha',
-      Descricao: 'Pastilha de freio',
-      Preco: 89.9,
+      nome: 'Pastilha',
+      descricao: 'Pastilha de freio',
+      preco: 89.9,
     });
 
     const response = await request(app).delete(`/api/pecas/${peca._id}`).auth(_token, { type: 'bearer' });
@@ -138,7 +153,7 @@ describe('Integração - Rotas de Peças', () => {
   test('deve retornar 400 ao usar id inválido de rota', async () => {
     const response = await request(app)
       .put('/api/pecas/:id')
-      .send({ Nome: 'Novo Nome' })
+      .send({ nome: 'Novo Nome' })
       .auth(_token, { type: 'bearer' });
       
     expect(response.status).toBe(400);

@@ -1,13 +1,13 @@
 export class Cliente {
-    Nome: string;
-    Email: string;
-    Cpf: string;
-    Telefone: string;
+    nome: string;
+    email: string;
+    cpf: string;
+    telefone: string;
 
     constructor(nome: string, email: string, cpf: string, telefone: string) {
-        this.Nome = nome;
-        this.Email = email;
-        this.Cpf = cpf;
-        this.Telefone = telefone;
+        this.nome = nome;
+        this.email = email;
+        this.cpf = cpf;
+        this.telefone = telefone;
     }
 }

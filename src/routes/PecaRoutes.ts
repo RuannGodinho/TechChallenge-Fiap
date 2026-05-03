@@ -39,12 +39,12 @@ router.get('/pecas/:id', authMiddleware, async (req: Request, res: Response) => 
 
 router.post('/pecas', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { Nome, Descricao, Tipo, Preco } = req.body;
-    if (!Nome || !Descricao || !Tipo || Preco == null) {
-      return res.status(400).json({ error: 'Nome, Descricao, Tipo, and Preco are required' });
+    const { nome, descricao, tipo, preco } = req.body;
+    if (!nome || !descricao || !tipo || preco == null) {
+      return res.status(400).json({ error: 'nome, descricao, tipo e preco são obrigatórios' });
     }
 
-    const peca = await pecaController.createPeca({ Nome, Descricao, Tipo, Preco });
+    const peca = await pecaController.createPeca({ nome, descricao, tipo, preco });
     return res.status(201).json(peca);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -58,9 +58,9 @@ router.put('/pecas/:id', authMiddleware, async (req: Request, res: Response) => 
     if (id === ':id')
       return res.status(400).json({ error: "ID da peça é obrigatório" });    
 
-    const { Nome, Descricao, Tipo, Preco } = req.body;
+    const { nome, descricao, tipo, preco } = req.body;
 
-    const peca = await pecaController.updatePeca(id, { Nome, Descricao, Tipo, Preco });
+    const peca = await pecaController.updatePeca(id, { nome, descricao, tipo, preco });
 
     if (!peca) {
       return res.status(404).json({ error: 'Peca not found' });

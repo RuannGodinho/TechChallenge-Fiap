@@ -1,10 +1,10 @@
 export const StatusOS = {
-  RECEBIDA: "Recebida",
-  EM_DIAGNOSTICO: "Em Diagnostico",
-  AGUARDANDO_APROVACAO: "Aguardando Aprovacao",
-  EM_EXECUCAO: "Em Execucao",
-  FINALIZADA: "Finalizada",
-  ENTREGUE: "Entregue"
+  RECEBIDA: "RECEBIDA",
+  EM_DIAGNOSTICO: "EM DIAGNOSTICO",
+  AGUARDANDO_APROVACAO: "AGUARDANDO APROVACAO",
+  EM_EXECUCAO: "EM EXECUCAO",
+  FINALIZADA: "FINALIZADA",
+  ENTREGUE: "ENTREGUE"
 } as const;
 
-export type TipoItem = typeof StatusOS[keyof typeof StatusOS];
+export type StatusOS = typeof StatusOS[keyof typeof StatusOS];

@@ -14,7 +14,7 @@ export class ServicoService implements IServicoService {
     }
 
     async createServico(ServicoData: Omit<Servico, 'id'>): Promise<Servico> {
-        const servico = new Servico(ServicoData.Nome, ServicoData.Descricao, ServicoData.Preco);
+        const servico = new Servico(ServicoData.nome, ServicoData.descricao, ServicoData.preco);
         await this.repo.createServico(servico);
         return servico;
     }

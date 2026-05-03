@@ -1,13 +1,13 @@
 export class Veiculo {
-    Placa: string;
-    Modelo: string;
-    Ano: number;
-    Marca: string;
+    placa: string;
+    modelo: string;
+    ano: number;
+    marca: string;
 
     constructor(placa: string, modelo: string, ano: number, marca: string) {
-        this.Placa = placa;
-        this.Modelo = modelo;
-        this.Ano = ano;
-        this.Marca = marca;
+        this.placa = placa;
+        this.modelo = modelo;
+        this.ano = ano;
+        this.marca = marca;
     }
 }

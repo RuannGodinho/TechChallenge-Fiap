@@ -3,4 +3,4 @@ export const TipoMovimentacao = {
   SAIDA: "SAIDA"
 } as const;
 
-export type TipoItem = typeof TipoMovimentacao[keyof typeof TipoMovimentacao];
+export type TipoMovimentacao = typeof TipoMovimentacao[keyof typeof TipoMovimentacao];

@@ -14,7 +14,7 @@ export class ClienteService implements IClienteService {
         const cliente = await this.repo.getClienteById(id);
 
         if (cliente != null)
-            cliente.Cpf = cpfValidator.format(cliente.Cpf);
+            cliente.cpf = cpfValidator.format(cliente.cpf);
 
         return cliente;
     }
@@ -28,23 +28,23 @@ export class ClienteService implements IClienteService {
         const cliente = await this.repo.getClienteByCpf(strippedCpf);
 
         if (cliente != null)
-            cliente.Cpf = cpfValidator.format(cliente.Cpf);
+            cliente.cpf = cpfValidator.format(cliente.cpf);
 
         return cliente;
     }
 
     async criarCliente(clienteData: Omit<Cliente, 'id'>): Promise<Cliente> {
         try {
-        const cliente = new Cliente(clienteData.Nome, clienteData.Email, clienteData.Cpf, clienteData.Telefone);
+        const cliente = new Cliente(clienteData.nome, clienteData.email, clienteData.cpf, clienteData.telefone);
 
-        if (!cpfValidator.isValid(cliente.Cpf))
+        if (!cpfValidator.isValid(cliente.cpf))
             throw new Error("CPF inválido");
 
-        cliente.Cpf = cpfValidator.strip(cliente.Cpf);
+        cliente.cpf = cpfValidator.strip(cliente.cpf);
         
         await this.repo.criarCliente(cliente);
 
-        cliente.Cpf = cpfValidator.format(cliente.Cpf);
+        cliente.cpf = cpfValidator.format(cliente.cpf);
 
         return cliente;
         } catch (error: any) {
@@ -57,12 +57,12 @@ export class ClienteService implements IClienteService {
 
         if (!existing) return null;
 
-        if (clienteData.Cpf != null)
-            clienteData.Cpf = cpfValidator.strip(clienteData.Cpf);
+        if (clienteData.cpf != null)
+            clienteData.cpf = cpfValidator.strip(clienteData.cpf);
 
         const updated = { ...existing, ...clienteData };
 
-        if (!cpfValidator.isValid(updated.Cpf))
+        if (!cpfValidator.isValid(updated.cpf))
             throw new Error("CPF inválido");
 
         await this.repo.atualizarCliente(id, updated);

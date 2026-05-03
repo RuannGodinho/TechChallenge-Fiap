@@ -5,8 +5,8 @@ describe('Servico', () => {
     const servico = new Servico('Troca de óleo', 'Troca de óleo completo com filtro', 249.99);
 
     expect(servico).toBeInstanceOf(Servico);
-    expect(servico.Nome).toBe('Troca de óleo');
-    expect(servico.Descricao).toBe('Troca de óleo completo com filtro');
-    expect(servico.Preco).toBe(249.99);
+    expect(servico.nome).toBe('Troca de óleo');
+    expect(servico.descricao).toBe('Troca de óleo completo com filtro');
+    expect(servico.preco).toBe(249.99);
   });
 });

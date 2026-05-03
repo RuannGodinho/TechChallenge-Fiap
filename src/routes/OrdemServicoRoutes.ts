@@ -12,6 +12,8 @@ import { ServicoRepository } from '../Repository/ServicoRepository';
 import { ServicoService } from '../services/ServicoService';
 import { EstoqueRepository } from '../Repository/EstoqueRepository';
 import { EstoqueService } from '../services/EstoqueService';
+import { OrcamentoRepository } from '../Repository/OrcamentoRepository';
+import { OrcamentoService } from '../services/OrcamentoService';
 import { MovimentacaoEstoqueRepository } from '../Repository/MovimentacaoEstoqueRepository';
 import { authMiddleware } from '../middleware/AuthMiddleware';
 
@@ -28,11 +30,13 @@ const estoqueRepo = new EstoqueRepository();
 const movimentacaoRepo = new MovimentacaoEstoqueRepository();
 const estoqueService = new EstoqueService(estoqueRepo, movimentacaoRepo, pecaRepo);
 const ordemServicoRepo = new OrdemServicoRepository();
-const ordemServicoService = new OrdemServicoService(ordemServicoRepo, clienteService, veiculoService, pecaService, servicoService, estoqueService);
+const orcamentoRepo = new OrcamentoRepository();
+const orcamentoService = new OrcamentoService(orcamentoRepo);
+const ordemServicoService = new OrdemServicoService(ordemServicoRepo, clienteService, veiculoService, pecaService, servicoService, estoqueService, orcamentoService);
 const ordemServicoController = new OrdemServicoController(ordemServicoService);
 
 router.post('/ordensServico', authMiddleware, async (req: Request, res: Response) => {
-  const { cpfCnpj, veiculoId, Pecas, Servicos } = req.body;
+  const { cpfCnpj, veiculoId, pecas, servicos } = req.body;
   // const clienteCpfCnpj = cpfCnpj || CpfCnpj;
   // const veiculoId = veiculo || Veiculo;
 
@@ -42,10 +46,10 @@ router.post('/ordensServico', authMiddleware, async (req: Request, res: Response
 
   try {
     const ordem = await ordemServicoController.createOrdemServico({
-      CpfCnpj: cpfCnpj,
-      Veiculo: veiculoId,
-      Pecas: Pecas || [],
-      Servicos: Servicos || []
+      cpfCnpj: cpfCnpj,
+      veiculo: veiculoId,
+      pecas: pecas || [],
+      servicos: servicos || []
     } as any);
 
     return res.status(201).json(ordem);

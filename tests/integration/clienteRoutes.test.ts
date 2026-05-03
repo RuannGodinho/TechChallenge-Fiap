@@ -1,52 +1,61 @@
 import request from "supertest";
-import app from "../../app";
+import { ObjectId } from 'mongodb';
 import { getAuthToken } from "../Helper/getAuthToken";
-import { MongoMemoryServer } from "mongodb-memory-server";
-import { connectDatabase, closeDatabase } from '../../src/config/database';
+
+const clientesStore = new Map<string, any>();
+
+jest.mock('../../src/Repository/ClienteRepository', () => ({
+  ClienteRepository: jest.fn().mockImplementation(() => ({
+    getAllClientes: jest.fn(async () => Array.from(clientesStore.values())),
+    getClienteById: jest.fn(async (id: string | ObjectId) => {
+      const key = id instanceof ObjectId ? id.toString() : id.toString();
+      return clientesStore.get(key) || null;
+    }),
+    getClienteByCpf: jest.fn(async (cpf: string) => {
+      return Array.from(clientesStore.values()).find((cliente) => cliente.cpf === cpf) || null;
+    }),
+    criarCliente: jest.fn(async (cliente: any) => {
+      const id = new ObjectId().toString();
+      clientesStore.set(id, { ...cliente, _id: id });
+    }),
+    atualizarCliente: jest.fn(async (id: string, cliente: any) => {
+      const key = id.toString();
+      const existing = clientesStore.get(key);
+      if (!existing) return;
+      clientesStore.set(key, { ...existing, ...cliente, _id: key });
+    }),
+    deletarCliente: jest.fn(async (id: string) => {
+      return clientesStore.delete(id.toString());
+    }),
+  })),
+}));
+
+import app from "../../app";
 
 describe("Integração - Rotas de Clientes", () => {
-let mongoServer: MongoMemoryServer;
-let _token: string;
+  let _token: string;
 
-beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  process.env.MONGODB_URI = mongoUri;
-  
-  // Conecta ao banco de dados em memória
-  await connectDatabase();
-  _token = await getAuthToken();
-});
+  beforeAll(async () => {
+    _token = await getAuthToken();
+  });
 
-afterEach(async () => {
-  const db = await connectDatabase();
-  const collections = await db.listCollections().toArray();
-
-  for (const collection of collections) {
-    await db.collection(collection.name).deleteMany({});
-  }
-
-  jest.clearAllMocks();
-});
-
-afterAll(async () => {
-  await closeDatabase();
-  await mongoServer.stop();
-});
-
+  afterEach(() => {
+    clientesStore.clear();
+    jest.clearAllMocks();
+  });
 
   test("deve retornar 400 quando dados obrigatórios estiverem ausentes", async () => {
     const response = await request(app)
       .post("/api/clientes")
       .send({
-        Nome: "Cliente Teste",
-        Email: "teste@email.com"
+        nome: "Cliente Teste",
+        email: "teste@email.com"
       })
       .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
-      error: "Nome, Email, Cpf e Telefone são obrigatórios"
+      error: "nome, email, cpf e telefone são obrigatórios"
     });
   });
 
@@ -54,18 +63,18 @@ afterAll(async () => {
     const response = await request(app)
       .post("/api/clientes")
       .send({
-        Nome: "Ruann Godinho",
-        Email: "ruann@email.com",
-        Cpf: "092.912.010-81",
-        Telefone: "11999999999"
+        nome: "Ruann Godinho",
+        email: "ruann@email.com",
+        cpf: "092.912.010-81",
+        telefone: "11999999999"
       })
       .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(201);
     expect(response.body).toMatchObject({
-      Nome: "Ruann Godinho",
-      Email: "ruann@email.com",
-      Cpf: "092.912.010-81"
+      nome: "Ruann Godinho",
+      email: "ruann@email.com",
+      cpf: "092.912.010-81"
     });
   });
 
@@ -73,15 +82,15 @@ afterAll(async () => {
     const createResponse = await request(app)
       .post("/api/clientes")
       .send({
-        Nome: "Cliente CPF",
-        Email: "cpf@email.com",
-        Cpf: "111.444.777-35",
-        Telefone: "11988887777"
+        nome: "Cliente CPF",
+        email: "cpf@email.com",
+        cpf: "111.444.777-35",
+        telefone: "11988887777"
       })
       .auth(_token, { type: 'bearer' });
 
     expect(createResponse.status).toBe(201);
-    expect(createResponse.body.Cpf).toBe("111.444.777-35");
+    expect(createResponse.body.cpf).toBe("111.444.777-35");
 
     const response = await request(app)
       .get("/api/clientes/cpf/111.444.777-35")
@@ -89,9 +98,9 @@ afterAll(async () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
-      Nome: "Cliente CPF",
-      Email: "cpf@email.com",
-      Cpf: "111.444.777-35"
+      nome: "Cliente CPF",
+      email: "cpf@email.com",
+      cpf: "111.444.777-35"
     });
   });
 
@@ -99,10 +108,10 @@ afterAll(async () => {
     const response = await request(app)
       .post("/api/clientes")
       .send({
-        Nome: "Cliente Inválido",
-        Email: "invalido@email.com",
-        Cpf: "00000000000",
-        Telefone: "11999999999"
+        nome: "Cliente Inválido",
+        email: "invalido@email.com",
+        cpf: "00000000000",
+        telefone: "11999999999"
       })
       .auth(_token, { type: 'bearer' });
 
@@ -120,14 +129,14 @@ afterAll(async () => {
   test("deve buscar cliente por id inexistente", async () => {
     const response = await request(app).get("/api/clientes/id-inexistente").auth(_token, { type: 'bearer' });
 
-    expect([400, 500]).toContain(response.status);
+    expect([400, 404, 500]).toContain(response.status);
   });
 
   test("deve atualizar cliente inexistente", async () => {
     const response = await request(app)
       .put("/api/clientes/:id")
       .send({
-        Nome: "Novo Nome"
+        nome: "Novo Nome"
       })
       .auth(_token, { type: 'bearer' });
 

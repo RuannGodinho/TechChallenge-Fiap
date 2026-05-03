@@ -18,11 +18,11 @@ describe('Integração - Rotas de Veículos', () => {
   test('deve retornar 400 quando dados obrigatórios estiverem ausentes', async () => {
     const response = await request(app)
       .post('/api/veiculos')
-      .send({ Modelo: 'Civic', Ano: 2022, Marca: 'Honda' })
+      .send({ modelo: 'Civic', ano: 2022, marca: 'Honda' })
       .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ error: 'Placa, Modelo, Ano, and Marca are required' });
+    expect(response.body).toEqual({ error: 'placa, modelo, ano e marca são obrigatórios' });
   });
 
   test('deve criar veículo com sucesso', async () => {
@@ -30,11 +30,11 @@ describe('Integração - Rotas de Veículos', () => {
 
     const response = await request(app)
       .post('/api/veiculos')
-      .send({ Placa: 'ABC1234', Modelo: 'Civic', Ano: 2022, Marca: 'Honda' })
+      .send({ placa: 'ABC1234', modelo: 'Civic', ano: 2022, marca: 'Honda' })
       .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(201);
-    expect(response.body).toMatchObject({ Placa: 'ABC1234', Modelo: 'Civic', Ano: 2022, Marca: 'Honda' });
+    expect(response.body).toMatchObject({ placa: 'ABC1234', modelo: 'Civic', ano: 2022, marca: 'Honda' });
   });
 
   test('deve retornar 404 ao buscar veículo inexistente', async () => {
@@ -51,7 +51,7 @@ describe('Integração - Rotas de Veículos', () => {
 
     const response = await request(app)
       .put('/api/veiculos/id-inexistente')
-      .send({ Placa: 'ABC1234', Modelo: 'Civic', Ano: 2022, Marca: 'Honda' })
+      .send({ placa: 'ABC1234', modelo: 'Civic', ano: 2022, marca: 'Honda' })
       .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(404);

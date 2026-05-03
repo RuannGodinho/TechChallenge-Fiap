@@ -18,11 +18,11 @@ let _token: string;
   test('deve retornar 400 quando dados obrigatórios estiverem ausentes', async () => {
     const response = await request(app)
       .post('/api/servicos')
-      .send({ Nome: 'Troca de óleo', Preco: 249.99 })
+      .send({ nome: 'Troca de óleo', preco: 249.99 })
       .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ error: 'Nome, Descricao, and Preco are required' });
+    expect(response.body).toEqual({ error: 'nome, descricao e preco são obrigatórios' });
   });
 
   test('deve criar serviço com sucesso', async () => {
@@ -30,11 +30,11 @@ let _token: string;
 
     const response = await request(app)
       .post('/api/servicos')
-      .send({ Nome: 'Troca de óleo', Descricao: 'Troca de óleo completo com filtro', Preco: 249.99 })
+      .send({ nome: 'Troca de óleo', descricao: 'Troca de óleo completo com filtro', preco: 249.99 })
       .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(201);
-    expect(response.body).toMatchObject({ Nome: 'Troca de óleo', Descricao: 'Troca de óleo completo com filtro', Preco: 249.99 });
+    expect(response.body).toMatchObject({ nome: 'Troca de óleo', descricao: 'Troca de óleo completo com filtro', preco: 249.99 });
   });
 
   test('deve retornar 404 ao buscar serviço inexistente', async () => {
@@ -51,8 +51,8 @@ let _token: string;
 
     const response = await request(app)
       .put('/api/servicos/id-inexistente')
-      .send({ Nome: 'Troca de óleo', Descricao: 'Troca de óleo completo com filtro', Preco: 249.99 })
-      .auth(_token, { type: 'bearer' });;
+      .send({ nome: 'Troca de óleo', descricao: 'Troca de óleo completo com filtro', preco: 249.99 })
+      .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'Service not found' });

@@ -59,11 +59,11 @@ router.get("/clientes/:id", authMiddleware,  async (req: Request, res: Response)
 
 router.post("/clientes", authMiddleware, async (req: Request, res: Response) => {
     try {
-        const { Nome, Email, Cpf, Telefone } = req.body;
-        if (!Nome || !Email || !Cpf || !Telefone)
-            return res.status(400).json({ error: "Nome, Email, Cpf e Telefone são obrigatórios" });
+        const { nome, email, cpf, telefone } = req.body;
+        if (!nome || !email || !cpf || !telefone)
+            return res.status(400).json({ error: "nome, email, cpf e telefone são obrigatórios" });
 
-        const cliente = await clienteController.criarCliente({ Nome, Email, Cpf, Telefone });
+        const cliente = await clienteController.criarCliente({ nome, email, cpf, telefone });
         return res.status(201).json(cliente);
     } catch (error: any) {
         return res.status(500).json({ error: error.message });

@@ -1,17 +1,17 @@
 import { ObjectId } from "mongodb";
 
 export class MovimentacaoEstoque {
-  PecaId: ObjectId;
-  Tipo: 'ENTRADA' | 'SAIDA';
-  Quantidade: number;
-  Data: Date;
-  Origem?: string; // OS, compra, ajuste
+  pecaId: ObjectId;
+  tipo: 'ENTRADA' | 'SAIDA';
+  quantidade: number;
+  data: Date;
+  origem?: string; // OS, compra, ajuste
 
-  constructor(PecaId: ObjectId, Tipo: 'ENTRADA' | 'SAIDA', Quantidade: number, Data: Date, Origem?: string) {
-    this.PecaId = PecaId;
-    this.Tipo = Tipo;
-    this.Quantidade = Quantidade;
-    this.Data = Data;
-    this.Origem = Origem;
+  constructor(pecaId: ObjectId, tipo: 'ENTRADA' | 'SAIDA', quantidade: number, data: Date, origem?: string) {
+    this.pecaId = pecaId;
+    this.tipo = tipo;
+    this.quantidade = quantidade;
+    this.data = data;
+    this.origem = origem;
   }
 }

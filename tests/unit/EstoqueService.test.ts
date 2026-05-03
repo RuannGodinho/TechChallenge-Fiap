@@ -44,14 +44,14 @@ describe('EstoqueService', () => {
     createMovimentacaoMock.mockResolvedValue(undefined);
 
     const movimentacao = await service.createMovimentacao({
-      PecaId: pecaId as any,
-      Tipo: 'ENTRADA',
-      Quantidade: 10,
-      Data: new Date(),
-      Origem: 'compra',
+      pecaId: pecaId as any,
+      tipo: 'ENTRADA',
+      quantidade: 10,
+      data: new Date(),
+      origem: 'compra',
     });
 
-    expect(movimentacao.Tipo).toBe('ENTRADA');
+    expect(movimentacao.tipo).toBe('ENTRADA');
     expect(createEstoqueMock).toHaveBeenCalledWith(expect.any(Estoque));
     expect(createMovimentacaoMock).toHaveBeenCalledWith(expect.any(MovimentacaoEstoque));
   });
@@ -64,14 +64,14 @@ describe('EstoqueService', () => {
     createMovimentacaoMock.mockResolvedValue(undefined);
 
     const movimentacao = await service.createMovimentacao({
-      PecaId: pecaId as any,
-      Tipo: 'SAIDA',
-      Quantidade: 4,
-      Data: new Date(),
-      Origem: 'ordem',
+      pecaId: pecaId as any,
+      tipo: 'SAIDA',
+      quantidade: 4,
+      data: new Date(),
+      origem: 'ordem',
     });
 
-    expect(movimentacao.Tipo).toBe('SAIDA');
+    expect(movimentacao.tipo).toBe('SAIDA');
     expect(updateEstoqueMock).toHaveBeenCalledWith(pecaId, 6);
     expect(createMovimentacaoMock).toHaveBeenCalledWith(expect.any(MovimentacaoEstoque));
   });
@@ -83,11 +83,11 @@ describe('EstoqueService', () => {
 
     await expect(
       service.createMovimentacao({
-        PecaId: pecaId as any,
-        Tipo: 'SAIDA',
-        Quantidade: 1,
-        Data: new Date(),
-        Origem: 'ordem',
+        pecaId: pecaId as any,
+        tipo: 'SAIDA',
+        quantidade: 1,
+        data: new Date(),
+        origem: 'ordem',
       })
     ).rejects.toThrow('Não há estoque para a peça especificada');
 
@@ -101,11 +101,11 @@ describe('EstoqueService', () => {
 
     await expect(
       service.createMovimentacao({
-        PecaId: pecaId as any,
-        Tipo: 'SAIDA',
-        Quantidade: 5,
-        Data: new Date(),
-        Origem: 'ordem',
+        pecaId: pecaId as any,
+        tipo: 'SAIDA',
+        quantidade: 5,
+        data: new Date(),
+        origem: 'ordem',
       })
     ).rejects.toThrow('Quantidade insuficiente em estoque para a saída');
 
@@ -118,11 +118,11 @@ describe('EstoqueService', () => {
 
     await expect(
       service.createMovimentacao({
-        PecaId: pecaId as any,
-        Tipo: 'ENTRADA',
-        Quantidade: 3,
-        Data: new Date(),
-        Origem: 'compra',
+        pecaId: pecaId as any,
+        tipo: 'ENTRADA',
+        quantidade: 3,
+        data: new Date(),
+        origem: 'compra',
       })
     ).rejects.toThrow('Peça não encontrada para a movimentação de estoque');
 

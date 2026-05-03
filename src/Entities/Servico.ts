@@ -1,11 +1,12 @@
 export class Servico {
-    Nome: string;
-    Descricao: string;
-    Preco: number;
+    nome: string;
+    descricao: string;
+    preco: number;
+    quantidade?: number
 
     constructor(nome: string, descricao: string, preco: number) {
-        this.Nome = nome;
-        this.Descricao = descricao;
-        this.Preco = preco;
+        this.nome = nome;
+        this.descricao = descricao;
+        this.preco = preco;
     }
 }

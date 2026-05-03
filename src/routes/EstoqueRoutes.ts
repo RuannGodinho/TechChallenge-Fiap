@@ -52,17 +52,17 @@ router.get('/estoque/:pecaId', authMiddleware, async (req: Request, res: Respons
 
 router.post('/estoque/movimentacoes', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { PecaId, Tipo, Quantidade, Origem } = req.body;
-    if (!PecaId || !Tipo || Quantidade == null ) {
-      return res.status(400).json({ error: 'PecaId, Tipo and Quantidade are required' });
+    const { pecaId, tipo, quantidade, origem } = req.body;
+    if (!pecaId || !tipo || quantidade == null ) {
+      return res.status(400).json({ error: 'pecaId, tipo e quantidade são obrigatórios' });
     }
 
     const movimentacao = await estoqueController.createMovimentacao({
-      PecaId,
-      Tipo,
-      Quantidade,
-      Data: new Date(Date.now()),
-      Origem,
+      pecaId,
+      tipo,
+      quantidade,
+      data: new Date(Date.now()),
+      origem,
     });
 
     return res.status(201).json(movimentacao);

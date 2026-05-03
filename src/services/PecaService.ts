@@ -16,11 +16,11 @@ export class PecaService implements IPecaService {
   }
 
   async createPeca(pecaData: Omit<Peca, 'id'>): Promise<Peca> {
-    const peca = new Peca(pecaData.Nome, pecaData.Descricao, pecaData.Preco, pecaData.Tipo);
+    const peca = new Peca(pecaData.nome, pecaData.descricao, pecaData.preco, pecaData.tipo);
 
     const tiposValidos = [TipoItem.PECA, TipoItem.INSUMO];
 
-    if (!tiposValidos.includes(peca.Tipo.toUpperCase() as any)) 
+    if (!tiposValidos.includes(peca.tipo.toUpperCase() as any)) 
         throw new Error("Tipo inválido. Use PECA ou INSUMO");
     
     await this.repo.createPeca(peca);
@@ -35,7 +35,7 @@ export class PecaService implements IPecaService {
 
     const updated = { ...existing, ...pecaData };
 
-    if (!tiposValidos.includes(updated.Tipo.toUpperCase() as any)) 
+    if (!tiposValidos.includes(updated.tipo.toUpperCase() as any)) 
         throw new Error("Tipo inválido. Use PECA ou INSUMO");
 
     await this.repo.updatePeca(id, updated);

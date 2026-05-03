@@ -1,13 +1,14 @@
 export class Peca{
-    Nome: string;
-    Descricao: string;
-    Tipo: 'Peca' | 'Insumo';
-    Preco: number;
+    nome: string;
+    descricao: string;
+    tipo: 'Peca' | 'Insumo';
+    preco: number;
+    quantidade?: number;
 
-    constructor(Nome: string, Descricao: string, Preco: number, Tipo: 'Peca' | 'Insumo' ){
-        this.Nome = Nome;
-        this.Descricao = Descricao;
-        this.Preco = Preco;
-        this.Tipo = Tipo;
+    constructor(nome: string, descricao: string, preco: number, tipo: 'Peca' | 'Insumo' ){
+        this.nome = nome;
+        this.descricao = descricao;
+        this.preco = preco;
+        this.tipo = tipo;
     }
 }

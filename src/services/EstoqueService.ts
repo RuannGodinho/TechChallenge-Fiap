@@ -16,39 +16,39 @@ export class EstoqueService implements IEstoqueService {
 
     async createMovimentacao(movimentacaoData: Omit<MovimentacaoEstoque, 'id'>): Promise<MovimentacaoEstoque> {
       const movimentacao = new MovimentacaoEstoque(
-        new ObjectId(movimentacaoData.PecaId),
-        movimentacaoData.Tipo,
-        movimentacaoData.Quantidade,
-        movimentacaoData.Data,
-        movimentacaoData.Origem
+        new ObjectId(movimentacaoData.pecaId),
+        movimentacaoData.tipo,
+        movimentacaoData.quantidade,
+        movimentacaoData.data,
+        movimentacaoData.origem
       );
 
           const tiposValidos = [TipoMovimentacao.ENTRADA, TipoMovimentacao.SAIDA];
       
-          if (!tiposValidos.includes(movimentacao.Tipo.toUpperCase() as any)) 
+          if (!tiposValidos.includes(movimentacao.tipo.toUpperCase() as any)) 
               throw new Error("Tipo inválido. Use ENTRADA ou SAIDA");
 
-      const peca = await this.pecaRepo.getPecaById(movimentacao.PecaId);
+      const peca = await this.pecaRepo.getPecaById(movimentacao.pecaId);
       if (!peca) {
         throw new Error('Peça não encontrada para a movimentação de estoque');
       }
 
-      const estoque = await this.repo.getEstoqueByPecaId(movimentacao.PecaId);
+      const estoque = await this.repo.getEstoqueByPecaId(movimentacao.pecaId);
 
-      if(movimentacao.Tipo === 'ENTRADA') 
-        estoque ? await this.repo.updateEstoque(movimentacao.PecaId, estoque.Quantidade + movimentacao.Quantidade) : await this.repo.createEstoque(new Estoque(movimentacao.PecaId, movimentacao.Quantidade));  
+      if(movimentacao.tipo === 'ENTRADA') 
+        estoque ? await this.repo.updateEstoque(movimentacao.pecaId, estoque.quantidade + movimentacao.quantidade) : await this.repo.createEstoque(new Estoque(movimentacao.pecaId, movimentacao.quantidade));  
       
 
-      if(movimentacao.Tipo === 'SAIDA') {
+      if(movimentacao.tipo === 'SAIDA') {
 
         if(!estoque) 
           throw new Error('Não há estoque para a peça especificada');
         
-        if(estoque && estoque.Quantidade < movimentacao.Quantidade) {
+        if(estoque && estoque.quantidade < movimentacao.quantidade) {
           throw new Error('Quantidade insuficiente em estoque para a saída');
         }
 
-        await this.repo.updateEstoque(movimentacao.PecaId, estoque.Quantidade - movimentacao.Quantidade);
+        await this.repo.updateEstoque(movimentacao.pecaId, estoque.quantidade - movimentacao.quantidade);
       
       }
   
@@ -65,7 +65,7 @@ export class EstoqueService implements IEstoqueService {
   }
 
   async createEstoque(estoqueData: Omit<Estoque, 'id'>): Promise<Estoque> {
-    const estoque = new Estoque(estoqueData.PecaId, estoqueData.Quantidade);
+    const estoque = new Estoque(estoqueData.pecaId, estoqueData.quantidade);
     await this.repo.createEstoque(estoque);
     return estoque;
   }
@@ -75,7 +75,7 @@ export class EstoqueService implements IEstoqueService {
     if (!existing) return null;
 
     await this.repo.updateEstoque(pecaId, quantidade);
-    return { ...existing, Quantidade: quantidade };
+    return { ...existing, quantidade };
   }
 
   async deleteEstoque(pecaId: ObjectId): Promise<boolean> {

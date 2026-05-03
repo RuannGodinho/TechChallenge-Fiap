@@ -40,11 +40,11 @@ router.get("/servicos/:id", authMiddleware, async (req: Request, res: Response) 
 
 router.post("/servicos", authMiddleware, async (req: Request, res: Response) => {
     try {
-        const { Nome, Descricao, Preco } = req.body;
-        if (!Nome || !Descricao || Preco == null)
-            return res.status(400).json({ error: "Nome, Descricao, and Preco are required" });
+        const { nome, descricao, preco } = req.body;
+        if (!nome || !descricao || preco == null)
+            return res.status(400).json({ error: "nome, descricao e preco são obrigatórios" });
 
-        const service = await servicoController.createServico({ Nome, Descricao, Preco });
+        const service = await servicoController.createServico({ nome, descricao, preco });
         return res.status(201).json(service);
     } catch (error: any) {
         return res.status(500).json({ error: "Internal server error " + error.message });
@@ -58,9 +58,9 @@ router.put("/servicos/:id", authMiddleware, async (req: Request, res: Response) 
         if (id === ':id')
             return res.status(400).json({ error: "ID do serviço é obrigatório" });
 
-        const { Nome, Descricao, Preco } = req.body;
+        const { nome, descricao, preco } = req.body;
 
-        const service = await servicoController.updateServico(id, { Nome, Descricao, Preco });
+        const service = await servicoController.updateServico(id, { nome, descricao, preco });
 
         if (!service) {
             return res.status(404).json({ error: "Service not found" });
