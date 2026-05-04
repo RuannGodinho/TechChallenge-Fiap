@@ -79,4 +79,49 @@ router.put('/orcamentos/:id', authMiddleware, async (req: Request, res: Response
   }
 });
 
+/**
+ * @swagger
+ * /api/orcamentos/{ordemServicoId}:
+ *   get:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Obtém orçamentos pelo ID da ordem de serviço
+ *     tags: [Orçamentos]
+ *     parameters:
+ *       - in: path
+ *         name: ordemServicoId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID da ordem de serviço
+ *     responses:
+ *       200:
+ *         description: Orçamentos retornados com sucesso
+ *       400:
+ *         description: ID da ordem de serviço obrigatório
+ *       404:
+ *         description: Orçamento não encontrado
+ *       500:
+ *         description: Erro ao buscar orçamentos
+ */
+router.get('/orcamentos/:ordemServicoId', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const ordemServicoId = req.params.ordemServicoId as string;
+
+    if (!ordemServicoId) {
+      return res.status(400).json({ error: 'ID da ordem de serviço é obrigatório' });
+    }
+
+    const orcamentos = await orcamentoController.getOrcamentosByOrdemServicoId(ordemServicoId);
+
+    if (!orcamentos || !orcamentos.length) {
+      return res.status(404).json({ error: 'Orçamento não encontrado para a ordem de serviço informada' });
+    }
+
+    return res.json(orcamentos);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

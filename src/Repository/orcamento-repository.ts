@@ -17,6 +17,11 @@ export class OrcamentoRepository implements IOrcamentoRepository {
   async getOrcamentoById(id: string): Promise<Orcamento | null> {
     const collection = await this.getCollection();
     return await collection.findOne({ _id: new ObjectId(id) });
+  }
+
+  async getOrcamentosByOrdemServicoId(ordemServicoId: string): Promise<Orcamento[]> {
+    const collection = await this.getCollection();
+    return await collection.find({ ordemServicoId: new ObjectId(ordemServicoId) }).toArray();
   }  
 
   async updateOrcamento(id: string, updates: Partial<Orcamento>): Promise<Orcamento | null> {

@@ -2,6 +2,7 @@ import { ObjectId } from "mongodb";
 import { OrdemPecaItem } from "../ValueObjects/ordem-peca-item";
 
 export class OrdemServico {
+    _id?: ObjectId;
     cpfCnpj: string;
     veiculo: ObjectId;
     status: 'RECEBIDA' | 'EM DIAGNOSTICO' | 'AGUARDANDO APROVACAO' | 'EM EXECUCAO' | 'FINALIZADA' | 'ENTREGUE';

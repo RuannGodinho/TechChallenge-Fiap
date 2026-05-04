@@ -243,5 +243,64 @@ export class OrdemServicoService implements IOrdemServicoService {
             if (!client)
                 throw new Error("Cliente não encontrado para o CPF/CNPJ fornecido.");
         }
-    }    
+    }
+
+    async getOrdemServicoComDetalhes(id: string): Promise<any> {
+        const ordem = await this.getOrdemOrThrow(id);
+        return await this.buildOrdemServicoDetalhes(ordem);
+    }
+
+    async getOrdensServicoComDetalhesPorCpfCnpj(cpfCnpj: string): Promise<any[]> {
+        const normalized = normalizeCpfCnpj(cpfCnpj);
+        const ordens = await this.repo.getOSByCpfCnpj(normalized.stripped);
+
+        if (!ordens.length) {
+            throw new Error(`Ordem de serviço não encontrada para o CPF/CNPJ ${normalized.stripped}.`);
+        }
+
+        return await Promise.all(ordens.map(ordem => this.buildOrdemServicoDetalhes(ordem)));
+    }
+
+    private removeId<T extends object>(entity: T): Omit<T, '_id'> {
+        const { _id, ...rest } = entity as any;
+        return rest as any;
+    }
+
+    private async buildOrdemServicoDetalhes(ordem: OrdemServico): Promise<any> {
+        const veiculo = await this.veiculoService.getVeiculoById(ordem.veiculo.toString());
+        const veiculoSemId = veiculo ? this.removeId(veiculo) : null;
+
+        const pecasComDetalhes = [];
+        for (const item of ordem.pecas ?? []) {
+            const peca = await this.pecaService.getPecaById(item.pecaId);
+            if (peca) {
+                pecasComDetalhes.push({
+                    peca: this.removeId(peca),
+                    quantidade: item.quantidade,
+                    valorUnitario: item.valorUnitario,
+                    subtotal: item.quantidade * item.valorUnitario
+                });
+            }
+        }
+
+        const servicosComDetalhes = [];
+        for (const servicoId of ordem.servicos ?? []) {
+            const servico = await this.servicoService.getServicoById(servicoId.toString());
+            if (servico) {
+                servicosComDetalhes.push(this.removeId(servico));
+            }
+        }
+
+        return {
+            cpfCnpj: ordem.cpfCnpj,
+            status: ordem.status,
+            dataAbertura: ordem.dataAbertura,
+            dataInicioServico: ordem.dataInicioServico,
+            dataFechamento: ordem.dataFechamento,
+            valorTotal: ordem.valorTotal,
+            veiculo: veiculoSemId,
+            pecas: pecasComDetalhes,
+            servicos: servicosComDetalhes
+        };
+    }
 }

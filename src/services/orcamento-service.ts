@@ -30,4 +30,8 @@ export class OrcamentoService implements IOrcamentoService {
 
         return  updated;
     }
+
+    async getOrcamentosByOrdemServicoId(ordemServicoId: string): Promise<Orcamento[]> {
+        return await this.repo.getOrcamentosByOrdemServicoId(ordemServicoId);
+    }
 }

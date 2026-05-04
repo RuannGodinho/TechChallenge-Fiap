@@ -174,4 +174,96 @@ router.put('/ordensServico/:id', authMiddleware, async (req: Request, res: Respo
   }
 });
 
+/**
+ * @swagger
+ * /api/ordensServico/{cpfCnpj}/detalhes:
+ *   get:
+ *     summary: Obtém ordens de serviço do cliente pelo CPF/CNPJ com todos os detalhes
+ *     tags: [Ordens de Serviço]
+ *     parameters:
+ *       - in: query
+ *         name: cpfCnpj
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: CPF ou CNPJ do cliente
+ *     responses:
+ *       200:
+ *         description: Ordens de serviço com detalhes retornadas com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   cpfCnpj:
+ *                     type: string
+ *                   status:
+ *                     type: string
+ *                   dataAbertura:
+ *                     type: string
+ *                     format: date-time
+ *                   dataInicioServico:
+ *                     type: string
+ *                     format: date-time
+ *                   dataFechamento:
+ *                     type: string
+ *                     format: date-time
+ *                   valorTotal:
+ *                     type: number
+ *                   veiculo:
+ *                     type: object
+ *                     properties:
+ *                       placa:
+ *                         type: string
+ *                       modelo:
+ *                         type: string
+ *                       ano:
+ *                         type: number
+ *                       marca:
+ *                         type: string
+ *                   pecas:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         peca:
+ *                           type: object
+ *                         quantidade:
+ *                           type: number
+ *                         valorUnitario:
+ *                           type: number
+ *                         subtotal:
+ *                           type: number
+ *                   servicos:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *       400:
+ *         description: CPF/CNPJ obrigatório
+ *       404:
+ *         description: Ordem de serviço não encontrada
+ *       500:
+ *         description: Erro ao buscar ordem de serviço
+ */
+router.get('/ordensServico/:cpfCnpj/detalhes', async (req: Request, res: Response) => {
+  try {
+    const cpfCnpj = req.params.cpfCnpj as string;
+
+    if (!cpfCnpj) {
+      return res.status(400).json({ error: "CPF/CNPJ é obrigatório" });
+    }
+
+    const ordens = await ordemServicoController.getOrdensServicoComDetalhesPorCpfCnpj(cpfCnpj);
+
+    return res.json(ordens);
+  } catch (error: any) {
+    if (error.message.includes('não encontrada')) {
+      return res.status(404).json({ error: error.message });
+    }
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

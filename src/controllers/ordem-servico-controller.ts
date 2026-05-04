@@ -15,4 +15,12 @@ export class OrdemServicoController {
     async updateOrdemServico(id: string, updates: Partial<OrdemServico>): Promise<OrdemServico | null> {
         return await this.service.updateOrdemServico(id, updates);
     }
+
+    async getOrdemServicoComDetalhes(id: string): Promise<any> {
+        return await this.service.getOrdemServicoComDetalhes(id);
+    }
+
+    async getOrdensServicoComDetalhesPorCpfCnpj(cpfCnpj: string): Promise<any[]> {
+        return await this.service.getOrdensServicoComDetalhesPorCpfCnpj(cpfCnpj);
+    }
 }
