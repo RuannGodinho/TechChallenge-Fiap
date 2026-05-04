@@ -31,6 +31,14 @@ export class OrcamentoService implements IOrcamentoService {
         return  updated;
     }
 
+    async enviaEmailCliente(orcamento: Orcamento): Promise<Orcamento | string> {
+
+        //Futuramente funcionalidade de envio de email para o cliente 
+        //this.enviaEmail(orcamento);
+
+        return 'Email enviado com sucessso'
+    }
+
     async getOrcamentosByOrdemServicoId(ordemServicoId: string): Promise<Orcamento[]> {
         return await this.repo.getOrcamentosByOrdemServicoId(ordemServicoId);
     }

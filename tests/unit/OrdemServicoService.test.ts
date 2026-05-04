@@ -31,10 +31,12 @@ const mockServicoService = {
 const mockEstoqueService = {
   getEstoqueByPecaId: jest.fn(),
   updateEstoque: jest.fn(),
+  createMovimentacao: jest.fn()
 };
 
 const mockOrcamentoService = {
   createOrcamento: jest.fn(),
+  enviaEmailCliente: jest.fn()
 };
 
 describe('OrdemServicoService', () => {
@@ -191,11 +193,13 @@ describe('OrdemServicoService', () => {
       mockServicoService.getServicoById.mockResolvedValue({ id: servicoId.toString(), nome: 'Serviço Teste', preco: 100 });
       mockEstoqueService.getEstoqueByPecaId.mockResolvedValue({ pecaId: pecaId.toString(), quantidade: 10 });
       mockOrcamentoService.createOrcamento.mockResolvedValue(undefined);
+      mockOrcamentoService.enviaEmailCliente.mockResolvedValue(undefined);
       mockOrdemServicoRepository.updateOrdemServico.mockResolvedValue(ordemExistente);
 
       const result = await service.updateOrdemServico(id, updates);
 
       expect(mockOrcamentoService.createOrcamento).toHaveBeenCalled();
+      expect(mockOrcamentoService.enviaEmailCliente).toHaveBeenCalled();
       expect(result).toEqual(ordemExistente);
     });
 
@@ -223,7 +227,18 @@ describe('OrdemServicoService', () => {
 
       const result = await service.updateOrdemServico(id, updates);
 
-      expect(mockEstoqueService.updateEstoque).toHaveBeenCalledWith(pecaId.toString(), 8); // 10 - 2
+      expect(mockEstoqueService.getEstoqueByPecaId)
+        .toHaveBeenCalledWith(pecaId);
+
+      expect(mockEstoqueService.createMovimentacao)
+        .toHaveBeenCalledWith(
+          expect.objectContaining({
+            pecaId: pecaId,
+            tipo: 'SAIDA',
+            quantidade: 2,
+            origem: 'OS'
+          })
+        );
       expect(result).toEqual(ordemExistente);
     });
 

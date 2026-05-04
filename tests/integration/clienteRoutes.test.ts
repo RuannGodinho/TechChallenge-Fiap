@@ -55,7 +55,7 @@ describe("Integração - Rotas de Clientes", () => {
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
-      error: "nome, email, cpf e telefone são obrigatórios"
+      error: "nome, email, cpf/cnpj e telefone são obrigatórios"
     });
   });
 
@@ -116,7 +116,7 @@ describe("Integração - Rotas de Clientes", () => {
       .auth(_token, { type: 'bearer' });
 
     expect(response.status).toBe(500);
-    expect(response.body.error).toContain("CPF inválido");
+    expect(response.body.error).toContain("Erro ao criar cliente:CPF/CNPJ inválido");
   });
 
   test("deve listar clientes", async () => {

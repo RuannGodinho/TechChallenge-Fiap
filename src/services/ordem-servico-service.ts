@@ -201,6 +201,8 @@ export class OrdemServicoService implements IOrdemServicoService {
         );
 
         await this.orcamentoService.createOrcamento(orcamento);
+
+        await this.orcamentoService.enviaEmailCliente(orcamento);
     }
 
     private async validaQuantidadeEstoque(pecaOrdem: OrdemPecaItem, consomeEstoque: boolean) {

@@ -4,4 +4,5 @@ export interface IOrcamentoService {
     createOrcamento(orcamento: Orcamento): Promise<Orcamento>;
     updateOrcamento(id: string, updates: Partial<Orcamento>): Promise<Orcamento | null>;
     getOrcamentosByOrdemServicoId(ordemServicoId: string): Promise<Orcamento[]>;
+    enviaEmailCliente(orcamento: Orcamento): Promise<Orcamento | string>;
 }
