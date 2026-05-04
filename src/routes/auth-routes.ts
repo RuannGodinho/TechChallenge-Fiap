@@ -6,6 +6,27 @@ import { authMiddleware } from '../middleware/auth-middleware';
 const router = Router();
 const authController = new AuthController(new AuthService());
 
+/**
+ * @swagger
+ * /api/login:
+ *   post:
+ *     summary: Login
+ *     tags: [Login]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Usuario logado com sucesso
+ */
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 

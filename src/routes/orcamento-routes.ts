@@ -34,6 +34,51 @@ const orcamentoController = new OrcamentoController(orcamentoService);
 //   }
 // });
 
+/**
+ * @swagger
+ * /api/orcamentos/{id}:
+ *   put:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Atualiza um orçamento
+ *     tags: [Orçamentos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do orçamento
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               ordemServicoId:
+ *                 type: string
+ *               versao:
+ *                 type: number
+ *               status:
+ *                 type: string
+ *               itensPecas:
+ *                 type: array
+ *               itensServicos:
+ *                 type: array
+ *               valorTotal:
+ *                 type: number
+ *               validadeEm:
+ *                 type: string
+ *                 format: date
+ *     responses:
+ *       200:
+ *         description: Orçamento atualizado com sucesso
+ *       404:
+ *         description: Orçamento não encontrado
+ *       400:
+ *         description: ID obrigatório ou campos inválidos
+ */
 router.put('/orcamentos/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;

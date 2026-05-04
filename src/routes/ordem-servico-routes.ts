@@ -35,10 +35,40 @@ const orcamentoService = new OrcamentoService(orcamentoRepo);
 const ordemServicoService = new OrdemServicoService(ordemServicoRepo, clienteService, veiculoService, pecaService, servicoService, estoqueService, orcamentoService);
 const ordemServicoController = new OrdemServicoController(ordemServicoService);
 
+/**
+ * @swagger
+ * /api/ordensServico:
+ *   post:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Cria uma nova ordem de serviço
+ *     tags: [Ordens de Serviço]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - cpfCnpj
+ *               - veiculoId
+ *             properties:
+ *               cpfCnpj:
+ *                 type: string
+ *               veiculoId:
+ *                 type: string
+ *               pecas:
+ *                 type: array
+ *               servicos:
+ *                 type: array
+ *     responses:
+ *       201:
+ *         description: Ordem de serviço criada com sucesso
+ *       400:
+ *         description: Cliente e veículo são obrigatórios
+ */
 router.post('/ordensServico', authMiddleware, async (req: Request, res: Response) => {
   const { cpfCnpj, veiculoId, pecas, servicos } = req.body;
-  // const clienteCpfCnpj = cpfCnpj || CpfCnpj;
-  // const veiculoId = veiculo || Veiculo;
 
   if (!cpfCnpj || !veiculoId) {
     return res.status(400).json({ error: 'Cliente e veículo são obrigatórios' });
@@ -58,6 +88,18 @@ router.post('/ordensServico', authMiddleware, async (req: Request, res: Response
   }
 });
 
+/**
+ * @swagger
+ * /api/ordensServico:
+ *   get:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Lista todas as ordens de serviço
+ *     tags: [Ordens de Serviço]
+ *     responses:
+ *       200:
+ *         description: Ordens de serviço retornadas com sucesso
+ */
 router.get('/ordensServico', authMiddleware, async (req: Request, res: Response) => {
   try {
     const ordens = await ordemServicoController.listaOrdensServico();
@@ -67,6 +109,46 @@ router.get('/ordensServico', authMiddleware, async (req: Request, res: Response)
   }
 });
 
+/**
+ * @swagger
+ * /api/ordensServico/{id}:
+ *   put:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Atualiza uma ordem de serviço
+ *     tags: [Ordens de Serviço]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID da ordem de serviço
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               cpfCnpj:
+ *                 type: string
+ *               veiculoId:
+ *                 type: string
+ *               pecas:
+ *                 type: array
+ *               servicos:
+ *                 type: array
+ *               status:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Ordem de serviço atualizada com sucesso
+ *       404:
+ *         description: Ordem de serviço não encontrada
+ *       400:
+ *         description: ID obrigatório ou campos inválidos
+ */
 router.put('/ordensServico/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;

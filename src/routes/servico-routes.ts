@@ -10,6 +10,18 @@ const servicoRepo = new ServicoRepository();
 const servicoService = new ServicoService(servicoRepo);
 const servicoController = new ServicoController(servicoService);
 
+/**
+ * @swagger
+ * /api/servicos:
+ *   get:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Lista todos os serviços
+ *     tags: [Serviços]
+ *     responses:
+ *       200:
+ *         description: Serviços retornados com sucesso
+ */
 router.get("/servicos", authMiddleware, async (req: Request, res: Response) => {
     try {
         const servicos = await servicoController.getAllServicos();
@@ -19,6 +31,29 @@ router.get("/servicos", authMiddleware, async (req: Request, res: Response) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/servicos/{id}:
+ *   get:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Busca serviço por ID
+ *     tags: [Serviços]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do serviço
+ *     responses:
+ *       200:
+ *         description: Serviço encontrado
+ *       404:
+ *         description: Serviço não encontrado
+ *       400:
+ *         description: ID obrigatório
+ */
 router.get("/servicos/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
@@ -38,6 +73,37 @@ router.get("/servicos/:id", authMiddleware, async (req: Request, res: Response) 
     }
 });
 
+/**
+ * @swagger
+ * /api/servicos:
+ *   post:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Cria um novo serviço
+ *     tags: [Serviços]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - nome
+ *               - descricao
+ *               - preco
+ *             properties:
+ *               nome:
+ *                 type: string
+ *               descricao:
+ *                 type: string
+ *               preco:
+ *                 type: number
+ *     responses:
+ *       201:
+ *         description: Serviço criado com sucesso
+ *       400:
+ *         description: Campos obrigatórios não fornecidos
+ */
 router.post("/servicos", authMiddleware, async (req: Request, res: Response) => {
     try {
         const { nome, descricao, preco } = req.body;
@@ -51,6 +117,42 @@ router.post("/servicos", authMiddleware, async (req: Request, res: Response) => 
     }
 });
 
+/**
+ * @swagger
+ * /api/servicos/{id}:
+ *   put:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Atualiza um serviço
+ *     tags: [Serviços]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do serviço
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nome:
+ *                 type: string
+ *               descricao:
+ *                 type: string
+ *               preco:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Serviço atualizado com sucesso
+ *       404:
+ *         description: Serviço não encontrado
+ *       400:
+ *         description: ID obrigatório
+ */
 router.put("/servicos/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
@@ -72,6 +174,29 @@ router.put("/servicos/:id", authMiddleware, async (req: Request, res: Response) 
     }
 });
 
+/**
+ * @swagger
+ * /api/servicos/{id}:
+ *   delete:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Deleta um serviço
+ *     tags: [Serviços]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do serviço
+ *     responses:
+ *       204:
+ *         description: Serviço deletado com sucesso
+ *       404:
+ *         description: Serviço não encontrado
+ *       400:
+ *         description: ID obrigatório
+ */
 router.delete("/servicos/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;

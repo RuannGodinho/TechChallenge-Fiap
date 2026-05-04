@@ -10,6 +10,18 @@ const VeiculoRepo = new VeiculoRepository();
 const veiculoService = new VeiculoService(VeiculoRepo);
 const veiculoController = new VeiculoController(veiculoService);
 
+/**
+ * @swagger
+ * /api/veiculos:
+ *   get:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Lista todos os veículos
+ *     tags: [Veículos]
+ *     responses:
+ *       200:
+ *         description: Veículos retornados com sucesso
+ */
 router.get("/veiculos", authMiddleware, async (req: Request, res: Response) => {
     try {
         const Veiculos = await veiculoController.getAllVeiculos();
@@ -19,6 +31,29 @@ router.get("/veiculos", authMiddleware, async (req: Request, res: Response) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/veiculos/{id}:
+ *   get:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Busca veículo por ID
+ *     tags: [Veículos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do veículo
+ *     responses:
+ *       200:
+ *         description: Veículo encontrado
+ *       404:
+ *         description: Veículo não encontrado
+ *       400:
+ *         description: ID obrigatório
+ */
 router.get("/veiculos/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
@@ -38,6 +73,40 @@ router.get("/veiculos/:id", authMiddleware, async (req: Request, res: Response) 
     }
 });
 
+/**
+ * @swagger
+ * /api/veiculos:
+ *   post:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Cria um novo veículo
+ *     tags: [Veículos]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - placa
+ *               - modelo
+ *               - ano
+ *               - marca
+ *             properties:
+ *               placa:
+ *                 type: string
+ *               modelo:
+ *                 type: string
+ *               ano:
+ *                 type: number
+ *               marca:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Veículo criado com sucesso
+ *       400:
+ *         description: Campos obrigatórios não fornecidos
+ */
 router.post("/veiculos", authMiddleware, async (req: Request, res: Response) => {
     try {
         const { placa, modelo, ano, marca } = req.body;
@@ -51,6 +120,44 @@ router.post("/veiculos", authMiddleware, async (req: Request, res: Response) => 
     }
 });
 
+/**
+ * @swagger
+ * /api/veiculos/{id}:
+ *   put:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Atualiza um veículo
+ *     tags: [Veículos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do veículo
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               placa:
+ *                 type: string
+ *               modelo:
+ *                 type: string
+ *               ano:
+ *                 type: number
+ *               marca:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Veículo atualizado com sucesso
+ *       404:
+ *         description: Veículo não encontrado
+ *       400:
+ *         description: ID obrigatório
+ */
 router.put("/veiculos/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
@@ -72,6 +179,29 @@ router.put("/veiculos/:id", authMiddleware, async (req: Request, res: Response) 
     }
 });
 
+/**
+ * @swagger
+ * /api/veiculos/{id}:
+ *   delete:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Deleta um veículo
+ *     tags: [Veículos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do veículo
+ *     responses:
+ *       204:
+ *         description: Veículo deletado com sucesso
+ *       404:
+ *         description: Veículo não encontrado
+ *       400:
+ *         description: ID obrigatório
+ */
 router.delete("/veiculos/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
