@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { Estoque } from "../../Entities/Estoque/Estoque";
+import { Estoque } from "../../Entities/Estoque/estoque";
 
 export interface IEstoqueRepository {
     getAllEstoque(): Promise<Estoque[]>;

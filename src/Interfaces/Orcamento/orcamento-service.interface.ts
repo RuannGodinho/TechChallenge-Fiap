@@ -1,4 +1,4 @@
-import { Orcamento } from "../../Entities/Orcamento";
+import { Orcamento } from "../../Entities/orcamento";
 
 export interface IOrcamentoService {
     createOrcamento(orcamento: Orcamento): Promise<Orcamento>;

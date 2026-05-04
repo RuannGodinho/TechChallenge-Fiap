@@ -9,31 +9,6 @@ const orcamentoRepo = new OrcamentoRepository();
 const orcamentoService = new OrcamentoService(orcamentoRepo);
 const orcamentoController = new OrcamentoController(orcamentoService);
 
-// router.post('/orcamentos', authMiddleware, async (req: Request, res: Response) => {
-//   try {
-//     const { ordemServicoId, versao, status, itensPecas, itensServicos, valorTotal, validadeEm } = req.body;
-//     if (!ordemServicoId || !versao || !status || !itensPecas || !itensServicos || valorTotal == null || !validadeEm) {
-//       return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
-//     }
-
-//     const orcamento = new Orcamento(
-//       ordemServicoId,
-//       versao,
-//       status,
-//       itensPecas,
-//       itensServicos,
-//       valorTotal,
-//       new Date(validadeEm),
-//       new Date()
-//     );
-
-//     const createdOrcamento = await orcamentoController.createOrcamento(orcamento);
-//     return res.status(201).json(createdOrcamento);
-//   } catch (error: any) {
-//     return res.status(500).json({ error: error.message });
-//   }
-// });
-
 /**
  * @swagger
  * /api/orcamentos/{id}:

@@ -1,4 +1,4 @@
-import { Veiculo } from '../../Entities/Veiculo';
+import { Veiculo } from '../../Entities/veiculo';
 
 export interface IVeiculoService {
     getAllVeiculos(): Promise<Veiculo[]>;

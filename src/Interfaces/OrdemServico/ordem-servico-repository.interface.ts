@@ -1,4 +1,4 @@
-import { OrdemServico } from "../../Entities/OrdemServico";
+import { OrdemServico } from "../../Entities/ordem-servico";
 
 export interface IOrdemServicoRepository {
   createOrdemServico(ordemServico: any): Promise<void>;

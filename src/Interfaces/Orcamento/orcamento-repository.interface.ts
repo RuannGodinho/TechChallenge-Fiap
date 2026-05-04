@@ -1,5 +1,4 @@
-import { Orcamento } from "../../Entities/Orcamento";
-import { ObjectId } from "mongodb";
+import { Orcamento } from "../../Entities/orcamento";
 
 export interface IOrcamentoRepository {
   createOrcamento(orcamento: Orcamento): Promise<void>;

@@ -1,4 +1,4 @@
-import { Servico } from '../../Entities/Servico';
+import { Servico } from '../../Entities/servico';
 
 export interface IServicoRepository {
     getAllServicos(): Promise<Servico[]>;

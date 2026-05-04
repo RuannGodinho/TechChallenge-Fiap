@@ -1,4 +1,4 @@
-import { Peca } from '../../Entities/Estoque/Peca';
+import { Peca } from '../../Entities/Estoque/peca';
 import { ObjectId } from 'mongodb';
 
 export interface IPecaService {

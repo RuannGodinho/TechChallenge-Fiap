@@ -1,5 +1,5 @@
-import { Estoque } from '../../Entities/Estoque/Estoque';
-import { MovimentacaoEstoque } from '../../Entities/Estoque/MovimentacaoEstoque';
+import { Estoque } from '../../Entities/Estoque/estoque';
+import { MovimentacaoEstoque } from '../../Entities/Estoque/movimentacao-estoque';
 import { ObjectId } from "mongodb";
 
 export interface IEstoqueService {

@@ -1,4 +1,4 @@
-import { MovimentacaoEstoque } from "../../Entities/Estoque/MovimentacaoEstoque";
+import { MovimentacaoEstoque } from "../../Entities/Estoque/movimentacao-estoque";
 
 export interface IMovimentacaoEstoqueRepository {
     createMovimentacao(movimentacao: MovimentacaoEstoque): Promise<void>;

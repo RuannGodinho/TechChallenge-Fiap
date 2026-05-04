@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { Peca } from '../../Entities/Estoque/Peca';
+import { Peca } from '../../Entities/Estoque/peca';
 
 export interface IPecaRepository {
   getAllPecas(): Promise<Peca[]>;
