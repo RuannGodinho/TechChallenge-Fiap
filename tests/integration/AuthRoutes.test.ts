@@ -5,7 +5,7 @@ describe('Integração - Rotas de Autenticação', () => {
   test('deve retornar token ao fazer login com credenciais corretas', async () => {
     const response = await request(app)
       .post('/api/login')
-      .send({ email: 'admin@example.com', password: 'admin123' });
+      .send({ email: 'admin@email.com', password: '123456' });
 
     expect(response.status).toBe(200);
     expect(response.body.token).toBeDefined();
@@ -24,7 +24,7 @@ describe('Integração - Rotas de Autenticação', () => {
   test('deve acessar rota protegida com token válido', async () => {
     const loginResponse = await request(app)
       .post('/api/login')
-      .send({ email: 'admin@example.com', password: 'admin123' });
+      .send({ email: 'admin@email.com', password: '123456' });
 
     const token = loginResponse.body.token;
     const response = await request(app)
@@ -33,7 +33,7 @@ describe('Integração - Rotas de Autenticação', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.user).toBeDefined();
-    expect(response.body.user.email).toBe('admin@example.com');
+    expect(response.body.user.email).toBe('admin@email.com');
   });
 
   test('deve recusar rota protegida com token inválido', async () => {

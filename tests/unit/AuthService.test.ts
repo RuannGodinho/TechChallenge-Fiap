@@ -4,14 +4,14 @@ describe('AuthService', () => {
   const authService = new AuthService();
 
   test('deve gerar token válido com credenciais corretas', async () => {
-    const result = await authService.login('admin@example.com', 'admin123');
+    const result = await authService.login('admin@email.com', '123456');
 
     expect(result.success).toBe(true);
     expect(result.token).toBeDefined();
     expect(typeof result.token).toBe('string');
 
     const decoded = verifyToken(result.token as string);
-    expect(decoded.email).toBe('admin@example.com');
+    expect(decoded.email).toBe('admin@email.com');
     expect(decoded.userId).toBe('mock-user');
   });
 
