@@ -84,7 +84,7 @@ describe('OrdemServicoService', () => {
         servicos: [],
       };
 
-      await expect(service.createOrdemServico(ordemData as any)).rejects.toThrow('CPF inválido');
+      await expect(service.createOrdemServico(ordemData as any)).rejects.toThrow('CPF/CNPJ inválido');
     });
 
     test('deve lançar erro para cliente não encontrado', async () => {

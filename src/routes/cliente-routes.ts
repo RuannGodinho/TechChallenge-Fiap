@@ -45,7 +45,7 @@ router.get("/clientes", authMiddleware,  async (req: Request, res: Response) => 
  *         required: true
  *         schema:
  *           type: string
- *         description: CPF do cliente
+ *         description: CPF ou CNPJ do cliente
  *     responses:
  *       200:
  *         description: Cliente encontrado
@@ -59,7 +59,7 @@ router.get("/clientes/cpf/:cpf", authMiddleware, async (req: Request, res: Respo
         const cpf = req.params.cpf as string;
 
         if (!cpf)
-            return res.status(400).json({ error: "CPF do cliente é obrigatório" });
+            return res.status(400).json({ error: "CPF/CNPJ do cliente é obrigatório" });
 
         const cliente = await clienteController.getClienteByCpf(cpf);
 
@@ -141,6 +141,8 @@ router.get("/clientes/:id", authMiddleware,  async (req: Request, res: Response)
  *                 type: string
  *               cpf:
  *                 type: string
+ *                 description: CPF ou CNPJ do cliente
+ *                 description: CPF ou CNPJ do cliente
  *               telefone:
  *                 type: string
  *     responses:
@@ -153,7 +155,7 @@ router.post("/clientes", authMiddleware, async (req: Request, res: Response) => 
     try {
         const { nome, email, cpf, telefone } = req.body;
         if (!nome || !email || !cpf || !telefone)
-            return res.status(400).json({ error: "nome, email, cpf e telefone são obrigatórios" });
+            return res.status(400).json({ error: "nome, email, cpf/cnpj e telefone são obrigatórios" });
 
         const cliente = await clienteController.criarCliente({ nome, email, cpf, telefone });
         return res.status(201).json(cliente);

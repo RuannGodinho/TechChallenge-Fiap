@@ -5,34 +5,34 @@ db = db.getSiblingDB("Node-Fiap");
 ========================= */
 db.Servicos.insertMany([
   {
-    Nome: "Troca de óleo",
-    Descricao: "Troca de óleo do motor",
-    Preco: 100
+    nome: "Troca de óleo",
+    descricao: "Troca de óleo do motor",
+    preco: 100
   },
   {
-    Nome: "Alinhamento",
-    Descricao: "Alinhamento de direção e suspensão",
-    Preco: 120
+    nome: "Alinhamento",
+    descricao: "Alinhamento de direção e suspensão",
+    preco: 120
   },
   {
-    Nome: "Balanceamento",
-    Descricao: "Balanceamento das rodas",
-    Preco: 80
+    nome: "Balanceamento",
+    descricao: "Balanceamento das rodas",
+    preco: 80
   },
   {
-    Nome: "Revisão completa",
-    Descricao: "Revisão geral preventiva do veículo",
-    Preco: 350
+    nome: "Revisão completa",
+    descricao: "Revisão geral preventiva do veículo",
+    preco: 350
   },
   {
-    Nome: "Troca de bateria",
-    Descricao: "Substituição da bateria automotiva",
-    Preco: 90
+    nome: "Troca de bateria",
+    descricao: "Substituição da bateria automotiva",
+    preco: 90
   },
   {
-    Nome: "Troca de pastilha de freio",
-    Descricao: "Substituição das pastilhas dianteiras",
-    Preco: 180
+    nome: "Troca de pastilha de freio",
+    descricao: "Substituição das pastilhas dianteiras",
+    preco: 180
   }
 ]);
 
@@ -41,34 +41,34 @@ db.Servicos.insertMany([
 ========================= */
 db.Clientes.insertMany([
   {
-    Nome: "Ruann Godinho",
-    Email: "ruann@gmail.com",
-    Cpf: "81788455045",
-    Telefone: "15997653816"
+    nome: "Ruann Godinho",
+    email: "ruann@gmail.com",
+    cpf: "81788455045",
+    telefone: "15997653816"
   },
   {
-    Nome: "Maria Silva",
-    Email: "maria@gmail.com",
-    Cpf: "81421981009",
-    Telefone: "11988887777"
+    nome: "Maria Silva",
+    email: "maria@gmail.com",
+    cpf: "81421981009",
+    telefone: "11988887777"
   },
   {
-    Nome: "Carlos Souza",
-    Email: "carlos@gmail.com",
-    Cpf: "20004874080",
-    Telefone: "21999996666"
+    nome: "Carlos Souza",
+    email: "carlos@gmail.com",
+    cpf: "20004874080",
+    telefone: "21999996666"
   },
   {
-    Nome: "Fernanda Lima",
-    Email: "fernanda@gmail.com",
-    Cpf: "17281988010",
-    Telefone: "31977774444"
+    nome: "Fernanda Lima",
+    email: "fernanda@gmail.com",
+    cpf: "17281988010",
+    telefone: "31977774444"
   },
   {
-    Nome: "João Pereira",
-    Email: "joao@gmail.com",
-    Cpf: "52263606068",
-    Telefone: "11995553322"
+    nome: "João Pereira",
+    email: "joao@gmail.com",
+    cpf: "52263606068",
+    telefone: "11995553322"
   }
 ]);
 
@@ -77,34 +77,34 @@ db.Clientes.insertMany([
 ========================= */
 db.Veiculos.insertMany([
   {
-    Placa: "DXQ1J39",
-    Modelo: "Astra",
-    Ano: 2003,
-    Marca: "Chevrolet"
+    placa: "DXQ1J39",
+    modelo: "Astra",
+    ano: 2003,
+    marca: "Chevrolet"
   },
   {
-    Placa: "BRA2E19",
-    Modelo: "Civic",
-    Ano: 2012,
-    Marca: "Honda"
+    placa: "BRA2E19",
+    modelo: "Civic",
+    ano: 2012,
+    marca: "Honda"
   },
   {
-    Placa: "MER4T88",
-    Modelo: "Corolla",
-    Ano: 2018,
-    Marca: "Toyota"
+    placa: "MER4T88",
+    modelo: "Corolla",
+    ano: 2018,
+    marca: "Toyota"
   },
   {
-    Placa: "QWE7P10",
-    Modelo: "Gol",
-    Ano: 2010,
-    Marca: "Volkswagen"
+    placa: "QWE7P10",
+    modelo: "Gol",
+    ano: 2010,
+    marca: "Volkswagen"
   },
   {
-    Placa: "XYZ9K21",
-    Modelo: "Onix",
-    Ano: 2021,
-    Marca: "Chevrolet"
+    placa: "XYZ9K21",
+    modelo: "Onix",
+    ano: 2021,
+    marca: "Chevrolet"
   }
 ]);
 
@@ -113,45 +113,45 @@ db.Veiculos.insertMany([
 ========================= */
 db.Pecas.insertMany([
   {
-    Nome: "Óleo",
-    Descricao: "Óleo do motor",
-    Tipo: "INSUMO",
-    Preco: 150.00
+    nome: "Óleo",
+    descricao: "Óleo do motor",
+    tipo: "INSUMO",
+    preco: 150.00
   },
   {
-    Nome: "Filtro de óleo",
-    Descricao: "Filtro lubrificante do motor",
-    Tipo: "PECA",
-    Preco: 35.00
+    nome: "Filtro de óleo",
+    descricao: "Filtro lubrificante do motor",
+    tipo: "PECA",
+    preco: 35.00
   },
   {
-    Nome: "Pastilha de Freio",
-    Descricao: "Pastilha de freio dianteira",
-    Tipo: "PECA",
-    Preco: 50.00
+    nome: "Pastilha de Freio",
+    descricao: "Pastilha de freio dianteira",
+    tipo: "PECA",
+    preco: 50.00
   },
   {
-    Nome: "Disco de Freio",
-    Descricao: "Disco de freio ventilado",
-    Tipo: "PECA",
-    Preco: 220.00
+    nome: "Disco de Freio",
+    descricao: "Disco de freio ventilado",
+    tipo: "PECA",
+    preco: 220.00
   },
   {
-    Nome: "Fluido de Freio",
-    Descricao: "Fluido hidráulico DOT4",
-    Tipo: "INSUMO",
-    Preco: 45.00
+    nome: "Fluido de Freio",
+    descricao: "Fluido hidráulico DOT4",
+    tipo: "INSUMO",
+    preco: 45.00
   },
   {
-    Nome: "Bateria 60Ah",
-    Descricao: "Bateria automotiva 12V",
-    Tipo: "PECA",
-    Preco: 420.00
+    nome: "Bateria 60Ah",
+    descricao: "Bateria automotiva 12V",
+    tipo: "PECA",
+    preco: 420.00
   },
   {
-    Nome: "Aditivo Radiador",
-    Descricao: "Aditivo para sistema de arrefecimento",
-    Tipo: "INSUMO",
-    Preco: 38.00
+    nome: "Aditivo Radiador",
+    descricao: "Aditivo para sistema de arrefecimento",
+    tipo: "INSUMO",
+    preco: 38.00
   }
 ]);

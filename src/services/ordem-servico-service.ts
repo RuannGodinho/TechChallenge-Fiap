@@ -9,11 +9,13 @@ import { IServicoService } from "../Interfaces/Servico/servico-service.interface
 import { IEstoqueService } from "../Interfaces/Estoque/estoque-service.interface";
 import { IOrcamentoService } from "../Interfaces/Orcamento/orcamento-service.interface";
 import { ObjectId } from "mongodb";
-import { cpfValidator } from "cpf-cnpj-validator";
+import { normalizeCpfCnpj } from "../utils/cpf-cnpj-utils";
 import { OrdemPecaItem } from "../ValueObjects/ordem-peca-item";
 import { Orcamento } from "../Entities/orcamento";
 import { Peca } from "../Entities/Estoque/peca";
 import { Servico } from "../Entities/servico";
+import { MovimentacaoEstoque } from "../Entities/Estoque/movimentacao-estoque";
+import { TipoMovimentacao } from "../validators/tipo-movimentacao";
 
 export class OrdemServicoService implements IOrdemServicoService {
     constructor(
@@ -27,21 +29,19 @@ export class OrdemServicoService implements IOrdemServicoService {
         ) {}
 
     async createOrdemServico(ordemServico: OrdemServico): Promise<OrdemServico> {
+        await this.validaBuscaCPFCNPJ(ordemServico);
+        await this.validaBuscaVeiculo(ordemServico);
+
         const ordem = new OrdemServico(
-            ordemServico.cpfCnpj,
+            ordemServico.cpfCnpj as string,
             new ObjectId(ordemServico.veiculo),
             StatusOS.RECEBIDA.toUpperCase() as any,
             new Date(Date.now()),
             ordemServico.pecas || [],
             ordemServico.servicos || []
-        )
-
-        await this.validaBuscaCPFCNPJ(ordemServico);
-
-        await this.validaBuscaVeiculo(ordemServico);
+        );
 
         await this.repo.createOrdemServico(ordem);
-
         return ordem;
     }
 
@@ -49,105 +49,158 @@ export class OrdemServicoService implements IOrdemServicoService {
         return await this.repo.listaOrdensServico();
     }
 
-    async updateOrdemServico(id: string, updates: Partial<OrdemServico>): Promise<OrdemServico | null> {
+    async updateOrdemServico(id: string,updates: Partial<OrdemServico>): Promise<OrdemServico | null> {
+        const ordem = await this.getOrdemOrThrow(id);
 
-        const ordemServicoExistente = await this.repo.getOSById(id);
+        await this.validarCamposRelacionados(updates);
 
-        if (!ordemServicoExistente) 
-            throw new Error(`Ordem de serviço não encontrada para o id ${id}.`);
-        
-        await this.validaBuscaCPFCNPJ(updates);
-        
-        await this.validaBuscaVeiculo(updates);
-        
-        const tiposValidos = [StatusOS.RECEBIDA, StatusOS.EM_DIAGNOSTICO, StatusOS.AGUARDANDO_APROVACAO, StatusOS.EM_EXECUCAO, StatusOS.FINALIZADA, StatusOS.ENTREGUE];
-
-        if (updates.status &&!tiposValidos.includes(updates.status.toUpperCase() as any)) {
-            throw new Error("Status inválido. Use RECEBIDA, EM DIAGNOSTICO, AGUARDANDO APROVACAO, EM EXECUCAO, FINALIZADA ou ENTREGUE");  
-        }   
-
-        let consomeEstoque = false;
-        if(ordemServicoExistente.servicos && ordemServicoExistente.servicos?.length > 0 && ordemServicoExistente.pecas && ordemServicoExistente.pecas?.length > 0) {
-            
-            if(updates.status?.toUpperCase() === StatusOS.EM_EXECUCAO.toUpperCase()) {
-                 //Validar se o status atual e "Aguardando Aprovação" para poder passar para "Em Execução"
-                if(ordemServicoExistente.status && ordemServicoExistente.status.toUpperCase() != StatusOS.AGUARDANDO_APROVACAO.toUpperCase())
-                    throw new Error("Status deve ser 'Aguardando Aprovação' para passar para 'Em Execução'");
-
-                consomeEstoque = true;
-
-                for (const pecaOrdem of ordemServicoExistente.pecas) {
-                    await this.validaQuantidadeEstoque(pecaOrdem, consomeEstoque);
-                }
-
-                await this.validaBuscaServico(ordemServicoExistente);
-            }
+        if (updates.status) {
+            await this.processarMudancaStatus(ordem, updates);
         }
-        
 
-        if( updates.pecas && updates.pecas.length > 0 && updates.servicos && updates.servicos.length > 0 ) {
-            updates.valorTotal = updates.valorTotal || 0;
-
-            const pecas = await this.adicionaPecasEValorOs(updates, consomeEstoque);
-
-            const servicos = await this.validaBuscaServico(updates);
-
-            if(ordemServicoExistente.status.toUpperCase() === StatusOS.EM_DIAGNOSTICO.toUpperCase()) {
-                //Criar e enviar orcamento para cliente aprovar
-                const orcamento = new Orcamento(
-                    new ObjectId(id),
-                    1,
-                    'PENDENTE',
-                    pecas,
-                    servicos,
-                    updates.valorTotal,
-                    new Date(Date.now()),
-                    new Date(Date.now())
-                )
-
-                await this.orcamentoService.createOrcamento(orcamento);
-
-                updates.status = StatusOS.AGUARDANDO_APROVACAO.toUpperCase() as any;
-            }
+        if (this.temItensParaAtualizar(updates)) {
+            await this.processarItensEOrcamento(id, ordem, updates);
         }
 
         return await this.repo.updateOrdemServico(id, updates);
     }
 
-    private async validaBuscaVeiculo(ordemServico: Partial<OrdemServico>) {
-        if (ordemServico.veiculo) {
-            const veiculo = await this.veiculoService.getVeiculoById(ordemServico.veiculo as unknown as string);
-            if (!veiculo) {
-                throw new Error("Veículo não encontrado para o ID fornecido.");
-            }
+    private async getOrdemOrThrow(id: string): Promise<OrdemServico> {
+        const ordem = await this.repo.getOSById(id);
+
+        if (!ordem) {
+            throw new Error(`Ordem de serviço não encontrada para o id ${id}.`);
+        }
+
+        return ordem;
+    }
+
+    private async validarCamposRelacionados(updates: Partial<OrdemServico>): Promise<void> {
+        await this.validaBuscaCPFCNPJ(updates);
+        await this.validaBuscaVeiculo(updates);
+    }
+
+    private async processarMudancaStatus(ordem: OrdemServico,updates: Partial<OrdemServico>): Promise<void> {
+        const novoStatus = updates.status!.toUpperCase() as StatusOS;
+        const statusAtual = ordem.status.toUpperCase() as StatusOS;
+
+        this.validarStatus(novoStatus);
+        this.validarTransicao(statusAtual, novoStatus);
+
+        if (novoStatus === StatusOS.EM_EXECUCAO) {
+            await this.consumirEstoqueDaOS(ordem);
+        }
+
+        updates.status = novoStatus;
+    }
+
+    private async processarItensEOrcamento(id: string,ordem: OrdemServico,updates: Partial<OrdemServico>): Promise<void> {
+        updates.valorTotal = 0;
+
+        const pecas = await this.processarPecas(updates);
+        const servicos = await this.processarServicos(updates);
+
+        if (ordem.status.toUpperCase() === StatusOS.EM_DIAGNOSTICO.toUpperCase()) {
+            await this.gerarOrcamento(id, updates.valorTotal, pecas, servicos);
+
+            updates.status = StatusOS.AGUARDANDO_APROVACAO as StatusOS;
         }
     }
 
-    private async adicionaPecasEValorOs(ordemServico: Partial<OrdemServico>, consomeEstoque: boolean): Promise<Peca[]> {
-        const pecasRetorno: Peca[] = [];
-        if (ordemServico.pecas && ordemServico.pecas.length > 0) {
 
-            ordemServico.valorTotal = ordemServico.valorTotal || 0;
-            for (const pecaOrdem of ordemServico.pecas) {
-                const peca = await this.pecaService.getPecaById(pecaOrdem.pecaId);
-                if (!peca) {
-                    throw new Error(`Peça não encontrada para o ID ${pecaOrdem.pecaId}`);
-                }
-                if(pecaOrdem.quantidade <= 0 || pecaOrdem.quantidade === undefined) {
-                    throw new Error(`Necessario quantidade para a peça ${pecaOrdem.pecaId}`);
-                }
+    private validarStatus(status: StatusOS): void {
+        const validos = Object.values(StatusOS);
 
-                //Validar quantidades de pecas no estoque(se quantidade de pecas da os pode ser utilizada)
-                await this.validaQuantidadeEstoque(pecaOrdem, consomeEstoque);
-
-                pecaOrdem.valorUnitario = peca.preco;
-                ordemServico.valorTotal += (pecaOrdem.quantidade * pecaOrdem.valorUnitario);
-
-                peca.quantidade = pecaOrdem.quantidade;
-                pecasRetorno.push(peca);
-            };
+        if (!validos.includes(status)) {
+            throw new Error("Status inválido.");
         }
-        return pecasRetorno;
+    }
+
+    private validarTransicao(atual: StatusOS,novo: StatusOS): void {
+        const fluxo: Record<StatusOS, StatusOS[]> = {
+            RECEBIDA: [StatusOS.EM_DIAGNOSTICO],
+            "EM DIAGNOSTICO": [StatusOS.AGUARDANDO_APROVACAO],
+            "AGUARDANDO APROVACAO": [StatusOS.EM_EXECUCAO],
+            "EM EXECUCAO": [StatusOS.FINALIZADA],
+            FINALIZADA: [StatusOS.ENTREGUE],
+            ENTREGUE: []
+        };
+
+        const permitidos = fluxo[atual] || [];
+
+        if (!permitidos.includes(novo)) {
+            throw new Error(`Não é permitido alterar status de ${atual} para ${novo}`);
+        }
+    }
+
+    private temItensParaAtualizar(updates: Partial<OrdemServico>): boolean {
+        return !!(updates.pecas?.length &&updates.servicos?.length);
+    }
+
+    private async processarPecas(updates: Partial<OrdemServico>): Promise<Peca[]> {
+        const retorno: Peca[] = [];
+
+        for (const item of updates.pecas ?? []) {
+            const peca = await this.pecaService.getPecaById(item.pecaId);
+
+            if (!peca) {
+                throw new Error(`Peça não encontrada para o ID ${item.pecaId}`);
+            }
+
+            if (!item.quantidade || item.quantidade <= 0) {
+                throw new Error(`Quantidade inválida para peça ${item.pecaId}`);
+            }
+
+            await this.validaQuantidadeEstoque(item, false);
+
+            item.valorUnitario = peca.preco;
+
+            updates.valorTotal! += item.quantidade * item.valorUnitario;
+
+            peca.quantidade = item.quantidade;
+            retorno.push(peca);
+        }
+
+        return retorno;
+    }
+
+    private async processarServicos(updates: Partial<OrdemServico>): Promise<Servico[]> {
+        const retorno: Servico[] = [];
+
+        for (const id of updates.servicos ?? []) {
+            const servico = await this.servicoService.getServicoById(id as unknown as string);
+
+            if (!servico) {
+                throw new Error(`Serviço não encontrado para o ID ${id}`);
+            }
+
+            updates.valorTotal! += servico.preco;
+
+            retorno.push(servico);
+        }
+
+        return retorno;
+    }
+
+    private async consumirEstoqueDaOS(ordem: OrdemServico): Promise<void> {
+        for (const item of ordem.pecas ?? []) {
+            await this.validaQuantidadeEstoque(item, true);
+        }
+    }
+
+    private async gerarOrcamento(ordemId: string,valorTotal: number,pecas: Peca[],servicos: Servico[]): Promise<void> {
+        const orcamento = new Orcamento(
+            new ObjectId(ordemId),
+            1,
+            "PENDENTE",
+            pecas,
+            servicos,
+            valorTotal,
+            new Date(),
+            new Date()
+        );
+
+        await this.orcamentoService.createOrcamento(orcamento);
     }
 
     private async validaQuantidadeEstoque(pecaOrdem: OrdemPecaItem, consomeEstoque: boolean) {
@@ -160,40 +213,35 @@ export class OrdemServicoService implements IOrdemServicoService {
                 throw new Error(`Quantidade insuficiente em estoque para a peça ${pecaOrdem.pecaId}`);
 
         if(consomeEstoque) {
-            estoque.quantidade -= pecaOrdem.quantidade;
-            await this.estoqueService.updateEstoque(estoque.pecaId, estoque.quantidade);
+
+            const movimentacaoEstoque = new MovimentacaoEstoque(
+                pecaOrdem.pecaId,
+                TipoMovimentacao.SAIDA,
+                pecaOrdem.quantidade,
+                new Date(Date.now()),
+                'OS'
+            );
+            await this.estoqueService.createMovimentacao(movimentacaoEstoque);
         }
     }
 
-    private async validaBuscaServico(ordemServico: Partial<OrdemServico>) {
-        const servicosRetorno: Servico[] = [];
-        if (ordemServico.servicos && ordemServico.servicos.length > 0) {
-            ordemServico.valorTotal = ordemServico.valorTotal || 0;
-            for (const servicoId of ordemServico.servicos) {
-                const servico = await this.servicoService.getServicoById(servicoId as unknown as string);
-                if (!servico) {
-                    throw new Error(`Serviço não encontrado para o ID ${servicoId}`);
-                }
-
-                ordemServico.valorTotal += servico.preco;
-                servicosRetorno.push(servico);
-            };
+    private async validaBuscaVeiculo(ordemServico: Partial<OrdemServico>) {
+        if (ordemServico.veiculo) {
+            const veiculo = await this.veiculoService.getVeiculoById(ordemServico.veiculo as unknown as string);
+            if (!veiculo) {
+                throw new Error("Veículo não encontrado para o ID fornecido.");
+            }
         }
-        return servicosRetorno;
     }
 
     private async validaBuscaCPFCNPJ(ordemServico: Partial<OrdemServico>) {
         if (ordemServico.cpfCnpj) {
-            // Validações se necessário, por exemplo, se atualizar CPF, validar CPF
-            if (!cpfValidator.isValid(ordemServico.cpfCnpj))
-                throw new Error("CPF inválido");
-
-            ordemServico.cpfCnpj = cpfValidator.strip(ordemServico.cpfCnpj);
+            const normalized = normalizeCpfCnpj(ordemServico.cpfCnpj);
+            ordemServico.cpfCnpj = normalized.stripped;
 
             const client = await this.clientService.getClienteByCpf(ordemServico.cpfCnpj);
             if (!client)
                 throw new Error("Cliente não encontrado para o CPF/CNPJ fornecido.");
-
         }
-    }
+    }    
 }

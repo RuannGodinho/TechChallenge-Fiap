@@ -9,11 +9,6 @@ export async function connectDatabase(): Promise<Db> {
   if (!db) {
     await client.connect();
     db = client.db();
-
-    await db.collection("Clientes").createIndex(
-      { cpf: 1 },
-      { unique: true }
-    );
   }
 
   return db;

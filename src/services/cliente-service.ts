@@ -1,7 +1,7 @@
-import { cpfValidator } from 'cpf-cnpj-validator';
 import { Cliente } from '../Entities/cliente';
 import { IClienteRepository } from '../Interfaces/Cliente/cliente-repository.interface';
 import { IClienteService } from '../Interfaces/Cliente/cliente-service.interface';
+import { formatCpfCnpj, normalizeCpfCnpj } from '../utils/cpf-cnpj-utils';
 
 export class ClienteService implements IClienteService {
     constructor(private repo: IClienteRepository) {}
@@ -14,41 +14,35 @@ export class ClienteService implements IClienteService {
         const cliente = await this.repo.getClienteById(id);
 
         if (cliente != null)
-            cliente.cpf = cpfValidator.format(cliente.cpf);
+            cliente.cpf = formatCpfCnpj(cliente.cpf);
 
         return cliente;
     }
 
     async getClienteByCpf(cpf: string): Promise<Cliente | null> {
-        const strippedCpf = cpfValidator.strip(cpf);
+        const normalized = normalizeCpfCnpj(cpf);
 
-        if (!cpfValidator.isValid(strippedCpf))
-            throw new Error("CPF inválido");
-
-        const cliente = await this.repo.getClienteByCpf(strippedCpf);
+        const cliente = await this.repo.getClienteByCpf(normalized.stripped);
 
         if (cliente != null)
-            cliente.cpf = cpfValidator.format(cliente.cpf);
+            cliente.cpf = formatCpfCnpj(cliente.cpf);
 
         return cliente;
     }
 
     async criarCliente(clienteData: Omit<Cliente, 'id'>): Promise<Cliente> {
         try {
-        const cliente = new Cliente(clienteData.nome, clienteData.email, clienteData.cpf, clienteData.telefone);
+            const cliente = new Cliente(clienteData.nome, clienteData.email, clienteData.cpf, clienteData.telefone);
+            const normalized = normalizeCpfCnpj(cliente.cpf);
 
-        if (!cpfValidator.isValid(cliente.cpf))
-            throw new Error("CPF inválido");
+            cliente.cpf = normalized.stripped;
+            const persistenceCliente = new Cliente(cliente.nome, cliente.email, cliente.cpf, cliente.telefone);
+            await this.repo.criarCliente(persistenceCliente);
 
-        cliente.cpf = cpfValidator.strip(cliente.cpf);
-        
-        await this.repo.criarCliente(cliente);
-
-        cliente.cpf = cpfValidator.format(cliente.cpf);
-
-        return cliente;
+            cliente.cpf = normalized.formatted;
+            return cliente;
         } catch (error: any) {
-            throw new Error("Erro ao criar cliente:" + error.message);
+            throw new Error('Erro ao criar cliente:' + error.message);
         }
     }
 
@@ -57,13 +51,12 @@ export class ClienteService implements IClienteService {
 
         if (!existing) return null;
 
-        if (clienteData.cpf != null)
-            clienteData.cpf = cpfValidator.strip(clienteData.cpf);
+        if (clienteData.cpf != null) {
+            const normalized = normalizeCpfCnpj(clienteData.cpf);
+            clienteData.cpf = normalized.stripped;
+        }
 
         const updated = { ...existing, ...clienteData };
-
-        if (!cpfValidator.isValid(updated.cpf))
-            throw new Error("CPF inválido");
 
         await this.repo.atualizarCliente(id, updated);
         return updated;

@@ -33,7 +33,7 @@ describe('ClienteService', () => {
     expect(repo.criarCliente).toHaveBeenCalledWith(expect.objectContaining({
       nome: payload.nome,
       email: payload.email,
-      cpf: '111.444.777-35',
+      cpf: '11144477735',
       telefone: payload.telefone,
     }));
     expect(cliente.cpf).toBe('111.444.777-35');
@@ -49,8 +49,30 @@ describe('ClienteService', () => {
     };
 
     // Act / Assert
-    await expect(service.criarCliente(invalidPayload)).rejects.toThrow('CPF inválido');
+    await expect(service.criarCliente(invalidPayload)).rejects.toThrow('CPF/CNPJ inválido');
     expect(repo.criarCliente).not.toHaveBeenCalled();
+  });
+
+  test('Deve validar CNPJ dos clientes - CNPJ válido aceita criação', async () => {
+    // Arrange
+    const payload = {
+      nome: 'Cliente Empresa',
+      email: 'empresa@teste.com',
+      cpf: '54.550.752/0001-55',
+      telefone: '1133333333',
+    };
+
+    // Act
+    const cliente = await service.criarCliente(payload);
+
+    // Assert
+    expect(repo.criarCliente).toHaveBeenCalledWith(expect.objectContaining({
+      nome: payload.nome,
+      email: payload.email,
+      cpf: '54550752000155',
+      telefone: payload.telefone,
+    }));
+    expect(cliente.cpf).toBe('54.550.752/0001-55');
   });
 
   test('Deve tratar dados sensíveis com validações adequadas - CPF é formatado ao retornar cliente', async () => {
