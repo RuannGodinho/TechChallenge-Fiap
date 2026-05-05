@@ -142,7 +142,7 @@ http://localhost:3000/swagger.json
 ## Justificativa da Escolha do Banco de Dados: MongoDB
 Para este projeto, optamos pelo MongoDB como solução de persistência de dados. Abaixo, detalhamos os motivos técnicos que sustentam essa decisão baseada nas necessidades da oficina:
 
-1. Modelagem Orientada a Documentos e DDD
+## Modelagem Orientada a Documentos e DDD
 A Ordem de Serviço (OS) é um exemplo clássico de um Agregado complexo no Domain-Driven Design. No MongoDB, podemos armazenar a OS como um documento único que contém:
 
 - Dados do veículo e do cliente (ou referências).
@@ -155,15 +155,18 @@ A Ordem de Serviço (OS) é um exemplo clássico de um Agregado complexo no Doma
 
 Essa estrutura evita múltiplos JOINs complexos (comuns em bancos relacionais), permitindo que todo o contexto da OS seja recuperado em uma única consulta, o que acelera o tempo de resposta da API para o cliente final.
 
-2. Flexibilidade de Esquema (Schema-less)
-Sendo um sistema em estágio de MVP, o fluxo da oficina pode evoluir rapidamente. Hoje, uma peça tem "nome e preço"; amanhã, pode precisar de "número de série, lote e validade da garantia". O MongoDB permite que o esquema evolua sem a necessidade de migrações de banco de dados (migrations) pesadas que poderiam causar downtime no atendimento da oficina.
+## Flexibilidade de Esquema (Schema-less)
+Sendo um sistema em estágio de MVP, o fluxo da oficina pode evoluir rapidamente. Hoje, uma peça tem "nome e preço"; amanhã, pode precisar de "número de série, lote e validade da garantia".
 
-3. Variabilidade dos Dados de Atendimento
+O MongoDB permite que o esquema evolua sem a necessidade de migrações de banco de dados (migrations) pesadas que poderiam causar downtime no atendimento da oficina.
+
+## Variabilidade dos Dados de Atendimento
 Cada atendimento na oficina é único:
 
 Uma troca de óleo é simples e possui poucos dados.
 
 Uma retífica de motor pode envolver dezenas de peças e sub-serviços.
 O modelo de documentos do MongoDB lida nativamente com essa variabilidade, armazenando apenas os campos necessários para cada registro, otimizando o armazenamento.
+
 ---
 
