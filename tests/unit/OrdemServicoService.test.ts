@@ -39,6 +39,10 @@ const mockOrcamentoService = {
   enviaEmailCliente: jest.fn()
 };
 
+const mockExecucaoServicoService = {
+  createExecucoesParaServicos: jest.fn()
+};
+
 describe('OrdemServicoService', () => {
   let service: OrdemServicoService;
 
@@ -51,7 +55,8 @@ describe('OrdemServicoService', () => {
       mockPecaService as any,
       mockServicoService as any,
       mockEstoqueService as any,
-      mockOrcamentoService as any
+      mockOrcamentoService as any,
+      mockExecucaoServicoService as any
     );
   });
 

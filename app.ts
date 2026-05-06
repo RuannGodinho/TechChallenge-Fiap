@@ -7,6 +7,7 @@ import estoqueRoutes from './src/routes/estoque-routes';
 import authRoutes from './src/routes/auth-routes';
 import ordemServicoRoutes from './src/routes/ordem-servico-routes';
 import orcamentoRoutes from './src/routes/orcamento-routes';
+import execucaoServicoRoutes from './src/routes/execucao-servico-routes';
 import { normalizeBodyCase } from './src/middleware/normalize-body-case';
 
 const app = express();
@@ -22,5 +23,6 @@ app.use('/api', estoqueRoutes);
 app.use('/api', authRoutes);
 app.use('/api', ordemServicoRoutes);
 app.use('/api', orcamentoRoutes);
+app.use('/api', execucaoServicoRoutes);
 
 export default app;

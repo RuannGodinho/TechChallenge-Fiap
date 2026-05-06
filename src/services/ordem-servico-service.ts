@@ -8,6 +8,7 @@ import { IPecaService } from "../Interfaces/Peca/peca-service.interface";
 import { IServicoService } from "../Interfaces/Servico/servico-service.interface";
 import { IEstoqueService } from "../Interfaces/Estoque/estoque-service.interface";
 import { IOrcamentoService } from "../Interfaces/Orcamento/orcamento-service.interface";
+import { IExecucaoServicoService } from "../Interfaces/ExecucaoServico/execucao-servico-service.interface";
 import { ObjectId } from "mongodb";
 import { normalizeCpfCnpj } from "../utils/cpf-cnpj-utils";
 import { OrdemPecaItem } from "../ValueObjects/ordem-peca-item";
@@ -16,6 +17,7 @@ import { Peca } from "../Entities/Estoque/peca";
 import { Servico } from "../Entities/servico";
 import { MovimentacaoEstoque } from "../Entities/Estoque/movimentacao-estoque";
 import { TipoMovimentacao } from "../validators/tipo-movimentacao";
+import { StatusOrcamento } from "../validators/status-orcamento";
 
 export class OrdemServicoService implements IOrdemServicoService {
     constructor(
@@ -25,7 +27,8 @@ export class OrdemServicoService implements IOrdemServicoService {
         private pecaService: IPecaService,
         private servicoService: IServicoService,
         private estoqueService: IEstoqueService,
-        private orcamentoService: IOrcamentoService   
+        private orcamentoService: IOrcamentoService,
+        private execucaoServicoService: IExecucaoServicoService
         ) {}
 
     async createOrdemServico(ordemServico: OrdemServico): Promise<OrdemServico> {
@@ -42,6 +45,15 @@ export class OrdemServicoService implements IOrdemServicoService {
         );
 
         await this.repo.createOrdemServico(ordem);
+
+        const ordemId = (ordem as any)._id?.toString();
+        if (ordemId && ordem.servicos?.length) {
+            await this.execucaoServicoService.createExecucoesParaServicos(
+                ordemId,
+                ordem.servicos.map((servicoId) => servicoId.toString())
+            );
+        }
+
         return ordem;
     }
 
@@ -54,6 +66,8 @@ export class OrdemServicoService implements IOrdemServicoService {
 
         await this.validarCamposRelacionados(updates);
 
+        await this.CriaExecucoesServicos(updates, ordem, id);
+
         if (updates.status) {
             await this.processarMudancaStatus(ordem, updates);
         }
@@ -63,6 +77,19 @@ export class OrdemServicoService implements IOrdemServicoService {
         }
 
         return await this.repo.updateOrdemServico(id, updates);
+    }
+
+    private async CriaExecucoesServicos(updates: Partial<OrdemServico>, ordem: OrdemServico, id: string) {
+        if (updates.servicos?.length) {
+            const servicosAtuais = ordem.servicos?.map((servicoId) => servicoId.toString()) || [];
+            const servicosNovos = updates.servicos
+                .map((servicoId) => servicoId.toString())
+                .filter((servicoId) => !servicosAtuais.includes(servicoId));
+
+            if (servicosNovos.length) {
+                await this.execucaoServicoService.createExecucoesParaServicos(id, servicosNovos);
+            }
+        }
     }
 
     private async getOrdemOrThrow(id: string): Promise<OrdemServico> {
@@ -89,9 +116,22 @@ export class OrdemServicoService implements IOrdemServicoService {
 
         if (novoStatus === StatusOS.EM_EXECUCAO) {
             await this.consumirEstoqueDaOS(ordem);
+
+            await this.ValidaOrcamentoAprovado(ordem);
+
         }
 
         updates.status = novoStatus;
+    }
+
+    private async ValidaOrcamentoAprovado(ordem: OrdemServico) {
+        const orcamentos = await this.orcamentoService.getOrcamentosByOrdemServicoId(ordem._id!.toString());
+
+        const orcamentoAtual = orcamentos.reduce((prev, curr) => curr.versao > prev.versao ? curr : prev
+        );
+
+        if (orcamentoAtual.status != StatusOrcamento.APROVADO)
+            throw new Error("Não é possível iniciar a execução da Ordem de Serviço se o orcamento não estiver aprovado.");
     }
 
     private async processarItensEOrcamento(id: string,ordem: OrdemServico,updates: Partial<OrdemServico>): Promise<void> {

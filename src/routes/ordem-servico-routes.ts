@@ -14,6 +14,8 @@ import { EstoqueRepository } from '../Repository/estoque-repository';
 import { EstoqueService } from '../services/estoque-service';
 import { OrcamentoRepository } from '../Repository/orcamento-repository';
 import { OrcamentoService } from '../services/orcamento-service';
+import { ExecucaoServicoRepository } from '../Repository/execucao-servico-repository';
+import { ExecucaoServicoService } from '../services/execucao-servico-service';
 import { MovimentacaoEstoqueRepository } from '../Repository/movimentacao-estoque-repository';
 import { authMiddleware } from '../middleware/auth-middleware';
 
@@ -32,7 +34,9 @@ const estoqueService = new EstoqueService(estoqueRepo, movimentacaoRepo, pecaRep
 const ordemServicoRepo = new OrdemServicoRepository();
 const orcamentoRepo = new OrcamentoRepository();
 const orcamentoService = new OrcamentoService(orcamentoRepo);
-const ordemServicoService = new OrdemServicoService(ordemServicoRepo, clienteService, veiculoService, pecaService, servicoService, estoqueService, orcamentoService);
+const execucaoServicoRepo = new ExecucaoServicoRepository();
+const execucaoServicoService = new ExecucaoServicoService(execucaoServicoRepo, ordemServicoRepo, servicoService);
+const ordemServicoService = new OrdemServicoService(ordemServicoRepo, clienteService, veiculoService, pecaService, servicoService, estoqueService, orcamentoService, execucaoServicoService);
 const ordemServicoController = new OrdemServicoController(ordemServicoService);
 
 /**
