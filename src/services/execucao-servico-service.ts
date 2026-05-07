@@ -185,4 +185,8 @@ export class ExecucaoServicoService implements IExecucaoServicoService {
       await this.ordemServicoRepo.updateOrdemServico(ordemServicoId, { status: "FINALIZADA" });
     }
   }
+
+  async getExecucoesByOrdemServicoId(ordemServicoId: string): Promise<ExecucaoServico[]> {
+      return await this.repo.getExecucoesByOrdemServicoId(ordemServicoId);
+  }
 }

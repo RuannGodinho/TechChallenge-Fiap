@@ -11,4 +11,5 @@ export interface IExecucaoServicoService {
     maisLentoMinutos: number;
   }>;
   createExecucoesParaServicos(ordemServicoId: string, servicoIds: string[]): Promise<void>;
+  getExecucoesByOrdemServicoId(ordemServicoId: string): Promise<ExecucaoServico[]>
 }
