@@ -1,5 +1,5 @@
 import { Collection, Db, ObjectId } from "mongodb";
-import { connectDatabase } from "../config/database";
+import { connectDatabase } from "../infrastructure/database";
 import { ExecucaoServico } from "../Entities/execucao-servico";
 import { IExecucaoServicoRepository } from "../Interfaces/ExecucaoServico/execucao-servico-repository.interface";
 

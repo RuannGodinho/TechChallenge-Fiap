@@ -1,5 +1,5 @@
 import { Collection, Db, ObjectId } from 'mongodb';
-import { connectDatabase } from '../config/database';
+import { connectDatabase } from '../infrastructure/database';
 import { IEstoqueRepository } from '../Interfaces/Estoque/estoque-repository.interface';
 import { Estoque } from '../Entities/Estoque/estoque';
 

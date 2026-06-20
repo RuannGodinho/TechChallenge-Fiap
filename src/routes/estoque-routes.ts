@@ -4,7 +4,7 @@ import { EstoqueService } from '../services/estoque-service';
 import { EstoqueRepository } from '../Repository/estoque-repository';
 import { MovimentacaoEstoqueRepository } from '../Repository/movimentacao-estoque-repository';
 import { PecaRepository } from '../Repository/peca-repository';
-import { authMiddleware } from '../middleware/auth-middleware';
+import { authMiddleware } from '../infrastructure/http/middlewares/auth-middleware';
 
 const router = Router();
 const estoqueRepo = new EstoqueRepository();

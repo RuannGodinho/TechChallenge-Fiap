@@ -1,14 +1,14 @@
 import { Router, Request, Response } from 'express';
-import { ClienteController } from '../controllers/cliente-controller';
-import { ClienteService } from '../services/cliente-service';
-import { ClienteRepository } from '../Repository/cliente-repository';
-import { authMiddleware } from '../middleware/auth-middleware';
+import { authMiddleware } from './middlewares/auth-middleware';
+import { DIContainer } from '../composition-root/di-container';
 
 const router = Router();
 
-const clienteRepo = new ClienteRepository();
-const clienteService = new ClienteService(clienteRepo);
-const clienteController = new ClienteController(clienteService);
+async function getClienteController() {
+    const container = DIContainer.getInstance();
+    await container.ensureInitialized();
+    return container.getClienteController();
+}
 
 /**
  * @swagger
@@ -22,12 +22,13 @@ const clienteController = new ClienteController(clienteService);
  *       200:
  *         description: Lista retornada com sucesso
  */
-router.get("/clientes", authMiddleware,  async (req: Request, res: Response) => {
+router.get('/clientes', authMiddleware, async (_req: Request, res: Response) => {
     try {
-        const clientes = await clienteController.getAllClientes();
+        const controller = await getClienteController();
+        const clientes = await controller.getAllClientes();
         return res.json(clientes);
     } catch (error) {
-        return res.status(500).json({ error: "Internal server error" });
+        return res.status(500).json({ error: 'Internal server error' });
     }
 });
 
@@ -54,22 +55,25 @@ router.get("/clientes", authMiddleware,  async (req: Request, res: Response) => 
  *       400:
  *         description: CPF obrigatório
  */
-router.get("/clientes/cpf/:cpf", authMiddleware, async (req: Request, res: Response) => {
+router.get('/clientes/cpf/:cpf', authMiddleware, async (req: Request, res: Response) => {
     try {
         const cpf = req.params.cpf as string;
 
-        if (!cpf)
-            return res.status(400).json({ error: "CPF/CNPJ do cliente é obrigatório" });
+        if (!cpf) {
+            return res.status(400).json({ error: 'CPF/CNPJ do cliente é obrigatório' });
+        }
 
-        const cliente = await clienteController.getClienteByCpf(cpf);
+        const controller = await getClienteController();
+        const cliente = await controller.getClienteByCpf(cpf);
 
         if (!cliente) {
-            return res.status(404).json({ error: "Cliente não encontrado" });
+            return res.status(404).json({ error: 'Cliente não encontrado' });
         }
 
         return res.json(cliente);
-    } catch (error: any) {
-        return res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Internal server error';
+        return res.status(500).json({ error: message });
     }
 });
 
@@ -96,22 +100,24 @@ router.get("/clientes/cpf/:cpf", authMiddleware, async (req: Request, res: Respo
  *       400:
  *         description: ID obrigatório
  */
-router.get("/clientes/:id", authMiddleware,  async (req: Request, res: Response) => {
+router.get('/clientes/:id', authMiddleware, async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
 
-        if (id === ':id')
-            return res.status(400).json({ error: "ID do cliente é obrigatório" });
+        if (id === ':id') {
+            return res.status(400).json({ error: 'ID do cliente é obrigatório' });
+        }
 
-        const cliente = await clienteController.getClienteById(id);
+        const controller = await getClienteController();
+        const cliente = await controller.getClienteById(id);
 
         if (!cliente) {
-            return res.status(404).json({ error: "Cliente não encontrado" });
+            return res.status(404).json({ error: 'Cliente não encontrado' });
         }
 
         return res.json(cliente);
     } catch (error) {
-        return res.status(500).json({ error: "Internal server error" });
+        return res.status(500).json({ error: 'Internal server error' });
     }
 });
 
@@ -142,7 +148,6 @@ router.get("/clientes/:id", authMiddleware,  async (req: Request, res: Response)
  *               cpf:
  *                 type: string
  *                 description: CPF ou CNPJ do cliente
- *                 description: CPF ou CNPJ do cliente
  *               telefone:
  *                 type: string
  *     responses:
@@ -151,16 +156,22 @@ router.get("/clientes/:id", authMiddleware,  async (req: Request, res: Response)
  *       400:
  *         description: Campos obrigatórios não fornecidos
  */
-router.post("/clientes", authMiddleware, async (req: Request, res: Response) => {
+router.post('/clientes', authMiddleware, async (req: Request, res: Response) => {
     try {
         const { nome, email, cpf, telefone } = req.body;
-        if (!nome || !email || !cpf || !telefone)
-            return res.status(400).json({ error: "nome, email, cpf/cnpj e telefone são obrigatórios" });
 
-        const cliente = await clienteController.criarCliente({ nome, email, cpf, telefone });
-        return res.status(201).json(cliente);
-    } catch (error: any) {
-        return res.status(500).json({ error: error.message });
+        if (!nome || !email || !cpf || !telefone) {
+            return res.status(400).json({
+                error: 'nome, email, cpf/cnpj e telefone são obrigatórios',
+            });
+        }
+
+        const controller = await getClienteController();
+        const responseDto = await controller.criarCliente({ nome, email, cpf, telefone });
+        return res.status(201).json(responseDto);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Internal server error';
+        return res.status(500).json({ error: message });
     }
 });
 
@@ -202,23 +213,25 @@ router.post("/clientes", authMiddleware, async (req: Request, res: Response) => 
  *       400:
  *         description: ID obrigatório
  */
-router.put("/clientes/:id", authMiddleware,  async (req: Request, res: Response) => {
+router.put('/clientes/:id', authMiddleware, async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
 
-        if (id === ':id')
-            return res.status(400).json({ error: "ID do cliente é obrigatório" });
+        if (id === ':id') {
+            return res.status(400).json({ error: 'ID do cliente é obrigatório' });
+        }
 
-        const updates = req.body;
-        const cliente = await clienteController.atualizarCliente(id, updates);
+        const controller = await getClienteController();
+        const cliente = await controller.atualizarCliente(id, req.body);
 
         if (!cliente) {
-            return res.status(404).json({ error: "Cliente não encontrado" });
+            return res.status(404).json({ error: 'Cliente não encontrado' });
         }
 
         return res.json(cliente);
-    } catch (error: any) {
-        return res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Internal server error';
+        return res.status(500).json({ error: message });
     }
 });
 
@@ -245,21 +258,24 @@ router.put("/clientes/:id", authMiddleware,  async (req: Request, res: Response)
  *       400:
  *         description: ID obrigatório
  */
-router.delete("/clientes/:id", authMiddleware,  async (req: Request, res: Response) => {
+router.delete('/clientes/:id', authMiddleware, async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
 
-        if (id === ':id')
-            return res.status(400).json({ error: "ID do cliente é obrigatório" });
+        if (id === ':id') {
+            return res.status(400).json({ error: 'ID do cliente é obrigatório' });
+        }
 
-        const deleted = await clienteController.deletarCliente(id);
+        const controller = await getClienteController();
+        const deleted = await controller.deletarCliente(id);
 
         if (!deleted) {
-            return res.status(404).json({ error: "Cliente não encontrado" });
+            return res.status(404).json({ error: 'Cliente não encontrado' });
         }
+
         return res.status(204).send();
     } catch (error) {
-        return res.status(500).json({ error: "Internal server error" });
+        return res.status(500).json({ error: 'Internal server error' });
     }
 });
 

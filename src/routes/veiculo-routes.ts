@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { VeiculoController } from '../controllers/veiculo-controller';
 import { VeiculoService } from '../services/veiculo-service';
 import { VeiculoRepository } from '../Repository/veiculo-repository';
-import { authMiddleware } from '../middleware/auth-middleware';
+import { authMiddleware } from '../infrastructure/http/middlewares/auth-middleware';
 
 const router = Router();
 

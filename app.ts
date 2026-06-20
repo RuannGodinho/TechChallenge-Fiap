@@ -1,14 +1,14 @@
 ﻿import express from 'express';
-import clienteRoutes from './src/routes/cliente-routes';
+import clienteRoutes from './src/infrastructure/http/cliente-routes';
 import veiculoRoutes from './src/routes/veiculo-routes';
 import servicoRoutes from './src/routes/servico-routes';
 import pecaRoutes from './src/routes/peca-routes';
 import estoqueRoutes from './src/routes/estoque-routes';
-import authRoutes from './src/routes/auth-routes';
+import authRoutes from './src/infrastructure/http/routes/auth-routes';
 import ordemServicoRoutes from './src/routes/ordem-servico-routes';
 import orcamentoRoutes from './src/routes/orcamento-routes';
 import execucaoServicoRoutes from './src/routes/execucao-servico-routes';
-import { normalizeBodyCase } from './src/middleware/normalize-body-case';
+import { normalizeBodyCase } from './src/infrastructure/http/middlewares/normalize-body-case';
 
 const app = express();
 

@@ -1,5 +1,5 @@
 import { Collection, Db, ObjectId } from "mongodb";
-import { connectDatabase } from "../config/database";
+import { connectDatabase } from "../infrastructure/database";
 import { Veiculo } from "../Entities/veiculo";
 import { IVeiculoRepository } from "../Interfaces/Veiculo/veiculo-repository.interface";
 

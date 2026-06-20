@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../services/auth-service';
+import { verifyToken } from '../../../services/auth-service';
 
 export function authMiddleware(
   req: Request,

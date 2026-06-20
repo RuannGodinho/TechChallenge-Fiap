@@ -1,5 +1,5 @@
 import { Collection, Db, ObjectId } from 'mongodb';
-import { connectDatabase } from '../config/database';
+import { connectDatabase } from '../infrastructure/database';
 import { Orcamento } from '../Entities/orcamento';
 import { IOrcamentoRepository } from '../Interfaces/Orcamento/orcamento-repository.interface';
 

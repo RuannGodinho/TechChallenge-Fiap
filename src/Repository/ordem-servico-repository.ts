@@ -1,5 +1,5 @@
 import { Collection, Db, ObjectId } from 'mongodb';
-import { connectDatabase } from '../config/database';
+import { connectDatabase } from '../infrastructure/database';
 import { OrdemServico } from '../Entities/ordem-servico';
 import { IOrdemServicoRepository } from '../Interfaces/OrdemServico/ordem-servico-repository.interface';
 

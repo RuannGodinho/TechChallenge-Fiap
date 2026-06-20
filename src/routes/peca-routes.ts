@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { PecaController } from '../controllers/peca-controller';
 import { PecaService } from '../services/peca-service';
 import { PecaRepository } from '../Repository/peca-repository';
-import { authMiddleware } from '../middleware/auth-middleware';
+import { authMiddleware } from '../infrastructure/http/middlewares/auth-middleware';
 
 const router = Router();
 const pecaRepo = new PecaRepository();

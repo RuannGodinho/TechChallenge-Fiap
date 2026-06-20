@@ -1,6 +1,9 @@
 import { ObjectId } from 'mongodb';
-import { connectDatabase } from '../../src/config/database';
-import { ClienteRepository } from '../../src/Repository/cliente-repository';
+import { connectDatabase } from '../../src/infrastructure/database';
+import { ClienteMongoGateway } from '../../src/Adapters/gateways/cliente.mongo.gateway';
+import { Cliente } from '../../src/enterprise/entities/cliente.entity';
+import { Email } from '../../src/enterprise/value-objects/email.vo';
+import { Documento } from '../../src/enterprise/value-objects/documento.vo';
 import { PecaRepository } from '../../src/Repository/peca-repository';
 import { EstoqueRepository } from '../../src/Repository/estoque-repository';
 import { MovimentacaoEstoqueRepository } from '../../src/Repository/movimentacao-estoque-repository';
@@ -9,7 +12,7 @@ import { OrcamentoRepository } from '../../src/Repository/orcamento-repository';
 import { ServicoRepository } from '../../src/Repository/servico-repository';
 import { VeiculoRepository } from '../../src/Repository/veiculo-repository';
 
-jest.mock('../../src/config/database', () => ({
+jest.mock('../../src/infrastructure/database', () => ({
   connectDatabase: jest.fn(),
 }));
 
@@ -43,42 +46,78 @@ afterEach(() => {
 });
 
 describe('Repository coverage', () => {
-  describe('ClienteRepository', () => {
+  describe('ClienteMongoGateway', () => {
     test('should list clientes and use Clientes collection', async () => {
-      const collection = createCollection({ find: jest.fn().mockReturnValue({ toArray: jest.fn().mockResolvedValue([{ nome: 'Teste' }]) }) });
-      mockedConnectDatabase.mockResolvedValue(createDb(collection) as any);
+      const raw = {
+        _id: new ObjectId(),
+        nome: 'Teste',
+        email: 'a@test.com',
+        cpf: '11144477735',
+        telefone: '11999999999',
+      };
+      const collection = createCollection({
+        find: jest.fn().mockReturnValue({ toArray: jest.fn().mockResolvedValue([raw]) }),
+      });
+      const db = createDb(collection) as any;
 
-      const repository = new ClienteRepository();
-      await expect(repository.getAllClientes()).resolves.toEqual([{ nome: 'Teste' }]);
+      const gateway = new ClienteMongoGateway(db);
+      const clientes = await gateway.findAll();
+
+      expect(clientes).toHaveLength(1);
+      expect(clientes[0].nome).toBe('Teste');
       expect(collection.find).toHaveBeenCalled();
     });
 
-    test('should find cliente by id and cpf', async () => {
-      const cliente = { _id: new ObjectId(), cpf: '12345678901' };
-      const collection = createCollection({ findOne: jest.fn().mockResolvedValue(cliente) });
-      mockedConnectDatabase.mockResolvedValue(createDb(collection) as any);
+    test('should find cliente by id and documento', async () => {
+      const raw = {
+        _id: new ObjectId(),
+        nome: 'Teste',
+        email: 'a@test.com',
+        cpf: '11144477735',
+        telefone: '11999999999',
+      };
+      const collection = createCollection({ findOne: jest.fn().mockResolvedValue(raw) });
+      const db = createDb(collection) as any;
+      const gateway = new ClienteMongoGateway(db);
 
-      const repository = new ClienteRepository();
-      await expect(repository.getClienteById(cliente._id.toString())).resolves.toEqual(cliente);
-      await expect(repository.getClienteByCpf('12345678901')).resolves.toEqual(cliente);
+      const byId = await gateway.findById(raw._id.toString());
+      const byDocumento = await gateway.findByDocumento(Documento.from('111.444.777-35'));
+
+      expect(byId?.nome).toBe('Teste');
+      expect(byDocumento?.nome).toBe('Teste');
       expect(collection.findOne).toHaveBeenCalledTimes(2);
     });
 
     test('should create, update and delete cliente', async () => {
-      const collection = createCollection();
-      mockedConnectDatabase.mockResolvedValue(createDb(collection) as any);
+      const insertedId = new ObjectId();
+      const collection = createCollection({
+        insertOne: jest.fn().mockResolvedValue({ insertedId }),
+        findOneAndUpdate: jest.fn().mockResolvedValue({
+          _id: insertedId,
+          nome: 'A',
+          email: 'a@test.com',
+          cpf: '11144477735',
+          telefone: '11999999999',
+        }),
+        deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 }),
+      });
+      const db = createDb(collection) as any;
+      const gateway = new ClienteMongoGateway(db);
+      const cliente = new Cliente(
+        'A',
+        Email.from('a@test.com'),
+        Documento.from('111.444.777-35'),
+        '11999999999'
+      );
 
-      const repository = new ClienteRepository();
-      const cliente = { nome: 'A', email: 'a@test.com', cpf: '12345678901', telefone: '11999999999' };
-      await repository.criarCliente(cliente as any);
-      expect(collection.insertOne).toHaveBeenCalledWith(cliente);
+      await gateway.save(cliente);
+      expect(collection.insertOne).toHaveBeenCalled();
 
-      const id = new ObjectId().toString();
-      await repository.atualizarCliente(id, cliente as any);
-      expect(collection.updateOne).toHaveBeenCalledWith({ _id: new ObjectId(id) }, { $set: cliente });
+      await gateway.update(insertedId.toString(), cliente);
+      expect(collection.findOneAndUpdate).toHaveBeenCalled();
 
-      await repository.deletarCliente(id);
-      expect(collection.deleteOne).toHaveBeenCalledWith({ _id: new ObjectId(id) });
+      await gateway.delete(insertedId.toString());
+      expect(collection.deleteOne).toHaveBeenCalledWith({ _id: insertedId });
     });
   });
 

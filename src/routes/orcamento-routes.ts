@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { OrcamentoController } from '../controllers/orcamento-controller';
 import { OrcamentoService } from '../services/orcamento-service';
 import { OrcamentoRepository } from '../Repository/orcamento-repository';
-import { authMiddleware } from '../middleware/auth-middleware';
+import { authMiddleware } from '../infrastructure/http/middlewares/auth-middleware';
 
 const router = Router();
 const orcamentoRepo = new OrcamentoRepository();

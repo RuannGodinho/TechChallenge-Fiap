@@ -2,8 +2,7 @@ import { Router, Request, Response } from 'express';
 import { OrdemServicoController } from '../controllers/ordem-servico-controller';
 import { OrdemServicoService } from '../services/ordem-servico-service';
 import { OrdemServicoRepository } from '../Repository/ordem-servico-repository';
-import { ClienteService } from '../services/cliente-service';
-import { ClienteRepository } from '../Repository/cliente-repository';
+import { DIContainer } from '../infrastructure/composition-root/di-container';
 import { VeiculoService } from '../services/veiculo-service';
 import { VeiculoRepository } from '../Repository/veiculo-repository';
 import { PecaRepository } from '../Repository/peca-repository';
@@ -17,27 +16,56 @@ import { OrcamentoService } from '../services/orcamento-service';
 import { ExecucaoServicoRepository } from '../Repository/execucao-servico-repository';
 import { ExecucaoServicoService } from '../services/execucao-servico-service';
 import { MovimentacaoEstoqueRepository } from '../Repository/movimentacao-estoque-repository';
-import { authMiddleware } from '../middleware/auth-middleware';
+import { authMiddleware } from '../infrastructure/http/middlewares/auth-middleware';
 
 const router = Router();
-const clienteRepo = new ClienteRepository();
-const clienteService = new ClienteService(clienteRepo);
-const veiculoRepo = new VeiculoRepository();
-const veiculoService = new VeiculoService(veiculoRepo);
-const pecaRepo = new PecaRepository();
-const pecaService = new PecaService(pecaRepo);
-const servicoRepo = new ServicoRepository();
-const servicoService = new ServicoService(servicoRepo);
-const estoqueRepo = new EstoqueRepository();
-const movimentacaoRepo = new MovimentacaoEstoqueRepository();
-const estoqueService = new EstoqueService(estoqueRepo, movimentacaoRepo, pecaRepo);
-const ordemServicoRepo = new OrdemServicoRepository();
-const orcamentoRepo = new OrcamentoRepository();
-const orcamentoService = new OrcamentoService(orcamentoRepo);
-const execucaoServicoRepo = new ExecucaoServicoRepository();
-const execucaoServicoService = new ExecucaoServicoService(execucaoServicoRepo, ordemServicoRepo, servicoService);
-const ordemServicoService = new OrdemServicoService(ordemServicoRepo, clienteService, veiculoService, pecaService, servicoService, estoqueService, orcamentoService, execucaoServicoService);
-const ordemServicoController = new OrdemServicoController(ordemServicoService);
+
+let ordemServicoControllerPromise: Promise<OrdemServicoController> | null = null;
+
+async function getOrdemServicoController(): Promise<OrdemServicoController> {
+  if (ordemServicoControllerPromise) {
+    return ordemServicoControllerPromise;
+  }
+
+  ordemServicoControllerPromise = (async () => {
+    const container = DIContainer.getInstance();
+    await container.ensureInitialized();
+    const clienteService = container.getClienteServiceFacade();
+
+    const veiculoRepo = new VeiculoRepository();
+    const veiculoService = new VeiculoService(veiculoRepo);
+    const pecaRepo = new PecaRepository();
+    const pecaService = new PecaService(pecaRepo);
+    const servicoRepo = new ServicoRepository();
+    const servicoService = new ServicoService(servicoRepo);
+    const estoqueRepo = new EstoqueRepository();
+    const movimentacaoRepo = new MovimentacaoEstoqueRepository();
+    const estoqueService = new EstoqueService(estoqueRepo, movimentacaoRepo, pecaRepo);
+    const ordemServicoRepo = new OrdemServicoRepository();
+    const orcamentoRepo = new OrcamentoRepository();
+    const orcamentoService = new OrcamentoService(orcamentoRepo);
+    const execucaoServicoRepo = new ExecucaoServicoRepository();
+    const execucaoServicoService = new ExecucaoServicoService(
+      execucaoServicoRepo,
+      ordemServicoRepo,
+      servicoService
+    );
+    const ordemServicoService = new OrdemServicoService(
+      ordemServicoRepo,
+      clienteService,
+      veiculoService,
+      pecaService,
+      servicoService,
+      estoqueService,
+      orcamentoService,
+      execucaoServicoService
+    );
+
+    return new OrdemServicoController(ordemServicoService);
+  })();
+
+  return ordemServicoControllerPromise;
+}
 
 /**
  * @swagger
@@ -79,6 +107,7 @@ router.post('/ordensServico', authMiddleware, async (req: Request, res: Response
   }
 
   try {
+    const ordemServicoController = await getOrdemServicoController();
     const ordem = await ordemServicoController.createOrdemServico({
       cpfCnpj: cpfCnpj,
       veiculo: veiculoId,
@@ -106,6 +135,7 @@ router.post('/ordensServico', authMiddleware, async (req: Request, res: Response
  */
 router.get('/ordensServico', authMiddleware, async (req: Request, res: Response) => {
   try {
+    const ordemServicoController = await getOrdemServicoController();
     const ordens = await ordemServicoController.listaOrdensServico();
     return res.json(ordens);
   } catch (error: any) {
@@ -166,6 +196,7 @@ router.put('/ordensServico/:id', authMiddleware, async (req: Request, res: Respo
       return res.status(400).json({ error: 'Pelo menos um campo deve ser fornecido para atualização' });
     }
 
+    const ordemServicoController = await getOrdemServicoController();
     const ordem = await ordemServicoController.updateOrdemServico(id, updates);
 
     if (!ordem) {
@@ -259,6 +290,7 @@ router.get('/ordensServico/:cpfCnpj/detalhes', async (req: Request, res: Respons
       return res.status(400).json({ error: "CPF/CNPJ é obrigatório" });
     }
 
+    const ordemServicoController = await getOrdemServicoController();
     const ordens = await ordemServicoController.getOrdensServicoComDetalhesPorCpfCnpj(cpfCnpj);
 
     return res.json(ordens);

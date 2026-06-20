@@ -17,11 +17,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"   # Tamanho máximo de cada arquivo de log (ex: 10 Megabytes)
+        max-file: "3"     # Quantidade máxima de arquivos rotacionados a manter
 
   api:
     build: .
     container_name: oficina-api
-    restart: unless-stopped
+    restart: on-failure:5
     ports:
       - "3000:3000"
     depends_on:
@@ -31,6 +36,11 @@ services:
       PORT: 3000
       MONGO_URL: mongodb://mongodb:27017/Node-Fiap
       NODE_ENV: production
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"   # Tamanho máximo de cada arquivo de log (ex: 10 Megabytes)
+        max-file: "3"     # Quantidade máxima de arquivos rotacionados a manter
 
 volumes:
   mongo_data:

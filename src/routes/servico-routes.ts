@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { ServicoController } from '../controllers/servico-controller';
 import { ServicoService } from '../services/servico-service';
 import { ServicoRepository } from '../Repository/servico-repository';
-import { authMiddleware } from '../middleware/auth-middleware';
+import { authMiddleware } from '../infrastructure/http/middlewares/auth-middleware';
 
 const router = Router();
 

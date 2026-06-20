@@ -5,7 +5,7 @@ import { ExecucaoServicoRepository } from '../Repository/execucao-servico-reposi
 import { OrdemServicoRepository } from '../Repository/ordem-servico-repository';
 import { ServicoRepository } from '../Repository/servico-repository';
 import { ServicoService } from '../services/servico-service';
-import { authMiddleware } from '../middleware/auth-middleware';
+import { authMiddleware } from '../infrastructure/http/middlewares/auth-middleware';
 
 const router = Router();
 const execucaoRepo = new ExecucaoServicoRepository();

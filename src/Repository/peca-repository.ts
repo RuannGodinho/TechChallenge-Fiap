@@ -1,5 +1,5 @@
 import { Collection, Db, ObjectId } from 'mongodb';
-import { connectDatabase } from '../config/database';
+import { connectDatabase } from '../infrastructure/database';
 import { Peca } from '../Entities/Estoque/peca';
 import { IPecaRepository } from '../Interfaces/Peca/peca-repository.interface';
 
