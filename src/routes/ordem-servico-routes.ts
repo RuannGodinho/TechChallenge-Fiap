@@ -3,8 +3,6 @@ import { OrdemServicoController } from '../controllers/ordem-servico-controller'
 import { OrdemServicoService } from '../services/ordem-servico-service';
 import { OrdemServicoRepository } from '../Repository/ordem-servico-repository';
 import { DIContainer } from '../infrastructure/composition-root/di-container';
-import { VeiculoService } from '../services/veiculo-service';
-import { VeiculoRepository } from '../Repository/veiculo-repository';
 import { PecaRepository } from '../Repository/peca-repository';
 import { PecaService } from '../services/peca-service';
 import { ServicoRepository } from '../Repository/servico-repository';
@@ -31,9 +29,7 @@ async function getOrdemServicoController(): Promise<OrdemServicoController> {
     const container = DIContainer.getInstance();
     await container.ensureInitialized();
     const clienteService = container.getClienteServiceFacade();
-
-    const veiculoRepo = new VeiculoRepository();
-    const veiculoService = new VeiculoService(veiculoRepo);
+    const veiculoService = container.getVeiculoServiceFacade();
     const pecaRepo = new PecaRepository();
     const pecaService = new PecaService(pecaRepo);
     const servicoRepo = new ServicoRepository();

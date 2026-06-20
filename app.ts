@@ -1,6 +1,6 @@
 ﻿import express from 'express';
 import clienteRoutes from './src/infrastructure/http/cliente-routes';
-import veiculoRoutes from './src/routes/veiculo-routes';
+import veiculoRoutes from './src/infrastructure/http/veiculo-routes';
 import servicoRoutes from './src/routes/servico-routes';
 import pecaRoutes from './src/routes/peca-routes';
 import estoqueRoutes from './src/routes/estoque-routes';

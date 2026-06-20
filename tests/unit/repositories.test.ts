@@ -10,7 +10,9 @@ import { MovimentacaoEstoqueRepository } from '../../src/Repository/movimentacao
 import { OrdemServicoRepository } from '../../src/Repository/ordem-servico-repository';
 import { OrcamentoRepository } from '../../src/Repository/orcamento-repository';
 import { ServicoRepository } from '../../src/Repository/servico-repository';
-import { VeiculoRepository } from '../../src/Repository/veiculo-repository';
+import { VeiculoMongoGateway } from '../../src/Adapters/gateways/veiculo.mongo.gateway';
+import { Veiculo } from '../../src/enterprise/entities/veiculo.entity';
+import { Placa } from '../../src/enterprise/value-objects/placa.vo';
 
 jest.mock('../../src/infrastructure/database', () => ({
   connectDatabase: jest.fn(),
@@ -180,31 +182,73 @@ describe('Repository coverage', () => {
     });
   });
 
-  describe('VeiculoRepository', () => {
-    test('should list and manage veiculo entities', async () => {
-      const id = new ObjectId();
-      const expected = { _id: id };
-      const collection = createCollection({ find: jest.fn().mockReturnValue({ toArray: jest.fn().mockResolvedValue([{ placa: 'ABC1234' }]) }), findOne: jest.fn().mockResolvedValue(expected) });
-      mockedConnectDatabase.mockResolvedValue(createDb(collection) as any);
+  describe('VeiculoMongoGateway', () => {
+    test('should list veiculos and use Veiculos collection', async () => {
+      const raw = {
+        _id: new ObjectId(),
+        placa: 'ABC1234',
+        modelo: 'Civic',
+        ano: 2022,
+        marca: 'Honda',
+      };
+      const collection = createCollection({
+        find: jest.fn().mockReturnValue({ toArray: jest.fn().mockResolvedValue([raw]) }),
+      });
+      const db = createDb(collection) as any;
 
-      const repository = new VeiculoRepository();
-      await expect(repository.getAllVeiculos()).resolves.toEqual([{ placa: 'ABC1234' }]);
-      await expect(repository.getVeiculoById(id.toString())).resolves.toEqual(expected);
-      expect(collection.findOne).toHaveBeenCalledWith({ _id: new ObjectId(id) });
+      const gateway = new VeiculoMongoGateway(db);
+      const veiculos = await gateway.findAll();
+
+      expect(veiculos).toHaveLength(1);
+      expect(veiculos[0].placa.value).toBe('ABC1234');
+      expect(collection.find).toHaveBeenCalled();
+    });
+
+    test('should find veiculo by id and placa', async () => {
+      const raw = {
+        _id: new ObjectId(),
+        placa: 'ABC1234',
+        modelo: 'Civic',
+        ano: 2022,
+        marca: 'Honda',
+      };
+      const collection = createCollection({ findOne: jest.fn().mockResolvedValue(raw) });
+      const db = createDb(collection) as any;
+      const gateway = new VeiculoMongoGateway(db);
+
+      const byId = await gateway.findById(raw._id.toString());
+      const byPlaca = await gateway.findByPlaca(Placa.from('ABC1234'));
+
+      expect(byId?.modelo).toBe('Civic');
+      expect(byPlaca?.modelo).toBe('Civic');
+      expect(collection.findOne).toHaveBeenCalledTimes(2);
     });
 
     test('should create, update and delete veiculo', async () => {
-      const collection = createCollection();
-      mockedConnectDatabase.mockResolvedValue(createDb(collection) as any);
-      const repository = new VeiculoRepository();
-      const veiculo = { placa: 'ABC1234', modelo: 'Modelo' };
-      await repository.criarVeiculo(veiculo as any);
-      expect(collection.insertOne).toHaveBeenCalledWith(veiculo);
-      const id = new ObjectId().toString();
-      await repository.atualizarVeiculo(id, veiculo as any);
-      expect(collection.updateOne).toHaveBeenCalledWith({ _id: new ObjectId(id) }, { $set: veiculo });
-      await repository.deletarVeiculo(id);
-      expect(collection.deleteOne).toHaveBeenCalledWith({ _id: new ObjectId(id) });
+      const insertedId = new ObjectId();
+      const collection = createCollection({
+        insertOne: jest.fn().mockResolvedValue({ insertedId }),
+        findOneAndUpdate: jest.fn().mockResolvedValue({
+          _id: insertedId,
+          placa: 'ABC1234',
+          modelo: 'Civic',
+          ano: 2022,
+          marca: 'Honda',
+        }),
+        deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 }),
+      });
+      const db = createDb(collection) as any;
+      const gateway = new VeiculoMongoGateway(db);
+      const veiculo = new Veiculo(Placa.from('ABC1234'), 'Civic', 2022, 'Honda');
+
+      await gateway.save(veiculo);
+      expect(collection.insertOne).toHaveBeenCalled();
+
+      await gateway.update(insertedId.toString(), veiculo);
+      expect(collection.findOneAndUpdate).toHaveBeenCalled();
+
+      await gateway.delete(insertedId.toString());
+      expect(collection.deleteOne).toHaveBeenCalledWith({ _id: insertedId });
     });
   });
 
