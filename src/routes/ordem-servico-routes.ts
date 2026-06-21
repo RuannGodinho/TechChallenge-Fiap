@@ -4,8 +4,6 @@ import { OrdemServicoService } from '../services/ordem-servico-service';
 import { OrdemServicoRepository } from '../Repository/ordem-servico-repository';
 import { DIContainer } from '../infrastructure/composition-root/di-container';
 import { PecaRepository } from '../Repository/peca-repository';
-import { ServicoRepository } from '../Repository/servico-repository';
-import { ServicoService } from '../services/servico-service';
 import { EstoqueRepository } from '../Repository/estoque-repository';
 import { EstoqueService } from '../services/estoque-service';
 import { OrcamentoRepository } from '../Repository/orcamento-repository';
@@ -31,8 +29,7 @@ async function getOrdemServicoController(): Promise<OrdemServicoController> {
     const veiculoService = container.getVeiculoServiceFacade();
     const pecaService = container.getPecaServiceFacade();
     const pecaRepo = new PecaRepository();
-    const servicoRepo = new ServicoRepository();
-    const servicoService = new ServicoService(servicoRepo);
+    const servicoService = container.getServicoServiceFacade();
     const estoqueRepo = new EstoqueRepository();
     const movimentacaoRepo = new MovimentacaoEstoqueRepository();
     const estoqueService = new EstoqueService(estoqueRepo, movimentacaoRepo, pecaRepo);

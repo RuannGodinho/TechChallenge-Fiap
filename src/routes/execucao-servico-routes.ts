@@ -3,46 +3,35 @@ import { ExecucaoServicoController } from '../controllers/execucao-servico-contr
 import { ExecucaoServicoService } from '../services/execucao-servico-service';
 import { ExecucaoServicoRepository } from '../Repository/execucao-servico-repository';
 import { OrdemServicoRepository } from '../Repository/ordem-servico-repository';
-import { ServicoRepository } from '../Repository/servico-repository';
-import { ServicoService } from '../services/servico-service';
+import { DIContainer } from '../infrastructure/composition-root/di-container';
 import { authMiddleware } from '../infrastructure/http/middlewares/auth-middleware';
 
 const router = Router();
-const execucaoRepo = new ExecucaoServicoRepository();
-const ordemServicoRepo = new OrdemServicoRepository();
-const servicoRepo = new ServicoRepository();
-const servicoService = new ServicoService(servicoRepo);
-const execucaoServicoService = new ExecucaoServicoService(execucaoRepo, ordemServicoRepo, servicoService);
-const execucaoServicoController = new ExecucaoServicoController(execucaoServicoService);
 
+let execucaoServicoControllerPromise: Promise<ExecucaoServicoController> | null = null;
 
-/**
- * @swagger
- * /api/execucoes-servico/{ordemServicoId}:
- *   get:
- *     security:
- *       - bearerAuth: []
- *     summary: Obtém execuções de serviço pelo ID da ordem de serviço
- *     tags: [Execução de Serviços]
- *     parameters:
- *       - in: path
- *         name: ordemServicoId
- *         required: true
- *         schema:
- *           type: string
- *         description: ID da ordem de serviço
- *     responses:
- *       200:
- *         description: Execuções de serviço retornadas com sucesso
- *       400:
- *         description: ID da ordem de serviço obrigatório
- *       401:
- *         description: Não autenticado
- *       404:
- *         description: Execução de serviço não encontrada
- *       500:
- *         description: Erro ao buscar execuções de serviço
- */
+async function getExecucaoServicoController(): Promise<ExecucaoServicoController> {
+    if (execucaoServicoControllerPromise) {
+        return execucaoServicoControllerPromise;
+    }
+
+    execucaoServicoControllerPromise = (async () => {
+        const container = DIContainer.getInstance();
+        await container.ensureInitialized();
+        const servicoService = container.getServicoServiceFacade();
+        const execucaoRepo = new ExecucaoServicoRepository();
+        const ordemServicoRepo = new OrdemServicoRepository();
+        const execucaoServicoService = new ExecucaoServicoService(
+            execucaoRepo,
+            ordemServicoRepo,
+            servicoService
+        );
+        return new ExecucaoServicoController(execucaoServicoService);
+    })();
+
+    return execucaoServicoControllerPromise;
+}
+
 router.get('/execucoes-servico/:ordemServicoId', authMiddleware, async (req: Request, res: Response) => {
   try {
     const ordemServicoId = req.params.ordemServicoId as string;
@@ -51,6 +40,7 @@ router.get('/execucoes-servico/:ordemServicoId', authMiddleware, async (req: Req
       return res.status(400).json({ error: 'ID da ordem de serviço é obrigatório' });
     }
 
+    const execucaoServicoController = await getExecucaoServicoController();
     const execucoesServico = await execucaoServicoController.getExecucoesByOrdemServicoId(ordemServicoId);
 
     if (!execucoesServico || !execucoesServico.length) {
@@ -65,37 +55,11 @@ router.get('/execucoes-servico/:ordemServicoId', authMiddleware, async (req: Req
   }
 });
 
-/**
- * @swagger
- * /api/execucoes-servico/{id}/iniciar:
- *   patch:
- *     security:
- *       - bearerAuth: []
- *     summary: Inicia uma execução de serviço
- *     tags: [Execução de Serviços]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: ID da execução de serviço
- *     responses:
- *       200:
- *         description: Execução de serviço iniciada com sucesso
- *       400:
- *         description: Não é possível iniciar a execução de serviço
- *       401:
- *         description: Não autenticado
- *       404:
- *         description: Execução de serviço não encontrada
- *       500:
- *         description: Erro ao iniciar execução de serviço
- */
 router.patch('/execucoes-servico/:id/iniciar', authMiddleware, async (req: Request, res: Response) => {
   const id = req.params.id as string;
 
   try {
+    const execucaoServicoController = await getExecucaoServicoController();
     const execucao = await execucaoServicoController.iniciarExecucao(id);
 
     return res.json(execucao);
@@ -116,37 +80,11 @@ router.patch('/execucoes-servico/:id/iniciar', authMiddleware, async (req: Reque
   }
 });
 
-/**
- * @swagger
- * /api/execucoes-servico/{id}/finalizar:
- *   patch:
- *     security:
- *       - bearerAuth: []
- *     summary: Finaliza uma execução de serviço
- *     tags: [Execução de Serviços]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: ID da execução de serviço
- *     responses:
- *       200:
- *         description: Execução de serviço finalizada com sucesso
- *       400:
- *         description: Não é possível finalizar a execução de serviço
- *       401:
- *         description: Não autenticado
- *       404:
- *         description: Execução de serviço não encontrada
- *       500:
- *         description: Erro ao finalizar execução de serviço
- */
 router.patch('/execucoes-servico/:id/finalizar', authMiddleware, async (req: Request, res: Response) => {
   const id = req.params.id as string;
 
   try {
+    const execucaoServicoController = await getExecucaoServicoController();
     const execucao = await execucaoServicoController.finalizarExecucao(id);
 
     return res.json(execucao);
@@ -166,24 +104,9 @@ router.patch('/execucoes-servico/:id/finalizar', authMiddleware, async (req: Req
   }
 });
 
-/**
- * @swagger
- * /api/metricas/tempo-medio-servicos:
- *   get:
- *     security:
- *       - bearerAuth: []
- *     summary: Obtém métricas de tempo médio dos serviços
- *     tags: [Métricas]
- *     responses:
- *       200:
- *         description: Métricas retornadas com sucesso
- *       401:
- *         description: Não autenticado
- *       500:
- *         description: Erro ao buscar métricas dos serviços
- */
-router.get('/metricas/tempo-medio-servicos', authMiddleware, async (req: Request, res: Response) => {
+router.get('/metricas/tempo-medio-servicos', authMiddleware, async (_req: Request, res: Response) => {
   try {
+    const execucaoServicoController = await getExecucaoServicoController();
     const metrics = await execucaoServicoController.getTempoMedioServicos();
 
     return res.json(metrics);

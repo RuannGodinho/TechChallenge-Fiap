@@ -153,7 +153,7 @@ describe('Integração - Rotas de Estoque', () => {
     expect(listResponse.status).toBe(200);
     const inserted = listResponse.body.find((item: any) => item.nome === 'Peça Teste');
     expect(inserted).toBeDefined();
-    return inserted._id;
+    return inserted.id;
   }
 
   test('deve registrar entrada e refletir no estoque', async () => {

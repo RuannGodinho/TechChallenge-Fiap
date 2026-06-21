@@ -11,7 +11,8 @@ import { EstoqueRepository } from '../../src/Repository/estoque-repository';
 import { MovimentacaoEstoqueRepository } from '../../src/Repository/movimentacao-estoque-repository';
 import { OrdemServicoRepository } from '../../src/Repository/ordem-servico-repository';
 import { OrcamentoRepository } from '../../src/Repository/orcamento-repository';
-import { ServicoRepository } from '../../src/Repository/servico-repository';
+import { ServicoMongoGateway } from '../../src/Adapters/gateways/servico.mongo.gateway';
+import { Servico } from '../../src/enterprise/entities/servico.entity';
 import { VeiculoMongoGateway } from '../../src/Adapters/gateways/veiculo.mongo.gateway';
 import { Veiculo } from '../../src/enterprise/entities/veiculo.entity';
 import { Placa } from '../../src/enterprise/value-objects/placa.vo';
@@ -193,31 +194,68 @@ describe('Repository coverage', () => {
     });
   });
 
-  describe('ServicoRepository', () => {
-    test('should list and manage servico entities', async () => {
-      const id = new ObjectId();
-      const expected = { _id: id };
-      const collection = createCollection({ find: jest.fn().mockReturnValue({ toArray: jest.fn().mockResolvedValue([{ nome: 'Serviço' }]) }), findOne: jest.fn().mockResolvedValue(expected) });
-      mockedConnectDatabase.mockResolvedValue(createDb(collection) as any);
+  describe('ServicoMongoGateway', () => {
+    test('should list servicos and use Servicos collection', async () => {
+      const raw = {
+        _id: new ObjectId(),
+        nome: 'Serviço',
+        descricao: 'Descrição',
+        preco: 100,
+      };
+      const collection = createCollection({
+        find: jest.fn().mockReturnValue({ toArray: jest.fn().mockResolvedValue([raw]) }),
+      });
+      const db = createDb(collection) as any;
 
-      const repository = new ServicoRepository();
-      await expect(repository.getAllServicos()).resolves.toEqual([{ nome: 'Serviço' }]);
-      await expect(repository.getServicoById(id.toString())).resolves.toEqual(expected);
-      expect(collection.findOne).toHaveBeenCalledWith({ _id: new ObjectId(id) });
+      const gateway = new ServicoMongoGateway(db);
+      const servicos = await gateway.findAll();
+
+      expect(servicos).toHaveLength(1);
+      expect(servicos[0].nome).toBe('Serviço');
+      expect(collection.find).toHaveBeenCalled();
+    });
+
+    test('should find servico by id', async () => {
+      const raw = {
+        _id: new ObjectId(),
+        nome: 'Serviço',
+        descricao: 'Descrição',
+        preco: 100,
+      };
+      const collection = createCollection({ findOne: jest.fn().mockResolvedValue(raw) });
+      const db = createDb(collection) as any;
+      const gateway = new ServicoMongoGateway(db);
+
+      const byId = await gateway.findById(raw._id.toString());
+
+      expect(byId?.nome).toBe('Serviço');
+      expect(collection.findOne).toHaveBeenCalled();
     });
 
     test('should create, update and delete servico', async () => {
-      const collection = createCollection();
-      mockedConnectDatabase.mockResolvedValue(createDb(collection) as any);
-      const repository = new ServicoRepository();
-      const servico = { nome: 'S', descricao: 'D' };
-      await repository.createServico(servico as any);
-      expect(collection.insertOne).toHaveBeenCalledWith(servico);
-      const id = new ObjectId().toString();
-      await repository.updateServico(id, servico as any);
-      expect(collection.updateOne).toHaveBeenCalledWith({ _id: new ObjectId(id) }, { $set: servico });
-      await repository.deleteServico(id);
-      expect(collection.deleteOne).toHaveBeenCalledWith({ _id: new ObjectId(id) });
+      const insertedId = new ObjectId();
+      const collection = createCollection({
+        insertOne: jest.fn().mockResolvedValue({ insertedId }),
+        findOneAndUpdate: jest.fn().mockResolvedValue({
+          _id: insertedId,
+          nome: 'S',
+          descricao: 'D',
+          preco: 100,
+        }),
+        deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 }),
+      });
+      const db = createDb(collection) as any;
+      const gateway = new ServicoMongoGateway(db);
+      const servico = new Servico('S', 'D', 100);
+
+      await gateway.save(servico);
+      expect(collection.insertOne).toHaveBeenCalled();
+
+      await gateway.update(insertedId.toString(), servico);
+      expect(collection.findOneAndUpdate).toHaveBeenCalled();
+
+      await gateway.delete(insertedId.toString());
+      expect(collection.deleteOne).toHaveBeenCalledWith({ _id: insertedId });
     });
   });
 

@@ -1,53 +1,52 @@
 import { Db, ObjectId } from 'mongodb';
-import { Peca } from '../../enterprise/entities/peca.entity';
-import { IPecaGateway } from '../../application/ports/peca.gateway.port';
-import { PecaMapper, PecaPersistenceModel } from './mappers/peca.mapper';
+import { Servico } from '../../enterprise/entities/servico.entity';
+import { IServicoGateway } from '../../application/ports/servico.gateway.port';
+import { ServicoMapper, ServicoPersistenceModel } from './mappers/servico.mapper';
 
-export class PecaMongoGateway implements IPecaGateway {
+export class ServicoMongoGateway implements IServicoGateway {
     private readonly collection;
 
     constructor(private readonly db: Db) {
-        this.collection = this.db.collection<PecaPersistenceModel>('Pecas');
+        this.collection = this.db.collection<ServicoPersistenceModel>('Servicos');
     }
 
-    async findAll(): Promise<Peca[]> {
+    async findAll(): Promise<Servico[]> {
         const rows = await this.collection.find().toArray();
-        return rows.map((row) => PecaMapper.toDomain(row));
+        return rows.map((row) => ServicoMapper.toDomain(row));
     }
 
-    async findById(id: string): Promise<Peca | null> {
+    async findById(id: string): Promise<Servico | null> {
         if (!ObjectId.isValid(id)) {
             return null;
         }
 
         const row = await this.collection.findOne({ _id: new ObjectId(id) });
-        return row ? PecaMapper.toDomain(row) : null;
+        return row ? ServicoMapper.toDomain(row) : null;
     }
 
-    async save(peca: Peca): Promise<Peca> {
-        const persistence = PecaMapper.toPersistence(peca);
+    async save(servico: Servico): Promise<Servico> {
+        const persistence = ServicoMapper.toPersistence(servico);
         const result = await this.collection.insertOne(persistence);
-        return new Peca(
-            peca.nome,
-            peca.descricao,
-            peca.preco,
-            peca.tipo,
+        return new Servico(
+            servico.nome,
+            servico.descricao,
+            servico.preco,
             result.insertedId.toString(),
-            peca.quantidade ?? undefined
+            servico.quantidade ?? undefined
         );
     }
 
-    async update(id: string, peca: Peca): Promise<Peca | null> {
+    async update(id: string, servico: Servico): Promise<Servico | null> {
         if (!ObjectId.isValid(id)) {
             return null;
         }
 
-        const persistence = PecaMapper.toPersistence(peca);
+        const persistence = ServicoMapper.toPersistence(servico);
         const updateDoc: { $set: typeof persistence; $unset?: { quantidade: '' } } = {
             $set: persistence,
         };
 
-        if (peca.quantidade == null) {
+        if (servico.quantidade == null) {
             updateDoc.$unset = { quantidade: '' };
         }
 
@@ -57,7 +56,7 @@ export class PecaMongoGateway implements IPecaGateway {
             { returnDocument: 'after' }
         );
 
-        return result ? PecaMapper.toDomain(result) : null;
+        return result ? ServicoMapper.toDomain(result) : null;
     }
 
     async delete(id: string): Promise<boolean> {

@@ -120,7 +120,7 @@ describe('Integração - Rotas de Peças', () => {
         expect(inserted).toBeDefined();
 
         const getResponse = await request(app)
-            .get(`/api/pecas/${inserted._id}`)
+            .get(`/api/pecas/${inserted.id}`)
             .auth(_token, { type: 'bearer' });
         expect(getResponse.status).toBe(200);
         expect(getResponse.body.nome).toBe('Cilindro');
@@ -148,7 +148,7 @@ describe('Integração - Rotas de Peças', () => {
         });
 
         const response = await request(app)
-            .put(`/api/pecas/${peca._id}`)
+            .put(`/api/pecas/${peca.id}`)
             .send({
                 nome: 'Amortecedor Premium',
                 descricao: 'Amortecedor dianteiro atualizado',
@@ -172,12 +172,12 @@ describe('Integração - Rotas de Peças', () => {
         });
 
         const response = await request(app)
-            .delete(`/api/pecas/${peca._id}`)
+            .delete(`/api/pecas/${peca.id}`)
             .auth(_token, { type: 'bearer' });
         expect(response.status).toBe(204);
 
         const getResponse = await request(app)
-            .get(`/api/pecas/${peca._id}`)
+            .get(`/api/pecas/${peca.id}`)
             .auth(_token, { type: 'bearer' });
         expect(getResponse.status).toBe(404);
     });

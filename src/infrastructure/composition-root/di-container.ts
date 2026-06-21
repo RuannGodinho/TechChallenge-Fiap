@@ -12,6 +12,10 @@ import { PecaMongoGateway } from '../../Adapters/gateways/peca.mongo.gateway';
 import { PecaPresenter } from '../../Adapters/presenters/peca.presenter';
 import { PecaController } from '../../Adapters/controllers/peca.controller';
 import { PecaServiceFacade } from '../../Adapters/facades/peca-service.facade';
+import { ServicoMongoGateway } from '../../Adapters/gateways/servico.mongo.gateway';
+import { ServicoPresenter } from '../../Adapters/presenters/servico.presenter';
+import { ServicoController } from '../../Adapters/controllers/servico.controller';
+import { ServicoServiceFacade } from '../../Adapters/facades/servico-service.facade';
 import { CriarClienteUseCase } from '../../application/usecases/cliente/criar-cliente.usecase';
 import { ListarClientesUseCase } from '../../application/usecases/cliente/listar-clientes.usecase';
 import { BuscarClientePorIdUseCase } from '../../application/usecases/cliente/buscar-cliente-por-id.usecase';
@@ -28,9 +32,15 @@ import { ListarPecasUseCase } from '../../application/usecases/peca/listar-pecas
 import { BuscarPecaPorIdUseCase } from '../../application/usecases/peca/buscar-peca-por-id.usecase';
 import { AtualizarPecaUseCase } from '../../application/usecases/peca/atualizar-peca.usecase';
 import { DeletarPecaUseCase } from '../../application/usecases/peca/deletar-peca.usecase';
+import { CriarServicoUseCase } from '../../application/usecases/servico/criar-servico.usecase';
+import { ListarServicosUseCase } from '../../application/usecases/servico/listar-servicos.usecase';
+import { BuscarServicoPorIdUseCase } from '../../application/usecases/servico/buscar-servico-por-id.usecase';
+import { AtualizarServicoUseCase } from '../../application/usecases/servico/atualizar-servico.usecase';
+import { DeletarServicoUseCase } from '../../application/usecases/servico/deletar-servico.usecase';
 import { IClienteGateway } from '../../application/ports/cliente.gateway.port';
 import { IVeiculoGateway } from '../../application/ports/veiculo.gateway.port';
 import { IPecaGateway } from '../../application/ports/peca.gateway.port';
+import { IServicoGateway } from '../../application/ports/servico.gateway.port';
 
 export class DIContainer {
     private static instance: DIContainer;
@@ -41,19 +51,24 @@ export class DIContainer {
     private clienteGateway: IClienteGateway | null = null;
     private veiculoGateway: IVeiculoGateway | null = null;
     private pecaGateway: IPecaGateway | null = null;
+    private servicoGateway: IServicoGateway | null = null;
     private clienteGatewayInjected = false;
     private veiculoGatewayInjected = false;
     private pecaGatewayInjected = false;
+    private servicoGatewayInjected = false;
 
     private clientePresenter: ClientePresenter | null = null;
     private veiculoPresenter: VeiculoPresenter | null = null;
     private pecaPresenter: PecaPresenter | null = null;
+    private servicoPresenter: ServicoPresenter | null = null;
     private clienteController: ClienteController | null = null;
     private veiculoController: VeiculoController | null = null;
     private pecaController: PecaController | null = null;
+    private servicoController: ServicoController | null = null;
     private clienteServiceFacade: ClienteServiceFacade | null = null;
     private veiculoServiceFacade: VeiculoServiceFacade | null = null;
     private pecaServiceFacade: PecaServiceFacade | null = null;
+    private servicoServiceFacade: ServicoServiceFacade | null = null;
 
     private criarClienteUseCase: CriarClienteUseCase | null = null;
     private listarClientesUseCase: ListarClientesUseCase | null = null;
@@ -74,6 +89,12 @@ export class DIContainer {
     private atualizarPecaUseCase: AtualizarPecaUseCase | null = null;
     private deletarPecaUseCase: DeletarPecaUseCase | null = null;
 
+    private criarServicoUseCase: CriarServicoUseCase | null = null;
+    private listarServicosUseCase: ListarServicosUseCase | null = null;
+    private buscarServicoPorIdUseCase: BuscarServicoPorIdUseCase | null = null;
+    private atualizarServicoUseCase: AtualizarServicoUseCase | null = null;
+    private deletarServicoUseCase: DeletarServicoUseCase | null = null;
+
     private constructor() {}
 
     static getInstance(): DIContainer {
@@ -88,7 +109,12 @@ export class DIContainer {
             return;
         }
 
-        if (!this.clienteGatewayInjected || !this.veiculoGatewayInjected || !this.pecaGatewayInjected) {
+        if (
+            !this.clienteGatewayInjected ||
+            !this.veiculoGatewayInjected ||
+            !this.pecaGatewayInjected ||
+            !this.servicoGatewayInjected
+        ) {
             this.db = await connectDatabase();
         }
 
@@ -134,6 +160,16 @@ export class DIContainer {
             this.pecaGateway = new PecaMongoGateway(this.getDb());
         }
         return this.pecaGateway;
+    }
+
+    getServicoGateway(): IServicoGateway {
+        if (!this.servicoGateway) {
+            if (this.servicoGatewayInjected) {
+                throw new Error('Serviço gateway not injected.');
+            }
+            this.servicoGateway = new ServicoMongoGateway(this.getDb());
+        }
+        return this.servicoGateway;
     }
 
     getCriarClienteUseCase(): CriarClienteUseCase {
@@ -248,6 +284,41 @@ export class DIContainer {
         return this.deletarPecaUseCase;
     }
 
+    getCriarServicoUseCase(): CriarServicoUseCase {
+        if (!this.criarServicoUseCase) {
+            this.criarServicoUseCase = new CriarServicoUseCase(this.getServicoGateway());
+        }
+        return this.criarServicoUseCase;
+    }
+
+    getListarServicosUseCase(): ListarServicosUseCase {
+        if (!this.listarServicosUseCase) {
+            this.listarServicosUseCase = new ListarServicosUseCase(this.getServicoGateway());
+        }
+        return this.listarServicosUseCase;
+    }
+
+    getBuscarServicoPorIdUseCase(): BuscarServicoPorIdUseCase {
+        if (!this.buscarServicoPorIdUseCase) {
+            this.buscarServicoPorIdUseCase = new BuscarServicoPorIdUseCase(this.getServicoGateway());
+        }
+        return this.buscarServicoPorIdUseCase;
+    }
+
+    getAtualizarServicoUseCase(): AtualizarServicoUseCase {
+        if (!this.atualizarServicoUseCase) {
+            this.atualizarServicoUseCase = new AtualizarServicoUseCase(this.getServicoGateway());
+        }
+        return this.atualizarServicoUseCase;
+    }
+
+    getDeletarServicoUseCase(): DeletarServicoUseCase {
+        if (!this.deletarServicoUseCase) {
+            this.deletarServicoUseCase = new DeletarServicoUseCase(this.getServicoGateway());
+        }
+        return this.deletarServicoUseCase;
+    }
+
     getClientePresenter(): ClientePresenter {
         if (!this.clientePresenter) {
             this.clientePresenter = new ClientePresenter();
@@ -267,6 +338,13 @@ export class DIContainer {
             this.pecaPresenter = new PecaPresenter();
         }
         return this.pecaPresenter;
+    }
+
+    getServicoPresenter(): ServicoPresenter {
+        if (!this.servicoPresenter) {
+            this.servicoPresenter = new ServicoPresenter();
+        }
+        return this.servicoPresenter;
     }
 
     getClienteController(): ClienteController {
@@ -312,6 +390,20 @@ export class DIContainer {
         return this.pecaController;
     }
 
+    getServicoController(): ServicoController {
+        if (!this.servicoController) {
+            this.servicoController = new ServicoController(
+                this.getListarServicosUseCase(),
+                this.getBuscarServicoPorIdUseCase(),
+                this.getCriarServicoUseCase(),
+                this.getAtualizarServicoUseCase(),
+                this.getDeletarServicoUseCase(),
+                this.getServicoPresenter()
+            );
+        }
+        return this.servicoController;
+    }
+
     getClienteServiceFacade(): ClienteServiceFacade {
         if (!this.clienteServiceFacade) {
             this.clienteServiceFacade = new ClienteServiceFacade(
@@ -352,6 +444,19 @@ export class DIContainer {
         return this.pecaServiceFacade;
     }
 
+    getServicoServiceFacade(): ServicoServiceFacade {
+        if (!this.servicoServiceFacade) {
+            this.servicoServiceFacade = new ServicoServiceFacade(
+                this.getListarServicosUseCase(),
+                this.getBuscarServicoPorIdUseCase(),
+                this.getCriarServicoUseCase(),
+                this.getAtualizarServicoUseCase(),
+                this.getDeletarServicoUseCase()
+            );
+        }
+        return this.servicoServiceFacade;
+    }
+
     injectClienteGateway(gateway: IClienteGateway): void {
         this.clienteGateway = gateway;
         this.clienteGatewayInjected = true;
@@ -373,25 +478,38 @@ export class DIContainer {
         this.resetPecaCache();
     }
 
+    injectServicoGateway(gateway: IServicoGateway): void {
+        this.servicoGateway = gateway;
+        this.servicoGatewayInjected = true;
+        this.initialized = true;
+        this.resetServicoCache();
+    }
+
     reset(): void {
         this.clienteGateway = null;
         this.veiculoGateway = null;
         this.pecaGateway = null;
+        this.servicoGateway = null;
         this.clienteGatewayInjected = false;
         this.veiculoGatewayInjected = false;
         this.pecaGatewayInjected = false;
+        this.servicoGatewayInjected = false;
         this.clientePresenter = null;
         this.veiculoPresenter = null;
         this.pecaPresenter = null;
+        this.servicoPresenter = null;
         this.clienteController = null;
         this.veiculoController = null;
         this.pecaController = null;
+        this.servicoController = null;
         this.clienteServiceFacade = null;
         this.veiculoServiceFacade = null;
         this.pecaServiceFacade = null;
+        this.servicoServiceFacade = null;
         this.resetClienteCache();
         this.resetVeiculoCache();
         this.resetPecaCache();
+        this.resetServicoCache();
         this.initialized = false;
         this.db = null;
     }
@@ -425,6 +543,16 @@ export class DIContainer {
         this.deletarPecaUseCase = null;
         this.pecaController = null;
         this.pecaServiceFacade = null;
+    }
+
+    private resetServicoCache(): void {
+        this.criarServicoUseCase = null;
+        this.listarServicosUseCase = null;
+        this.buscarServicoPorIdUseCase = null;
+        this.atualizarServicoUseCase = null;
+        this.deletarServicoUseCase = null;
+        this.servicoController = null;
+        this.servicoServiceFacade = null;
     }
 }
 

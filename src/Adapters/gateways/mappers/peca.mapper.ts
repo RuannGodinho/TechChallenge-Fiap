@@ -12,13 +12,18 @@ export interface PecaPersistenceModel {
 
 export class PecaMapper {
     static toPersistence(peca: Peca): Omit<PecaPersistenceModel, '_id'> {
-        return {
+        const persistence: Omit<PecaPersistenceModel, '_id'> = {
             nome: peca.nome,
             descricao: peca.descricao,
             tipo: peca.tipo,
             preco: peca.preco,
-            quantidade: peca.quantidade,
         };
+
+        if (peca.quantidade != null) {
+            persistence.quantidade = peca.quantidade;
+        }
+
+        return persistence;
     }
 
     static toDomain(raw: PecaPersistenceModel): Peca {
@@ -31,7 +36,7 @@ export class PecaMapper {
             raw.preco,
             normalizedTipo as TipoItem,
             id,
-            raw.quantidade
+            raw.quantidade ?? undefined
         );
     }
 }

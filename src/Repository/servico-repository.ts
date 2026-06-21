@@ -1,36 +1,38 @@
-import { Collection, Db, ObjectId } from "mongodb";
-import { connectDatabase } from "../infrastructure/database";
-import { Servico } from "../Entities/servico";
-import { IServicoRepository } from "../Interfaces/Servico/servico-repository.interface";
+import { connectDatabase } from '../infrastructure/database';
+import { Servico } from '../enterprise/entities/servico.entity';
+import { ServicoMongoGateway } from '../Adapters/gateways/servico.mongo.gateway';
+import { IServicoRepository } from '../Interfaces/Servico/servico-repository.interface';
 
 export class ServicoRepository implements IServicoRepository {
-    async getCollection(): Promise<Collection<Servico>> {
-        const db: Db = await connectDatabase();
-        return db.collection<Servico>("Servicos");
+    private gateway: ServicoMongoGateway | null = null;
+
+    private async getGateway(): Promise<ServicoMongoGateway> {
+        if (!this.gateway) {
+            const db = await connectDatabase();
+            this.gateway = new ServicoMongoGateway(db);
+        }
+        return this.gateway;
     }
 
     async getAllServicos(): Promise<Servico[]> {
-        const collection = await this.getCollection();
-        return await collection.find().toArray();
+        return (await this.getGateway()).findAll();
     }
 
     async getServicoById(id: string): Promise<Servico | null> {
-        const collection = await this.getCollection();
-        return await collection.findOne({ _id: new ObjectId(id) });
+        return (await this.getGateway()).findById(id);
     }
 
     async createServico(servico: Servico): Promise<void> {
-        const collection = await this.getCollection();
-        await collection.insertOne(servico);
+        await (await this.getGateway()).save(servico);
     }
 
     async updateServico(id: string, servico: Servico): Promise<void> {
-        const collection = await this.getCollection();
-        await collection.updateOne({ _id: new ObjectId(id) }, { $set: servico });
+        await (await this.getGateway()).update(id, servico);
     }
 
     async deleteServico(id: string): Promise<void> {
-        const collection = await this.getCollection();
-        await collection.deleteOne({ _id: new ObjectId(id) });
+        await (await this.getGateway()).delete(id);
     }
 }
+
+export { ServicoMongoGateway } from '../Adapters/gateways/servico.mongo.gateway';
