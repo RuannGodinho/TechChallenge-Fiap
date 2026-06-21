@@ -3,14 +3,10 @@ import { OrdemServicoController } from '../controllers/ordem-servico-controller'
 import { OrdemServicoService } from '../services/ordem-servico-service';
 import { OrdemServicoRepository } from '../Repository/ordem-servico-repository';
 import { DIContainer } from '../infrastructure/composition-root/di-container';
-import { PecaRepository } from '../Repository/peca-repository';
-import { EstoqueRepository } from '../Repository/estoque-repository';
-import { EstoqueService } from '../services/estoque-service';
 import { OrcamentoRepository } from '../Repository/orcamento-repository';
 import { OrcamentoService } from '../services/orcamento-service';
 import { ExecucaoServicoRepository } from '../Repository/execucao-servico-repository';
 import { ExecucaoServicoService } from '../services/execucao-servico-service';
-import { MovimentacaoEstoqueRepository } from '../Repository/movimentacao-estoque-repository';
 import { authMiddleware } from '../infrastructure/http/middlewares/auth-middleware';
 
 const router = Router();
@@ -28,11 +24,8 @@ async function getOrdemServicoController(): Promise<OrdemServicoController> {
     const clienteService = container.getClienteServiceFacade();
     const veiculoService = container.getVeiculoServiceFacade();
     const pecaService = container.getPecaServiceFacade();
-    const pecaRepo = new PecaRepository();
     const servicoService = container.getServicoServiceFacade();
-    const estoqueRepo = new EstoqueRepository();
-    const movimentacaoRepo = new MovimentacaoEstoqueRepository();
-    const estoqueService = new EstoqueService(estoqueRepo, movimentacaoRepo, pecaRepo);
+    const estoqueService = container.getEstoqueServiceFacade();
     const ordemServicoRepo = new OrdemServicoRepository();
     const orcamentoRepo = new OrcamentoRepository();
     const orcamentoService = new OrcamentoService(orcamentoRepo);

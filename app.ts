@@ -3,7 +3,7 @@ import clienteRoutes from './src/infrastructure/http/cliente-routes';
 import veiculoRoutes from './src/infrastructure/http/veiculo-routes';
 import servicoRoutes from './src/infrastructure/http/servico-routes';
 import pecaRoutes from './src/infrastructure/http/peca-routes';
-import estoqueRoutes from './src/routes/estoque-routes';
+import estoqueRoutes from './src/infrastructure/http/estoque-routes';
 import authRoutes from './src/infrastructure/http/routes/auth-routes';
 import ordemServicoRoutes from './src/routes/ordem-servico-routes';
 import orcamentoRoutes from './src/routes/orcamento-routes';

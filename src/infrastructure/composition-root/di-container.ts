@@ -41,6 +41,17 @@ import { IClienteGateway } from '../../application/ports/cliente.gateway.port';
 import { IVeiculoGateway } from '../../application/ports/veiculo.gateway.port';
 import { IPecaGateway } from '../../application/ports/peca.gateway.port';
 import { IServicoGateway } from '../../application/ports/servico.gateway.port';
+import { EstoqueMongoGateway } from '../../Adapters/gateways/estoque.mongo.gateway';
+import { MovimentacaoEstoqueMongoGateway } from '../../Adapters/gateways/movimentacao-estoque.mongo.gateway';
+import { EstoquePresenter } from '../../Adapters/presenters/estoque.presenter';
+import { EstoqueController } from '../../Adapters/controllers/estoque.controller';
+import { EstoqueServiceFacade } from '../../Adapters/facades/estoque-service.facade';
+import { RegistrarMovimentacaoEstoqueUseCase } from '../../application/usecases/estoque/registrar-movimentacao-estoque.usecase';
+import { ListarEstoqueUseCase } from '../../application/usecases/estoque/listar-estoque.usecase';
+import { BuscarEstoquePorPecaIdUseCase } from '../../application/usecases/estoque/buscar-estoque-por-peca-id.usecase';
+import { ListarMovimentacoesEstoqueUseCase } from '../../application/usecases/estoque/listar-movimentacoes-estoque.usecase';
+import { IEstoqueGateway } from '../../application/ports/estoque.gateway.port';
+import { IMovimentacaoEstoqueGateway } from '../../application/ports/movimentacao-estoque.gateway.port';
 
 export class DIContainer {
     private static instance: DIContainer;
@@ -52,23 +63,30 @@ export class DIContainer {
     private veiculoGateway: IVeiculoGateway | null = null;
     private pecaGateway: IPecaGateway | null = null;
     private servicoGateway: IServicoGateway | null = null;
+    private estoqueGateway: IEstoqueGateway | null = null;
+    private movimentacaoEstoqueGateway: IMovimentacaoEstoqueGateway | null = null;
     private clienteGatewayInjected = false;
     private veiculoGatewayInjected = false;
     private pecaGatewayInjected = false;
     private servicoGatewayInjected = false;
+    private estoqueGatewayInjected = false;
+    private movimentacaoEstoqueGatewayInjected = false;
 
     private clientePresenter: ClientePresenter | null = null;
     private veiculoPresenter: VeiculoPresenter | null = null;
     private pecaPresenter: PecaPresenter | null = null;
     private servicoPresenter: ServicoPresenter | null = null;
+    private estoquePresenter: EstoquePresenter | null = null;
     private clienteController: ClienteController | null = null;
     private veiculoController: VeiculoController | null = null;
     private pecaController: PecaController | null = null;
     private servicoController: ServicoController | null = null;
+    private estoqueController: EstoqueController | null = null;
     private clienteServiceFacade: ClienteServiceFacade | null = null;
     private veiculoServiceFacade: VeiculoServiceFacade | null = null;
     private pecaServiceFacade: PecaServiceFacade | null = null;
     private servicoServiceFacade: ServicoServiceFacade | null = null;
+    private estoqueServiceFacade: EstoqueServiceFacade | null = null;
 
     private criarClienteUseCase: CriarClienteUseCase | null = null;
     private listarClientesUseCase: ListarClientesUseCase | null = null;
@@ -95,6 +113,11 @@ export class DIContainer {
     private atualizarServicoUseCase: AtualizarServicoUseCase | null = null;
     private deletarServicoUseCase: DeletarServicoUseCase | null = null;
 
+    private registrarMovimentacaoEstoqueUseCase: RegistrarMovimentacaoEstoqueUseCase | null = null;
+    private listarEstoqueUseCase: ListarEstoqueUseCase | null = null;
+    private buscarEstoquePorPecaIdUseCase: BuscarEstoquePorPecaIdUseCase | null = null;
+    private listarMovimentacoesEstoqueUseCase: ListarMovimentacoesEstoqueUseCase | null = null;
+
     private constructor() {}
 
     static getInstance(): DIContainer {
@@ -113,7 +136,9 @@ export class DIContainer {
             !this.clienteGatewayInjected ||
             !this.veiculoGatewayInjected ||
             !this.pecaGatewayInjected ||
-            !this.servicoGatewayInjected
+            !this.servicoGatewayInjected ||
+            !this.estoqueGatewayInjected ||
+            !this.movimentacaoEstoqueGatewayInjected
         ) {
             this.db = await connectDatabase();
         }
@@ -170,6 +195,26 @@ export class DIContainer {
             this.servicoGateway = new ServicoMongoGateway(this.getDb());
         }
         return this.servicoGateway;
+    }
+
+    getEstoqueGateway(): IEstoqueGateway {
+        if (!this.estoqueGateway) {
+            if (this.estoqueGatewayInjected) {
+                throw new Error('Estoque gateway not injected.');
+            }
+            this.estoqueGateway = new EstoqueMongoGateway(this.getDb());
+        }
+        return this.estoqueGateway;
+    }
+
+    getMovimentacaoEstoqueGateway(): IMovimentacaoEstoqueGateway {
+        if (!this.movimentacaoEstoqueGateway) {
+            if (this.movimentacaoEstoqueGatewayInjected) {
+                throw new Error('Movimentação estoque gateway not injected.');
+            }
+            this.movimentacaoEstoqueGateway = new MovimentacaoEstoqueMongoGateway(this.getDb());
+        }
+        return this.movimentacaoEstoqueGateway;
     }
 
     getCriarClienteUseCase(): CriarClienteUseCase {
@@ -319,6 +364,42 @@ export class DIContainer {
         return this.deletarServicoUseCase;
     }
 
+    getRegistrarMovimentacaoEstoqueUseCase(): RegistrarMovimentacaoEstoqueUseCase {
+        if (!this.registrarMovimentacaoEstoqueUseCase) {
+            this.registrarMovimentacaoEstoqueUseCase = new RegistrarMovimentacaoEstoqueUseCase(
+                this.getEstoqueGateway(),
+                this.getMovimentacaoEstoqueGateway(),
+                this.getPecaGateway()
+            );
+        }
+        return this.registrarMovimentacaoEstoqueUseCase;
+    }
+
+    getListarEstoqueUseCase(): ListarEstoqueUseCase {
+        if (!this.listarEstoqueUseCase) {
+            this.listarEstoqueUseCase = new ListarEstoqueUseCase(this.getEstoqueGateway());
+        }
+        return this.listarEstoqueUseCase;
+    }
+
+    getBuscarEstoquePorPecaIdUseCase(): BuscarEstoquePorPecaIdUseCase {
+        if (!this.buscarEstoquePorPecaIdUseCase) {
+            this.buscarEstoquePorPecaIdUseCase = new BuscarEstoquePorPecaIdUseCase(
+                this.getEstoqueGateway()
+            );
+        }
+        return this.buscarEstoquePorPecaIdUseCase;
+    }
+
+    getListarMovimentacoesEstoqueUseCase(): ListarMovimentacoesEstoqueUseCase {
+        if (!this.listarMovimentacoesEstoqueUseCase) {
+            this.listarMovimentacoesEstoqueUseCase = new ListarMovimentacoesEstoqueUseCase(
+                this.getMovimentacaoEstoqueGateway()
+            );
+        }
+        return this.listarMovimentacoesEstoqueUseCase;
+    }
+
     getClientePresenter(): ClientePresenter {
         if (!this.clientePresenter) {
             this.clientePresenter = new ClientePresenter();
@@ -345,6 +426,13 @@ export class DIContainer {
             this.servicoPresenter = new ServicoPresenter();
         }
         return this.servicoPresenter;
+    }
+
+    getEstoquePresenter(): EstoquePresenter {
+        if (!this.estoquePresenter) {
+            this.estoquePresenter = new EstoquePresenter();
+        }
+        return this.estoquePresenter;
     }
 
     getClienteController(): ClienteController {
@@ -404,6 +492,19 @@ export class DIContainer {
         return this.servicoController;
     }
 
+    getEstoqueController(): EstoqueController {
+        if (!this.estoqueController) {
+            this.estoqueController = new EstoqueController(
+                this.getListarEstoqueUseCase(),
+                this.getBuscarEstoquePorPecaIdUseCase(),
+                this.getRegistrarMovimentacaoEstoqueUseCase(),
+                this.getListarMovimentacoesEstoqueUseCase(),
+                this.getEstoquePresenter()
+            );
+        }
+        return this.estoqueController;
+    }
+
     getClienteServiceFacade(): ClienteServiceFacade {
         if (!this.clienteServiceFacade) {
             this.clienteServiceFacade = new ClienteServiceFacade(
@@ -457,6 +558,18 @@ export class DIContainer {
         return this.servicoServiceFacade;
     }
 
+    getEstoqueServiceFacade(): EstoqueServiceFacade {
+        if (!this.estoqueServiceFacade) {
+            this.estoqueServiceFacade = new EstoqueServiceFacade(
+                this.getListarEstoqueUseCase(),
+                this.getBuscarEstoquePorPecaIdUseCase(),
+                this.getRegistrarMovimentacaoEstoqueUseCase(),
+                this.getListarMovimentacoesEstoqueUseCase()
+            );
+        }
+        return this.estoqueServiceFacade;
+    }
+
     injectClienteGateway(gateway: IClienteGateway): void {
         this.clienteGateway = gateway;
         this.clienteGatewayInjected = true;
@@ -485,31 +598,53 @@ export class DIContainer {
         this.resetServicoCache();
     }
 
+    injectEstoqueGateway(gateway: IEstoqueGateway): void {
+        this.estoqueGateway = gateway;
+        this.estoqueGatewayInjected = true;
+        this.initialized = true;
+        this.resetEstoqueCache();
+    }
+
+    injectMovimentacaoEstoqueGateway(gateway: IMovimentacaoEstoqueGateway): void {
+        this.movimentacaoEstoqueGateway = gateway;
+        this.movimentacaoEstoqueGatewayInjected = true;
+        this.initialized = true;
+        this.resetEstoqueCache();
+    }
+
     reset(): void {
         this.clienteGateway = null;
         this.veiculoGateway = null;
         this.pecaGateway = null;
         this.servicoGateway = null;
+        this.estoqueGateway = null;
+        this.movimentacaoEstoqueGateway = null;
         this.clienteGatewayInjected = false;
         this.veiculoGatewayInjected = false;
         this.pecaGatewayInjected = false;
         this.servicoGatewayInjected = false;
+        this.estoqueGatewayInjected = false;
+        this.movimentacaoEstoqueGatewayInjected = false;
         this.clientePresenter = null;
         this.veiculoPresenter = null;
         this.pecaPresenter = null;
         this.servicoPresenter = null;
+        this.estoquePresenter = null;
         this.clienteController = null;
         this.veiculoController = null;
         this.pecaController = null;
         this.servicoController = null;
+        this.estoqueController = null;
         this.clienteServiceFacade = null;
         this.veiculoServiceFacade = null;
         this.pecaServiceFacade = null;
         this.servicoServiceFacade = null;
+        this.estoqueServiceFacade = null;
         this.resetClienteCache();
         this.resetVeiculoCache();
         this.resetPecaCache();
         this.resetServicoCache();
+        this.resetEstoqueCache();
         this.initialized = false;
         this.db = null;
     }
@@ -553,6 +688,15 @@ export class DIContainer {
         this.deletarServicoUseCase = null;
         this.servicoController = null;
         this.servicoServiceFacade = null;
+    }
+
+    private resetEstoqueCache(): void {
+        this.registrarMovimentacaoEstoqueUseCase = null;
+        this.listarEstoqueUseCase = null;
+        this.buscarEstoquePorPecaIdUseCase = null;
+        this.listarMovimentacoesEstoqueUseCase = null;
+        this.estoqueController = null;
+        this.estoqueServiceFacade = null;
     }
 }
 

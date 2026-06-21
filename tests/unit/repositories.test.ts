@@ -7,8 +7,14 @@ import { Documento } from '../../src/enterprise/value-objects/documento.vo';
 import { PecaMongoGateway } from '../../src/Adapters/gateways/peca.mongo.gateway';
 import { Peca } from '../../src/enterprise/entities/peca.entity';
 import { TipoItem } from '../../src/validators/tipo-item';
-import { EstoqueRepository } from '../../src/Repository/estoque-repository';
-import { MovimentacaoEstoqueRepository } from '../../src/Repository/movimentacao-estoque-repository';
+import { EstoqueMongoGateway } from '../../src/Adapters/gateways/estoque.mongo.gateway';
+import { MovimentacaoEstoqueMongoGateway } from '../../src/Adapters/gateways/movimentacao-estoque.mongo.gateway';
+import { Estoque } from '../../src/enterprise/entities/estoque.entity';
+import { PecaId } from '../../src/enterprise/value-objects/peca-id.vo';
+import { Quantidade } from '../../src/enterprise/value-objects/quantidade.vo';
+import { MovimentacaoEstoque } from '../../src/enterprise/entities/movimentacao-estoque.entity';
+import { TipoMovimentacao } from '../../src/enterprise/value-objects/tipo-movimentacao.vo';
+import { OrigemMovimentacao } from '../../src/enterprise/value-objects/origem-movimentacao.vo';
 import { OrdemServicoRepository } from '../../src/Repository/ordem-servico-repository';
 import { OrcamentoRepository } from '../../src/Repository/orcamento-repository';
 import { ServicoMongoGateway } from '../../src/Adapters/gateways/servico.mongo.gateway';
@@ -329,44 +335,81 @@ describe('Repository coverage', () => {
     });
   });
 
-  describe('EstoqueRepository', () => {
+  describe('EstoqueMongoGateway', () => {
     test('should list and fetch estoque by peca id', async () => {
-      const estoque = { pecaId: new ObjectId(), quantidade: 10 };
-      const collection = createCollection({ find: jest.fn().mockReturnValue({ toArray: jest.fn().mockResolvedValue([estoque]) }), findOne: jest.fn().mockResolvedValue(estoque) });
-      mockedConnectDatabase.mockResolvedValue(createDb(collection) as any);
+      const pecaObjectId = new ObjectId();
+      const estoque = { pecaId: pecaObjectId, quantidade: 10 };
+      const collection = createCollection({
+        find: jest.fn().mockReturnValue({ toArray: jest.fn().mockResolvedValue([estoque]) }),
+        findOne: jest.fn().mockResolvedValue(estoque),
+      });
+      const db = createDb(collection);
+      const gateway = new EstoqueMongoGateway(db as any);
 
-      const repository = new EstoqueRepository();
-      await expect(repository.getAllEstoque()).resolves.toEqual([estoque]);
-      const id = new ObjectId();
-      await expect(repository.getEstoqueByPecaId(id)).resolves.toEqual(estoque);
-      expect(collection.findOne).toHaveBeenCalledWith({ pecaId: new ObjectId(id) });
+      const all = await gateway.findAll();
+      expect(all).toHaveLength(1);
+      expect(all[0].quantidade.value).toBe(10);
+
+      const found = await gateway.findByPecaId(pecaObjectId.toString());
+      expect(found?.quantidade.value).toBe(10);
+      expect(collection.findOne).toHaveBeenCalledWith({ pecaId: pecaObjectId });
     });
 
-    test('should create, update and delete estoque', async () => {
-      const collection = createCollection();
-      mockedConnectDatabase.mockResolvedValue(createDb(collection) as any);
-      const repository = new EstoqueRepository();
-      const estoque = { pecaId: new ObjectId(), quantidade: 5 };
-      await repository.createEstoque(estoque as any);
-      expect(collection.insertOne).toHaveBeenCalledWith(estoque);
-      const id = new ObjectId();
-      await repository.updateEstoque(id, 20);
-      expect(collection.updateOne).toHaveBeenCalledWith({ pecaId: new ObjectId(id) }, { $set: { quantidade: 20 } });
-      await repository.deleteEstoque(id);
-      expect(collection.deleteOne).toHaveBeenCalledWith({ pecaId: id });
+    test('should insert and update estoque', async () => {
+      const collection = createCollection({
+        findOne: jest
+          .fn()
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({ pecaId: new ObjectId(), quantidade: 5 }),
+      });
+      const db = createDb(collection);
+      const gateway = new EstoqueMongoGateway(db as any);
+      const pecaId = PecaId.from(new ObjectId().toString());
+
+      await gateway.save(Estoque.restore(pecaId, Quantidade.from(5)));
+      expect(collection.insertOne).toHaveBeenCalled();
+
+      await gateway.save(Estoque.restore(pecaId, Quantidade.from(20)));
+      expect(collection.updateOne).toHaveBeenCalledWith(
+        { pecaId: new ObjectId(pecaId.value) },
+        { $set: { quantidade: 20 } }
+      );
     });
   });
 
-  describe('MovimentacaoEstoqueRepository', () => {
+  describe('MovimentacaoEstoqueMongoGateway', () => {
     test('should create movimentacao and list movimentacoes', async () => {
-      const movimentacao = { pecaId: new ObjectId(), tipo: 'ENTRADA', quantidade: 5 };
-      const collection = createCollection({ find: jest.fn().mockReturnValue({ toArray: jest.fn().mockResolvedValue([movimentacao]) }) });
-      mockedConnectDatabase.mockResolvedValue(createDb(collection) as any);
+      const pecaId = PecaId.from(new ObjectId().toString());
+      const movimentacao = new MovimentacaoEstoque(
+        pecaId,
+        TipoMovimentacao.from('ENTRADA'),
+        Quantidade.from(5),
+        new Date(),
+        OrigemMovimentacao.from('compra')
+      );
+      const collection = createCollection({
+        find: jest.fn().mockReturnValue({
+          toArray: jest.fn().mockResolvedValue([
+            {
+              pecaId: new ObjectId(pecaId.value),
+              tipo: 'ENTRADA',
+              quantidade: 5,
+              data: new Date(),
+              origem: 'compra',
+            },
+          ]),
+        }),
+        insertOne: jest.fn().mockResolvedValue({ insertedId: new ObjectId() }),
+      });
+      const db = createDb(collection);
+      const gateway = new MovimentacaoEstoqueMongoGateway(db as any);
 
-      const repository = new MovimentacaoEstoqueRepository();
-      await repository.createMovimentacao(movimentacao as any);
-      expect(collection.insertOne).toHaveBeenCalledWith(movimentacao);
-      await expect(repository.listaMovimentacoes()).resolves.toEqual([movimentacao]);
+      await gateway.save(movimentacao);
+      expect(collection.insertOne).toHaveBeenCalled();
+
+      const all = await gateway.findAll();
+      expect(all).toHaveLength(1);
+      expect(all[0].tipo.value).toBe('ENTRADA');
     });
   });
 

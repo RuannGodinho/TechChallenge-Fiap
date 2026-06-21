@@ -30,13 +30,13 @@ const mockServicoService = {
 
 const mockEstoqueService = {
   getEstoqueByPecaId: jest.fn(),
-  updateEstoque: jest.fn(),
   createMovimentacao: jest.fn()
 };
 
 const mockOrcamentoService = {
   createOrcamento: jest.fn(),
-  enviaEmailCliente: jest.fn()
+  enviaEmailCliente: jest.fn(),
+  getOrcamentosByOrdemServicoId: jest.fn(),
 };
 
 const mockExecucaoServicoService = {
@@ -223,11 +223,15 @@ describe('OrdemServicoService', () => {
         [new OrdemPecaItem(pecaId, 2, 100)],
         [servicoId]
       );
+      ordemExistente._id = new ObjectId(id);
 
       mockOrdemServicoRepository.getOSById.mockResolvedValue(ordemExistente);
       mockEstoqueService.getEstoqueByPecaId.mockResolvedValue({ pecaId: pecaId.toString(), quantidade: 10 });
       mockServicoService.getServicoById.mockResolvedValue({ id: servicoId.toString(), nome: 'Serviço Teste', preco: 100 });
-      mockEstoqueService.updateEstoque.mockResolvedValue(undefined);
+      mockOrcamentoService.getOrcamentosByOrdemServicoId.mockResolvedValue([
+        { versao: 1, status: 'APROVADO' },
+      ]);
+      mockEstoqueService.createMovimentacao.mockResolvedValue(undefined);
       mockOrdemServicoRepository.updateOrdemServico.mockResolvedValue(ordemExistente);
 
       const result = await service.updateOrdemServico(id, updates);

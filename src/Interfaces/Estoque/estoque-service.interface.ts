@@ -1,13 +1,10 @@
+import { ObjectId } from 'mongodb';
 import { Estoque } from '../../Entities/Estoque/estoque';
 import { MovimentacaoEstoque } from '../../Entities/Estoque/movimentacao-estoque';
-import { ObjectId } from "mongodb";
 
 export interface IEstoqueService {
-  getAllEstoque(): Promise<Estoque[]>;
-  createMovimentacao(movimentacao: MovimentacaoEstoque): Promise<MovimentacaoEstoque>;
-  listaMovimentacoes(): Promise<MovimentacaoEstoque[]>;
-  getEstoqueByPecaId(pecaId: ObjectId): Promise<Estoque | null>;
-  createEstoque(estoqueData: Omit<Estoque, 'id'>): Promise<Estoque>;
-  updateEstoque(pecaId: ObjectId, quantidade: number): Promise<Estoque | null>;
-  deleteEstoque(pecaId: ObjectId): Promise<boolean>;
+    getAllEstoque(): Promise<Estoque[]>;
+    createMovimentacao(movimentacao: MovimentacaoEstoque): Promise<MovimentacaoEstoque>;
+    listaMovimentacoes(): Promise<MovimentacaoEstoque[]>;
+    getEstoqueByPecaId(pecaId: ObjectId): Promise<Estoque | null>;
 }
