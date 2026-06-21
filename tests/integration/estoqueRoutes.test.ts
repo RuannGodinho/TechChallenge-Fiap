@@ -1,10 +1,60 @@
 import request from 'supertest';
 import { ObjectId } from 'mongodb';
+import { Peca } from '../../src/enterprise/entities/peca.entity';
+import { IPecaGateway } from '../../src/application/ports/peca.gateway.port';
+import { DIContainer } from '../../src/infrastructure/composition-root/di-container';
 import { getAuthToken } from '../Helper/getAuthToken';
 
-const pecasStore = new Map<string, any>();
+const pecasStore = new Map<string, Peca>();
 const estoqueStore = new Map<string, any>();
 const movimentacoesStore: any[] = [];
+
+class InMemoryPecaGateway implements IPecaGateway {
+    async findAll(): Promise<Peca[]> {
+        return Array.from(pecasStore.values());
+    }
+
+    async findById(id: string): Promise<Peca | null> {
+        return pecasStore.get(id) ?? null;
+    }
+
+    async save(peca: Peca): Promise<Peca> {
+        const id = new ObjectId().toString();
+        const saved = new Peca(
+            peca.nome,
+            peca.descricao,
+            peca.preco,
+            peca.tipo,
+            id,
+            peca.quantidade
+        );
+        pecasStore.set(id, saved);
+        return saved;
+    }
+
+    async update(id: string, peca: Peca): Promise<Peca | null> {
+        if (!pecasStore.has(id)) {
+            return null;
+        }
+
+        const updated = new Peca(
+            peca.nome,
+            peca.descricao,
+            peca.preco,
+            peca.tipo,
+            id,
+            peca.quantidade
+        );
+        pecasStore.set(id, updated);
+        return updated;
+    }
+
+    async delete(id: string): Promise<boolean> {
+        return pecasStore.delete(id);
+    }
+}
+
+DIContainer.getInstance().injectPecaGateway(new InMemoryPecaGateway());
 
 jest.mock('../../src/Repository/peca-repository', () => ({
   PecaRepository: jest.fn().mockImplementation(() => ({
@@ -13,19 +63,22 @@ jest.mock('../../src/Repository/peca-repository', () => ({
       const key = id instanceof ObjectId ? id.toString() : id.toString();
       return pecasStore.get(key) || null;
     }),
-    createPeca: jest.fn(async (peca: any) => {
+    createPeca: jest.fn(async (peca: Peca) => {
       const id = new ObjectId().toString();
-      pecasStore.set(id, { ...peca, _id: id });
+      pecasStore.set(id, new Peca(peca.nome, peca.descricao, peca.preco, peca.tipo, id));
     }),
-    updatePeca: jest.fn(async (id: string | ObjectId, peca: any) => {
+    updatePeca: jest.fn(async (id: string | ObjectId, peca: Peca) => {
       const key = id instanceof ObjectId ? id.toString() : id.toString();
       const existing = pecasStore.get(key);
       if (!existing) return;
-      pecasStore.set(key, { ...existing, ...peca, _id: key });
+      pecasStore.set(
+        key,
+        new Peca(peca.nome, peca.descricao, peca.preco, peca.tipo, key, peca.quantidade)
+      );
     }),
     deletePeca: jest.fn(async (id: string | ObjectId) => {
       const key = id instanceof ObjectId ? id.toString() : id.toString();
-      return pecasStore.delete(key);
+      pecasStore.delete(key);
     }),
   })),
 }));

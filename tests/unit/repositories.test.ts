@@ -4,7 +4,9 @@ import { ClienteMongoGateway } from '../../src/Adapters/gateways/cliente.mongo.g
 import { Cliente } from '../../src/enterprise/entities/cliente.entity';
 import { Email } from '../../src/enterprise/value-objects/email.vo';
 import { Documento } from '../../src/enterprise/value-objects/documento.vo';
-import { PecaRepository } from '../../src/Repository/peca-repository';
+import { PecaMongoGateway } from '../../src/Adapters/gateways/peca.mongo.gateway';
+import { Peca } from '../../src/enterprise/entities/peca.entity';
+import { TipoItem } from '../../src/validators/tipo-item';
 import { EstoqueRepository } from '../../src/Repository/estoque-repository';
 import { MovimentacaoEstoqueRepository } from '../../src/Repository/movimentacao-estoque-repository';
 import { OrdemServicoRepository } from '../../src/Repository/ordem-servico-repository';
@@ -123,34 +125,71 @@ describe('Repository coverage', () => {
     });
   });
 
-  describe('PecaRepository', () => {
-    test('should list pecas and manage by id', async () => {
-      const id = new ObjectId();
-      const expected = { _id: id };
-      const collection = createCollection({ find: jest.fn().mockReturnValue({ toArray: jest.fn().mockResolvedValue([{ nome: 'Peca' }]) }), findOne: jest.fn().mockResolvedValue(expected) });
-      mockedConnectDatabase.mockResolvedValue(createDb(collection) as any);
+  describe('PecaMongoGateway', () => {
+    test('should list pecas and use Pecas collection', async () => {
+      const raw = {
+        _id: new ObjectId(),
+        nome: 'Peca',
+        descricao: 'Descricao',
+        tipo: 'PECA',
+        preco: 100,
+      };
+      const collection = createCollection({
+        find: jest.fn().mockReturnValue({ toArray: jest.fn().mockResolvedValue([raw]) }),
+      });
+      const db = createDb(collection) as any;
 
-      const repository = new PecaRepository();
-      await expect(repository.getAllPecas()).resolves.toEqual([{ nome: 'Peca' }]);
-      await expect(repository.getPecaById(id)).resolves.toEqual(expected);
-      expect(collection.findOne).toHaveBeenCalledWith({ _id: new ObjectId(id) });
+      const gateway = new PecaMongoGateway(db);
+      const pecas = await gateway.findAll();
+
+      expect(pecas).toHaveLength(1);
+      expect(pecas[0].nome).toBe('Peca');
+      expect(collection.find).toHaveBeenCalled();
+    });
+
+    test('should find peca by id', async () => {
+      const raw = {
+        _id: new ObjectId(),
+        nome: 'Peca',
+        descricao: 'Descricao',
+        tipo: 'PECA',
+        preco: 100,
+      };
+      const collection = createCollection({ findOne: jest.fn().mockResolvedValue(raw) });
+      const db = createDb(collection) as any;
+      const gateway = new PecaMongoGateway(db);
+
+      const byId = await gateway.findById(raw._id.toString());
+
+      expect(byId?.nome).toBe('Peca');
+      expect(collection.findOne).toHaveBeenCalled();
     });
 
     test('should create, update and delete peca', async () => {
-      const collection = createCollection();
-      mockedConnectDatabase.mockResolvedValue(createDb(collection) as any);
+      const insertedId = new ObjectId();
+      const collection = createCollection({
+        insertOne: jest.fn().mockResolvedValue({ insertedId }),
+        findOneAndUpdate: jest.fn().mockResolvedValue({
+          _id: insertedId,
+          nome: 'Peca',
+          descricao: 'Desc',
+          tipo: 'PECA',
+          preco: 100,
+        }),
+        deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 }),
+      });
+      const db = createDb(collection) as any;
+      const gateway = new PecaMongoGateway(db);
+      const peca = new Peca('Peca', 'Desc', 100, TipoItem.PECA);
 
-      const repository = new PecaRepository();
-      const peca = { nome: 'Peca', descricao: 'Desc', tipo: 'PECA', preco: 100 };
-      await repository.createPeca(peca as any);
-      expect(collection.insertOne).toHaveBeenCalledWith(peca);
+      await gateway.save(peca);
+      expect(collection.insertOne).toHaveBeenCalled();
 
-      const id = new ObjectId();
-      await repository.updatePeca(id, peca as any);
-      expect(collection.updateOne).toHaveBeenCalledWith({ _id: new ObjectId(id) }, { $set: peca });
+      await gateway.update(insertedId.toString(), peca);
+      expect(collection.findOneAndUpdate).toHaveBeenCalled();
 
-      await repository.deletePeca(id);
-      expect(collection.deleteOne).toHaveBeenCalledWith({ _id: new ObjectId(id) });
+      await gateway.delete(insertedId.toString());
+      expect(collection.deleteOne).toHaveBeenCalledWith({ _id: insertedId });
     });
   });
 

@@ -1,12 +1,13 @@
 import { Orcamento } from '../../src/Entities/orcamento';
 import { Servico } from '../../src/Entities/servico';
 import { Peca } from '../../src/Entities/Estoque/peca';
+import { TipoItem } from '../../src/validators/tipo-item';
 import { ObjectId } from 'mongodb';
 
 describe('Orcamento', () => {
   test('deve criar instância de Orcamento com todos os atributos', () => {
     const ordemServicoId = new ObjectId();
-    const peca = new Peca('Filtro de Óleo', 'Filtro para troca de óleo', 45.00, 'Peca');
+    const peca = new Peca('Filtro de Óleo', 'Filtro para troca de óleo', 45.00, TipoItem.PECA);
     const servico = new Servico('Troca de Óleo', 'Troca completa com filtro', 150.00);
     const validadeEm = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const criadoEm = new Date();
@@ -53,8 +54,8 @@ describe('Orcamento', () => {
   });
 
   test('deve permitir múltiplas peças no orçamento', () => {
-    const peca1 = new Peca('Filtro', 'Filtro de óleo', 45.00, 'Peca');
-    const peca2 = new Peca('Vela', 'Vela de ignição', 25.00, 'Insumo');
+    const peca1 = new Peca('Filtro', 'Filtro de óleo', 45.00, TipoItem.PECA);
+    const peca2 = new Peca('Vela', 'Vela de ignição', 25.00, TipoItem.INSUMO);
 
     const orcamento = new Orcamento(
       new ObjectId(),
@@ -109,7 +110,7 @@ describe('Orcamento', () => {
   });
 
   test('deve calcular valor total corretamente', () => {
-    const peca = new Peca('Peça', 'Descrição', 50.00, 'Peca');
+    const peca = new Peca('Peça', 'Descrição', 50.00, TipoItem.PECA);
     const servico = new Servico('Serviço', 'Descrição', 150.00);
 
     const orcamento = new Orcamento(
@@ -145,7 +146,7 @@ describe('Orcamento', () => {
   });
 
   test('deve permitir orçamento com apenas peças', () => {
-    const peca = new Peca('Peça', 'Descrição', 75.00, 'Peca');
+    const peca = new Peca('Peça', 'Descrição', 75.00, TipoItem.PECA);
 
     const orcamento = new Orcamento(
       new ObjectId(),

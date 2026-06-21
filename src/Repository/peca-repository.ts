@@ -1,36 +1,39 @@
-import { Collection, Db, ObjectId } from 'mongodb';
+import { ObjectId } from 'mongodb';
 import { connectDatabase } from '../infrastructure/database';
-import { Peca } from '../Entities/Estoque/peca';
+import { Peca } from '../enterprise/entities/peca.entity';
+import { PecaMongoGateway } from '../Adapters/gateways/peca.mongo.gateway';
 import { IPecaRepository } from '../Interfaces/Peca/peca-repository.interface';
 
 export class PecaRepository implements IPecaRepository {
-  async getCollection(): Promise<Collection<Peca>> {
-    const db: Db = await connectDatabase();
-    return db.collection<Peca>('Pecas');
-  }
+    private gateway: PecaMongoGateway | null = null;
 
-  async getAllPecas(): Promise<Peca[]> {
-    const collection = await this.getCollection();
-    return await collection.find().toArray();
-  }
+    private async getGateway(): Promise<PecaMongoGateway> {
+        if (!this.gateway) {
+            const db = await connectDatabase();
+            this.gateway = new PecaMongoGateway(db);
+        }
+        return this.gateway;
+    }
 
-  async getPecaById(id: ObjectId): Promise<Peca | null> {
-    const collection = await this.getCollection();
-    return await collection.findOne({ _id: new ObjectId(id) });
-  }
+    async getAllPecas(): Promise<Peca[]> {
+        return (await this.getGateway()).findAll();
+    }
 
-  async createPeca(peca: Peca): Promise<void> {
-    const collection = await this.getCollection();
-    await collection.insertOne(peca);
-  }
+    async getPecaById(id: ObjectId): Promise<Peca | null> {
+        return (await this.getGateway()).findById(id.toString());
+    }
 
-  async updatePeca(id: ObjectId, peca: Peca): Promise<void> {
-    const collection = await this.getCollection();
-    await collection.updateOne({ _id: new ObjectId(id) }, { $set: peca });
-  }
+    async createPeca(peca: Peca): Promise<void> {
+        await (await this.getGateway()).save(peca);
+    }
 
-  async deletePeca(id: ObjectId): Promise<void> {
-    const collection = await this.getCollection();
-    await collection.deleteOne({ _id: new ObjectId(id) });
-  }
+    async updatePeca(id: ObjectId, peca: Peca): Promise<void> {
+        await (await this.getGateway()).update(id.toString(), peca);
+    }
+
+    async deletePeca(id: ObjectId): Promise<void> {
+        await (await this.getGateway()).delete(id.toString());
+    }
 }
+
+export { PecaMongoGateway } from '../Adapters/gateways/peca.mongo.gateway';

@@ -8,6 +8,10 @@ import { ClienteController } from '../../Adapters/controllers/cliente.controller
 import { VeiculoController } from '../../Adapters/controllers/veiculo.controller';
 import { ClienteServiceFacade } from '../../Adapters/facades/cliente-service.facade';
 import { VeiculoServiceFacade } from '../../Adapters/facades/veiculo-service.facade';
+import { PecaMongoGateway } from '../../Adapters/gateways/peca.mongo.gateway';
+import { PecaPresenter } from '../../Adapters/presenters/peca.presenter';
+import { PecaController } from '../../Adapters/controllers/peca.controller';
+import { PecaServiceFacade } from '../../Adapters/facades/peca-service.facade';
 import { CriarClienteUseCase } from '../../application/usecases/cliente/criar-cliente.usecase';
 import { ListarClientesUseCase } from '../../application/usecases/cliente/listar-clientes.usecase';
 import { BuscarClientePorIdUseCase } from '../../application/usecases/cliente/buscar-cliente-por-id.usecase';
@@ -19,8 +23,14 @@ import { ListarVeiculosUseCase } from '../../application/usecases/veiculo/listar
 import { BuscarVeiculoPorIdUseCase } from '../../application/usecases/veiculo/buscar-veiculo-por-id.usecase';
 import { AtualizarVeiculoUseCase } from '../../application/usecases/veiculo/atualizar-veiculo.usecase';
 import { DeletarVeiculoUseCase } from '../../application/usecases/veiculo/deletar-veiculo.usecase';
+import { CriarPecaUseCase } from '../../application/usecases/peca/criar-peca.usecase';
+import { ListarPecasUseCase } from '../../application/usecases/peca/listar-pecas.usecase';
+import { BuscarPecaPorIdUseCase } from '../../application/usecases/peca/buscar-peca-por-id.usecase';
+import { AtualizarPecaUseCase } from '../../application/usecases/peca/atualizar-peca.usecase';
+import { DeletarPecaUseCase } from '../../application/usecases/peca/deletar-peca.usecase';
 import { IClienteGateway } from '../../application/ports/cliente.gateway.port';
 import { IVeiculoGateway } from '../../application/ports/veiculo.gateway.port';
+import { IPecaGateway } from '../../application/ports/peca.gateway.port';
 
 export class DIContainer {
     private static instance: DIContainer;
@@ -30,15 +40,20 @@ export class DIContainer {
 
     private clienteGateway: IClienteGateway | null = null;
     private veiculoGateway: IVeiculoGateway | null = null;
+    private pecaGateway: IPecaGateway | null = null;
     private clienteGatewayInjected = false;
     private veiculoGatewayInjected = false;
+    private pecaGatewayInjected = false;
 
     private clientePresenter: ClientePresenter | null = null;
     private veiculoPresenter: VeiculoPresenter | null = null;
+    private pecaPresenter: PecaPresenter | null = null;
     private clienteController: ClienteController | null = null;
     private veiculoController: VeiculoController | null = null;
+    private pecaController: PecaController | null = null;
     private clienteServiceFacade: ClienteServiceFacade | null = null;
     private veiculoServiceFacade: VeiculoServiceFacade | null = null;
+    private pecaServiceFacade: PecaServiceFacade | null = null;
 
     private criarClienteUseCase: CriarClienteUseCase | null = null;
     private listarClientesUseCase: ListarClientesUseCase | null = null;
@@ -52,6 +67,12 @@ export class DIContainer {
     private buscarVeiculoPorIdUseCase: BuscarVeiculoPorIdUseCase | null = null;
     private atualizarVeiculoUseCase: AtualizarVeiculoUseCase | null = null;
     private deletarVeiculoUseCase: DeletarVeiculoUseCase | null = null;
+
+    private criarPecaUseCase: CriarPecaUseCase | null = null;
+    private listarPecasUseCase: ListarPecasUseCase | null = null;
+    private buscarPecaPorIdUseCase: BuscarPecaPorIdUseCase | null = null;
+    private atualizarPecaUseCase: AtualizarPecaUseCase | null = null;
+    private deletarPecaUseCase: DeletarPecaUseCase | null = null;
 
     private constructor() {}
 
@@ -67,7 +88,7 @@ export class DIContainer {
             return;
         }
 
-        if (!this.clienteGatewayInjected || !this.veiculoGatewayInjected) {
+        if (!this.clienteGatewayInjected || !this.veiculoGatewayInjected || !this.pecaGatewayInjected) {
             this.db = await connectDatabase();
         }
 
@@ -103,6 +124,16 @@ export class DIContainer {
             this.veiculoGateway = new VeiculoMongoGateway(this.getDb());
         }
         return this.veiculoGateway;
+    }
+
+    getPecaGateway(): IPecaGateway {
+        if (!this.pecaGateway) {
+            if (this.pecaGatewayInjected) {
+                throw new Error('Peça gateway not injected.');
+            }
+            this.pecaGateway = new PecaMongoGateway(this.getDb());
+        }
+        return this.pecaGateway;
     }
 
     getCriarClienteUseCase(): CriarClienteUseCase {
@@ -182,6 +213,41 @@ export class DIContainer {
         return this.deletarVeiculoUseCase;
     }
 
+    getCriarPecaUseCase(): CriarPecaUseCase {
+        if (!this.criarPecaUseCase) {
+            this.criarPecaUseCase = new CriarPecaUseCase(this.getPecaGateway());
+        }
+        return this.criarPecaUseCase;
+    }
+
+    getListarPecasUseCase(): ListarPecasUseCase {
+        if (!this.listarPecasUseCase) {
+            this.listarPecasUseCase = new ListarPecasUseCase(this.getPecaGateway());
+        }
+        return this.listarPecasUseCase;
+    }
+
+    getBuscarPecaPorIdUseCase(): BuscarPecaPorIdUseCase {
+        if (!this.buscarPecaPorIdUseCase) {
+            this.buscarPecaPorIdUseCase = new BuscarPecaPorIdUseCase(this.getPecaGateway());
+        }
+        return this.buscarPecaPorIdUseCase;
+    }
+
+    getAtualizarPecaUseCase(): AtualizarPecaUseCase {
+        if (!this.atualizarPecaUseCase) {
+            this.atualizarPecaUseCase = new AtualizarPecaUseCase(this.getPecaGateway());
+        }
+        return this.atualizarPecaUseCase;
+    }
+
+    getDeletarPecaUseCase(): DeletarPecaUseCase {
+        if (!this.deletarPecaUseCase) {
+            this.deletarPecaUseCase = new DeletarPecaUseCase(this.getPecaGateway());
+        }
+        return this.deletarPecaUseCase;
+    }
+
     getClientePresenter(): ClientePresenter {
         if (!this.clientePresenter) {
             this.clientePresenter = new ClientePresenter();
@@ -194,6 +260,13 @@ export class DIContainer {
             this.veiculoPresenter = new VeiculoPresenter();
         }
         return this.veiculoPresenter;
+    }
+
+    getPecaPresenter(): PecaPresenter {
+        if (!this.pecaPresenter) {
+            this.pecaPresenter = new PecaPresenter();
+        }
+        return this.pecaPresenter;
     }
 
     getClienteController(): ClienteController {
@@ -225,6 +298,20 @@ export class DIContainer {
         return this.veiculoController;
     }
 
+    getPecaController(): PecaController {
+        if (!this.pecaController) {
+            this.pecaController = new PecaController(
+                this.getListarPecasUseCase(),
+                this.getBuscarPecaPorIdUseCase(),
+                this.getCriarPecaUseCase(),
+                this.getAtualizarPecaUseCase(),
+                this.getDeletarPecaUseCase(),
+                this.getPecaPresenter()
+            );
+        }
+        return this.pecaController;
+    }
+
     getClienteServiceFacade(): ClienteServiceFacade {
         if (!this.clienteServiceFacade) {
             this.clienteServiceFacade = new ClienteServiceFacade(
@@ -252,6 +339,19 @@ export class DIContainer {
         return this.veiculoServiceFacade;
     }
 
+    getPecaServiceFacade(): PecaServiceFacade {
+        if (!this.pecaServiceFacade) {
+            this.pecaServiceFacade = new PecaServiceFacade(
+                this.getListarPecasUseCase(),
+                this.getBuscarPecaPorIdUseCase(),
+                this.getCriarPecaUseCase(),
+                this.getAtualizarPecaUseCase(),
+                this.getDeletarPecaUseCase()
+            );
+        }
+        return this.pecaServiceFacade;
+    }
+
     injectClienteGateway(gateway: IClienteGateway): void {
         this.clienteGateway = gateway;
         this.clienteGatewayInjected = true;
@@ -266,19 +366,32 @@ export class DIContainer {
         this.resetVeiculoCache();
     }
 
+    injectPecaGateway(gateway: IPecaGateway): void {
+        this.pecaGateway = gateway;
+        this.pecaGatewayInjected = true;
+        this.initialized = true;
+        this.resetPecaCache();
+    }
+
     reset(): void {
         this.clienteGateway = null;
         this.veiculoGateway = null;
+        this.pecaGateway = null;
         this.clienteGatewayInjected = false;
         this.veiculoGatewayInjected = false;
+        this.pecaGatewayInjected = false;
         this.clientePresenter = null;
         this.veiculoPresenter = null;
+        this.pecaPresenter = null;
         this.clienteController = null;
         this.veiculoController = null;
+        this.pecaController = null;
         this.clienteServiceFacade = null;
         this.veiculoServiceFacade = null;
+        this.pecaServiceFacade = null;
         this.resetClienteCache();
         this.resetVeiculoCache();
+        this.resetPecaCache();
         this.initialized = false;
         this.db = null;
     }
@@ -302,6 +415,16 @@ export class DIContainer {
         this.deletarVeiculoUseCase = null;
         this.veiculoController = null;
         this.veiculoServiceFacade = null;
+    }
+
+    private resetPecaCache(): void {
+        this.criarPecaUseCase = null;
+        this.listarPecasUseCase = null;
+        this.buscarPecaPorIdUseCase = null;
+        this.atualizarPecaUseCase = null;
+        this.deletarPecaUseCase = null;
+        this.pecaController = null;
+        this.pecaServiceFacade = null;
     }
 }
 
