@@ -130,7 +130,11 @@ export class OrdemServicoService implements IOrdemServicoService {
         const orcamentoAtual = orcamentos.reduce((prev, curr) => curr.versao > prev.versao ? curr : prev
         );
 
-        if (orcamentoAtual.status != StatusOrcamento.APROVADO)
+        const status = typeof orcamentoAtual.status === 'string'
+            ? orcamentoAtual.status
+            : orcamentoAtual.status.value;
+
+        if (status !== StatusOrcamento.APROVADO)
             throw new Error("Não é possível iniciar a execução da Ordem de Serviço se o orcamento não estiver aprovado.");
     }
 
@@ -229,16 +233,12 @@ export class OrdemServicoService implements IOrdemServicoService {
     }
 
     private async gerarOrcamento(ordemId: string,valorTotal: number,pecas: Peca[],servicos: Servico[]): Promise<void> {
-        const orcamento = new Orcamento(
-            new ObjectId(ordemId),
-            1,
-            "PENDENTE",
+        const orcamento = Orcamento.createPendente({
+            ordemServicoId: ordemId,
             pecas,
             servicos,
             valorTotal,
-            new Date(),
-            new Date()
-        );
+        });
 
         await this.orcamentoService.createOrcamento(orcamento);
 

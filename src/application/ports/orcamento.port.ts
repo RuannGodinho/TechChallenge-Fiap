@@ -1,12 +1,6 @@
-import { PecaLookupData } from './peca-lookup.port';
-import { ServicoLookupData } from './servico-lookup.port';
+import { CriarOrcamentoPendenteInputDto } from '../dtos/orcamento/orcamento.dtos';
 
-export interface CriarOrcamentoPendenteInput {
-    ordemServicoId: string;
-    valorTotal: number;
-    pecas: Array<PecaLookupData & { quantidade: number }>;
-    servicos: ServicoLookupData[];
-}
+export type CriarOrcamentoPendenteInput = CriarOrcamentoPendenteInputDto;
 
 export interface IOrcamentoPort {
     createPendente(input: CriarOrcamentoPendenteInput): Promise<void>;

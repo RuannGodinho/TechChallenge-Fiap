@@ -18,7 +18,8 @@ import { OrigemMovimentacao } from '../../src/enterprise/value-objects/origem-mo
 import { OrdemServicoMongoGateway } from '../../src/Adapters/gateways/ordem-servico.mongo.gateway';
 import { OrdemServico } from '../../src/enterprise/entities/ordem-servico.entity';
 import { StatusOS } from '../../src/enterprise/value-objects/status-os.vo';
-import { OrcamentoRepository } from '../../src/Repository/orcamento-repository';
+import { OrcamentoMongoGateway } from '../../src/Adapters/gateways/orcamento.mongo.gateway';
+import { Orcamento } from '../../src/enterprise/entities/orcamento.entity';
 import { ServicoMongoGateway } from '../../src/Adapters/gateways/servico.mongo.gateway';
 import { Servico } from '../../src/enterprise/entities/servico.entity';
 import { VeiculoMongoGateway } from '../../src/Adapters/gateways/veiculo.mongo.gateway';
@@ -461,27 +462,73 @@ describe('Repository coverage', () => {
     });
   });
 
-  describe('OrcamentoRepository', () => {
-    test('should create orcamento and get by id', async () => {
-      const orcamento = { status: 'PENDENTE' };
-      const collection = createCollection({ findOne: jest.fn().mockResolvedValue(orcamento) });
+  describe('OrcamentoMongoGateway', () => {
+    test('should save orcamento and get by id', async () => {
+      const insertedId = new ObjectId();
+      const collection = createCollection({
+        insertOne: jest.fn().mockResolvedValue({ insertedId }),
+        findOne: jest.fn().mockResolvedValue({
+          _id: insertedId,
+          ordemServicoId: new ObjectId(),
+          versao: 1,
+          status: 'PENDENTE',
+          pecas: [],
+          itensServicos: [],
+          valorTotal: 100,
+          validadeEm: new Date(),
+          criadoEm: new Date(),
+        }),
+      });
       mockedConnectDatabase.mockResolvedValue(createDb(collection) as any);
 
-      const repository = new OrcamentoRepository();
-      await repository.createOrcamento(orcamento as any);
-      expect(collection.insertOne).toHaveBeenCalledWith(orcamento);
-      const id = new ObjectId().toString();
-      await expect(repository.getOrcamentoById(id)).resolves.toEqual(orcamento);
+      const gateway = new OrcamentoMongoGateway(createDb(collection) as any);
+      const orcamento = Orcamento.createPendente({
+        ordemServicoId: new ObjectId().toString(),
+        pecas: [],
+        servicos: [],
+        valorTotal: 100,
+      });
+
+      const saved = await gateway.save(orcamento);
+      expect(saved.id).toBe(insertedId.toString());
+      await expect(gateway.findById(insertedId.toString())).resolves.toEqual(
+        expect.objectContaining({ status: expect.objectContaining({ value: 'PENDENTE' }) })
+      );
     });
 
     test('should update orcamento and return result', async () => {
-      const result = { _id: new ObjectId(), status: 'APROVADO' };
+      const id = new ObjectId();
+      const ordemServicoId = new ObjectId();
+      const result = {
+        _id: id,
+        ordemServicoId,
+        versao: 2,
+        status: 'APROVADO',
+        pecas: [],
+        itensServicos: [],
+        valorTotal: 100,
+        validadeEm: new Date(),
+        criadoEm: new Date(),
+      };
       const collection = createCollection({ findOneAndUpdate: jest.fn().mockResolvedValue(result) });
       mockedConnectDatabase.mockResolvedValue(createDb(collection) as any);
-      const repository = new OrcamentoRepository();
-      const id = new ObjectId().toString();
-      await expect(repository.updateOrcamento(id, { status: 'APROVADO' } as any)).resolves.toEqual(result);
-      expect(collection.findOneAndUpdate).toHaveBeenCalledWith({ _id: new ObjectId(id) }, { $set: { status: 'APROVADO' } }, { returnDocument: 'after' });
+      const gateway = new OrcamentoMongoGateway(createDb(collection) as any);
+      const orcamento = Orcamento.restore({
+        id: id.toString(),
+        ordemServicoId: ordemServicoId.toString(),
+        versao: 2,
+        status: 'APROVADO',
+        pecas: [],
+        itensServicos: [],
+        valorTotal: 100,
+        validadeEm: new Date(),
+        criadoEm: new Date(),
+      });
+
+      await expect(gateway.update(id.toString(), orcamento)).resolves.toEqual(
+        expect.objectContaining({ status: expect.objectContaining({ value: 'APROVADO' }) })
+      );
+      expect(collection.findOneAndUpdate).toHaveBeenCalled();
     });
   });
 });

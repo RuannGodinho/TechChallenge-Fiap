@@ -78,7 +78,17 @@ import { IExecucaoServicoGateway } from '../../application/ports/execucao-servic
 import { PecaLookupAdapter } from '../../Adapters/adapters/peca-lookup.adapter';
 import { ServicoLookupAdapter } from '../../Adapters/adapters/servico-lookup.adapter';
 import { EstoqueMovimentacaoAdapter } from '../../Adapters/adapters/estoque-movimentacao.adapter';
-import { OrcamentoLegacyAdapter } from '../../Adapters/adapters/orcamento.legacy.adapter';
+import { OrcamentoPortAdapter } from '../../Adapters/adapters/orcamento.port.adapter';
+import { OrcamentoMongoGateway } from '../../Adapters/gateways/orcamento.mongo.gateway';
+import { OrcamentoPresenter } from '../../Adapters/presenters/orcamento.presenter';
+import { OrcamentoController } from '../../Adapters/controllers/orcamento.controller';
+import { OrcamentoServiceFacade } from '../../Adapters/facades/orcamento-service.facade';
+import { CriarOrcamentoPendenteUseCase } from '../../application/usecases/orcamento/criar-orcamento-pendente.usecase';
+import { SalvarOrcamentoUseCase } from '../../application/usecases/orcamento/salvar-orcamento.usecase';
+import { AtualizarOrcamentoUseCase } from '../../application/usecases/orcamento/atualizar-orcamento.usecase';
+import { ListarOrcamentosPorOrdemUseCase } from '../../application/usecases/orcamento/listar-orcamentos-por-ordem.usecase';
+import { VerificarUltimoOrcamentoAprovadoUseCase } from '../../application/usecases/orcamento/verificar-ultimo-orcamento-aprovado.usecase';
+import { IOrcamentoGateway } from '../../application/ports/orcamento.gateway.port';
 import { OrdemServicoRepositoryFacade } from '../../Adapters/facades/ordem-servico-repository.facade';
 import { IOrdemServicoGateway } from '../../application/ports/ordem-servico.gateway.port';
 import { IClienteLookupPort } from '../../application/ports/cliente-lookup.port';
@@ -90,8 +100,6 @@ import { IEstoqueMovimentacaoPort } from '../../application/ports/estoque-movime
 import { IOrcamentoPort } from '../../application/ports/orcamento.port';
 import { IOrdemServicoRepository } from '../../Interfaces/OrdemServico/ordem-servico-repository.interface';
 import { OrdemServicoService } from '../../services/ordem-servico-service';
-import { OrcamentoRepository } from '../../Repository/orcamento-repository';
-import { OrcamentoService } from '../../services/orcamento-service';
 
 export class DIContainer {
     private static instance: DIContainer;
@@ -107,6 +115,7 @@ export class DIContainer {
     private movimentacaoEstoqueGateway: IMovimentacaoEstoqueGateway | null = null;
     private ordemServicoGateway: IOrdemServicoGateway | null = null;
     private execucaoServicoGateway: IExecucaoServicoGateway | null = null;
+    private orcamentoGateway: IOrcamentoGateway | null = null;
     private clienteGatewayInjected = false;
     private veiculoGatewayInjected = false;
     private pecaGatewayInjected = false;
@@ -115,6 +124,7 @@ export class DIContainer {
     private movimentacaoEstoqueGatewayInjected = false;
     private ordemServicoGatewayInjected = false;
     private execucaoServicoGatewayInjected = false;
+    private orcamentoGatewayInjected = false;
 
     private clientePresenter: ClientePresenter | null = null;
     private veiculoPresenter: VeiculoPresenter | null = null;
@@ -128,11 +138,13 @@ export class DIContainer {
     private estoqueController: EstoqueController | null = null;
     private ordemServicoController: OrdemServicoController | null = null;
     private execucaoServicoController: ExecucaoServicoController | null = null;
+    private orcamentoController: OrcamentoController | null = null;
     private clienteServiceFacade: ClienteServiceFacade | null = null;
     private veiculoServiceFacade: VeiculoServiceFacade | null = null;
     private pecaServiceFacade: PecaServiceFacade | null = null;
     private servicoServiceFacade: ServicoServiceFacade | null = null;
     private estoqueServiceFacade: EstoqueServiceFacade | null = null;
+    private orcamentoServiceFacade: OrcamentoServiceFacade | null = null;
 
     private criarClienteUseCase: CriarClienteUseCase | null = null;
     private listarClientesUseCase: ListarClientesUseCase | null = null;
@@ -177,6 +189,11 @@ export class DIContainer {
     private finalizarExecucaoUseCase: FinalizarExecucaoUseCase | null = null;
     private listarExecucoesPorOrdemUseCase: ListarExecucoesPorOrdemUseCase | null = null;
     private obterTempoMedioServicosUseCase: ObterTempoMedioServicosUseCase | null = null;
+    private criarOrcamentoPendenteUseCase: CriarOrcamentoPendenteUseCase | null = null;
+    private salvarOrcamentoUseCase: SalvarOrcamentoUseCase | null = null;
+    private atualizarOrcamentoUseCase: AtualizarOrcamentoUseCase | null = null;
+    private listarOrcamentosPorOrdemUseCase: ListarOrcamentosPorOrdemUseCase | null = null;
+    private verificarUltimoOrcamentoAprovadoUseCase: VerificarUltimoOrcamentoAprovadoUseCase | null = null;
     private clienteLookupPort: IClienteLookupPort | null = null;
     private veiculoLookupPort: IVeiculoLookupPort | null = null;
     private execucaoServicoPort: IExecucaoServicoPort | null = null;
@@ -185,9 +202,11 @@ export class DIContainer {
     private servicoLookupPort: IServicoLookupPort | null = null;
     private estoqueMovimentacaoPort: IEstoqueMovimentacaoPort | null = null;
     private orcamentoPort: IOrcamentoPort | null = null;
+    private orcamentoPortInjected = false;
     private ordemServicoRepository: IOrdemServicoRepository | null = null;
     private ordemServicoPresenter: OrdemServicoPresenter | null = null;
     private execucaoServicoPresenter: ExecucaoServicoPresenter | null = null;
+    private orcamentoPresenter: OrcamentoPresenter | null = null;
     private legacyOrdemServicoService: OrdemServicoService | null = null;
 
     private constructor() {}
@@ -212,7 +231,8 @@ export class DIContainer {
             !this.estoqueGatewayInjected ||
             !this.movimentacaoEstoqueGatewayInjected ||
             !this.ordemServicoGatewayInjected ||
-            !this.execucaoServicoGatewayInjected
+            !this.execucaoServicoGatewayInjected ||
+            !this.orcamentoGatewayInjected
         ) {
             this.db = await connectDatabase();
         }
@@ -309,6 +329,16 @@ export class DIContainer {
             this.execucaoServicoGateway = new ExecucaoServicoMongoGateway(this.getDb());
         }
         return this.execucaoServicoGateway;
+    }
+
+    getOrcamentoGateway(): IOrcamentoGateway {
+        if (!this.orcamentoGateway) {
+            if (this.orcamentoGatewayInjected) {
+                throw new Error('Orçamento gateway not injected.');
+            }
+            this.orcamentoGateway = new OrcamentoMongoGateway(this.getDb());
+        }
+        return this.orcamentoGateway;
     }
 
     getCriarClienteUseCase(): CriarClienteUseCase {
@@ -595,11 +625,58 @@ export class DIContainer {
 
     getOrcamentoPort(): IOrcamentoPort {
         if (!this.orcamentoPort) {
-            const orcamentoRepo = new OrcamentoRepository();
-            const orcamentoService = new OrcamentoService(orcamentoRepo);
-            this.orcamentoPort = new OrcamentoLegacyAdapter(orcamentoService);
+            if (this.orcamentoPortInjected) {
+                throw new Error('Orçamento port not injected.');
+            }
+            this.orcamentoPort = new OrcamentoPortAdapter(
+                this.getCriarOrcamentoPendenteUseCase(),
+                this.getVerificarUltimoOrcamentoAprovadoUseCase()
+            );
         }
         return this.orcamentoPort;
+    }
+
+    getCriarOrcamentoPendenteUseCase(): CriarOrcamentoPendenteUseCase {
+        if (!this.criarOrcamentoPendenteUseCase) {
+            this.criarOrcamentoPendenteUseCase = new CriarOrcamentoPendenteUseCase(
+                this.getOrcamentoGateway()
+            );
+        }
+        return this.criarOrcamentoPendenteUseCase;
+    }
+
+    getSalvarOrcamentoUseCase(): SalvarOrcamentoUseCase {
+        if (!this.salvarOrcamentoUseCase) {
+            this.salvarOrcamentoUseCase = new SalvarOrcamentoUseCase(this.getOrcamentoGateway());
+        }
+        return this.salvarOrcamentoUseCase;
+    }
+
+    getAtualizarOrcamentoUseCase(): AtualizarOrcamentoUseCase {
+        if (!this.atualizarOrcamentoUseCase) {
+            this.atualizarOrcamentoUseCase = new AtualizarOrcamentoUseCase(
+                this.getOrcamentoGateway()
+            );
+        }
+        return this.atualizarOrcamentoUseCase;
+    }
+
+    getListarOrcamentosPorOrdemUseCase(): ListarOrcamentosPorOrdemUseCase {
+        if (!this.listarOrcamentosPorOrdemUseCase) {
+            this.listarOrcamentosPorOrdemUseCase = new ListarOrcamentosPorOrdemUseCase(
+                this.getOrcamentoGateway()
+            );
+        }
+        return this.listarOrcamentosPorOrdemUseCase;
+    }
+
+    getVerificarUltimoOrcamentoAprovadoUseCase(): VerificarUltimoOrcamentoAprovadoUseCase {
+        if (!this.verificarUltimoOrcamentoAprovadoUseCase) {
+            this.verificarUltimoOrcamentoAprovadoUseCase = new VerificarUltimoOrcamentoAprovadoUseCase(
+                this.getOrcamentoGateway()
+            );
+        }
+        return this.verificarUltimoOrcamentoAprovadoUseCase;
     }
 
     getOrdemServicoRepository(): IOrdemServicoRepository {
@@ -844,10 +921,26 @@ export class DIContainer {
         return this.execucaoServicoController;
     }
 
+    getOrcamentoPresenter(): OrcamentoPresenter {
+        if (!this.orcamentoPresenter) {
+            this.orcamentoPresenter = new OrcamentoPresenter();
+        }
+        return this.orcamentoPresenter;
+    }
+
+    getOrcamentoController(): OrcamentoController {
+        if (!this.orcamentoController) {
+            this.orcamentoController = new OrcamentoController(
+                () => this.getAtualizarOrcamentoUseCase(),
+                () => this.getListarOrcamentosPorOrdemUseCase(),
+                () => this.getOrcamentoPresenter()
+            );
+        }
+        return this.orcamentoController;
+    }
+
     getLegacyOrdemServicoService(): OrdemServicoService {
         if (!this.legacyOrdemServicoService) {
-            const orcamentoRepo = new OrcamentoRepository();
-            const orcamentoService = new OrcamentoService(orcamentoRepo);
             this.legacyOrdemServicoService = new OrdemServicoService(
                 this.getOrdemServicoRepository(),
                 this.getClienteServiceFacade(),
@@ -855,11 +948,22 @@ export class DIContainer {
                 this.getPecaServiceFacade(),
                 this.getServicoServiceFacade(),
                 this.getEstoqueServiceFacade(),
-                orcamentoService,
+                this.getOrcamentoServiceFacade(),
                 this.getExecucaoServicoPort()
             );
         }
         return this.legacyOrdemServicoService;
+    }
+
+    getOrcamentoServiceFacade(): OrcamentoServiceFacade {
+        if (!this.orcamentoServiceFacade) {
+            this.orcamentoServiceFacade = new OrcamentoServiceFacade(
+                this.getSalvarOrcamentoUseCase(),
+                this.getAtualizarOrcamentoUseCase(),
+                this.getListarOrcamentosPorOrdemUseCase()
+            );
+        }
+        return this.orcamentoServiceFacade;
     }
 
     getClienteServiceFacade(): ClienteServiceFacade {
@@ -993,6 +1097,22 @@ export class DIContainer {
         this.resetOrdemServicoCache();
     }
 
+    injectOrcamentoGateway(gateway: IOrcamentoGateway): void {
+        this.orcamentoGateway = gateway;
+        this.orcamentoGatewayInjected = true;
+        this.initialized = true;
+        this.resetOrcamentoCache();
+        this.resetOrdemServicoCache();
+    }
+
+    injectOrcamentoPort(port: IOrcamentoPort): void {
+        this.orcamentoPort = port;
+        this.orcamentoPortInjected = true;
+        this.initialized = true;
+        this.resetOrcamentoCache();
+        this.resetOrdemServicoCache();
+    }
+
     reset(): void {
         this.clienteGateway = null;
         this.veiculoGateway = null;
@@ -1002,6 +1122,7 @@ export class DIContainer {
         this.movimentacaoEstoqueGateway = null;
         this.ordemServicoGateway = null;
         this.execucaoServicoGateway = null;
+        this.orcamentoGateway = null;
         this.clienteGatewayInjected = false;
         this.veiculoGatewayInjected = false;
         this.pecaGatewayInjected = false;
@@ -1010,6 +1131,7 @@ export class DIContainer {
         this.movimentacaoEstoqueGatewayInjected = false;
         this.ordemServicoGatewayInjected = false;
         this.execucaoServicoGatewayInjected = false;
+        this.orcamentoGatewayInjected = false;
         this.clientePresenter = null;
         this.veiculoPresenter = null;
         this.pecaPresenter = null;
@@ -1022,15 +1144,19 @@ export class DIContainer {
         this.estoqueController = null;
         this.ordemServicoController = null;
         this.execucaoServicoController = null;
+        this.orcamentoController = null;
         this.clienteServiceFacade = null;
         this.veiculoServiceFacade = null;
         this.pecaServiceFacade = null;
         this.servicoServiceFacade = null;
         this.estoqueServiceFacade = null;
+        this.orcamentoServiceFacade = null;
         this.legacyOrdemServicoService = null;
         this.ordemServicoRepository = null;
         this.execucaoServicoPortInjected = false;
         this.execucaoServicoPort = null;
+        this.orcamentoPortInjected = false;
+        this.orcamentoPort = null;
         this.resetClienteCache();
         this.resetVeiculoCache();
         this.resetPecaCache();
@@ -1038,6 +1164,7 @@ export class DIContainer {
         this.resetEstoqueCache();
         this.resetOrdemServicoCache();
         this.resetExecucaoServicoCache();
+        this.resetOrcamentoCache();
         this.initialized = false;
         this.db = null;
     }
@@ -1109,11 +1236,28 @@ export class DIContainer {
         this.pecaLookupPort = null;
         this.servicoLookupPort = null;
         this.estoqueMovimentacaoPort = null;
-        this.orcamentoPort = null;
+        if (!this.orcamentoPortInjected) {
+            this.orcamentoPort = null;
+        }
         this.ordemServicoRepository = null;
         this.ordemServicoPresenter = null;
         this.ordemServicoController = null;
         this.legacyOrdemServicoService = null;
+        this.orcamentoServiceFacade = null;
+    }
+
+    private resetOrcamentoCache(): void {
+        this.criarOrcamentoPendenteUseCase = null;
+        this.salvarOrcamentoUseCase = null;
+        this.atualizarOrcamentoUseCase = null;
+        this.listarOrcamentosPorOrdemUseCase = null;
+        this.verificarUltimoOrcamentoAprovadoUseCase = null;
+        this.orcamentoPresenter = null;
+        this.orcamentoController = null;
+        this.orcamentoServiceFacade = null;
+        if (!this.orcamentoPortInjected) {
+            this.orcamentoPort = null;
+        }
     }
 
     private resetExecucaoServicoCache(): void {
