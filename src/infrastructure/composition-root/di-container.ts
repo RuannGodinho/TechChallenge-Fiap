@@ -89,6 +89,13 @@ import { AtualizarOrcamentoUseCase } from '../../application/usecases/orcamento/
 import { ListarOrcamentosPorOrdemUseCase } from '../../application/usecases/orcamento/listar-orcamentos-por-ordem.usecase';
 import { VerificarUltimoOrcamentoAprovadoUseCase } from '../../application/usecases/orcamento/verificar-ultimo-orcamento-aprovado.usecase';
 import { IOrcamentoGateway } from '../../application/ports/orcamento.gateway.port';
+import { JwtTokenAdapter } from '../../Adapters/adapters/jwt-token.adapter';
+import { EnvCredentialsAdapter } from '../../Adapters/adapters/env-credentials.adapter';
+import { AuthController } from '../../Adapters/controllers/auth.controller';
+import { AutenticarUsuarioUseCase } from '../../application/usecases/auth/autenticar-usuario.usecase';
+import { VerificarTokenUseCase } from '../../application/usecases/auth/verificar-token.usecase';
+import { ITokenPort } from '../../application/ports/token.port';
+import { ICredentialsPort } from '../../application/ports/credentials.port';
 import { OrdemServicoRepositoryFacade } from '../../Adapters/facades/ordem-servico-repository.facade';
 import { IOrdemServicoGateway } from '../../application/ports/ordem-servico.gateway.port';
 import { IClienteLookupPort } from '../../application/ports/cliente-lookup.port';
@@ -116,6 +123,8 @@ export class DIContainer {
     private ordemServicoGateway: IOrdemServicoGateway | null = null;
     private execucaoServicoGateway: IExecucaoServicoGateway | null = null;
     private orcamentoGateway: IOrcamentoGateway | null = null;
+    private tokenPort: ITokenPort | null = null;
+    private credentialsPort: ICredentialsPort | null = null;
     private clienteGatewayInjected = false;
     private veiculoGatewayInjected = false;
     private pecaGatewayInjected = false;
@@ -125,6 +134,8 @@ export class DIContainer {
     private ordemServicoGatewayInjected = false;
     private execucaoServicoGatewayInjected = false;
     private orcamentoGatewayInjected = false;
+    private tokenPortInjected = false;
+    private credentialsPortInjected = false;
 
     private clientePresenter: ClientePresenter | null = null;
     private veiculoPresenter: VeiculoPresenter | null = null;
@@ -139,6 +150,7 @@ export class DIContainer {
     private ordemServicoController: OrdemServicoController | null = null;
     private execucaoServicoController: ExecucaoServicoController | null = null;
     private orcamentoController: OrcamentoController | null = null;
+    private authController: AuthController | null = null;
     private clienteServiceFacade: ClienteServiceFacade | null = null;
     private veiculoServiceFacade: VeiculoServiceFacade | null = null;
     private pecaServiceFacade: PecaServiceFacade | null = null;
@@ -194,6 +206,8 @@ export class DIContainer {
     private atualizarOrcamentoUseCase: AtualizarOrcamentoUseCase | null = null;
     private listarOrcamentosPorOrdemUseCase: ListarOrcamentosPorOrdemUseCase | null = null;
     private verificarUltimoOrcamentoAprovadoUseCase: VerificarUltimoOrcamentoAprovadoUseCase | null = null;
+    private autenticarUsuarioUseCase: AutenticarUsuarioUseCase | null = null;
+    private verificarTokenUseCase: VerificarTokenUseCase | null = null;
     private clienteLookupPort: IClienteLookupPort | null = null;
     private veiculoLookupPort: IVeiculoLookupPort | null = null;
     private execucaoServicoPort: IExecucaoServicoPort | null = null;
@@ -339,6 +353,50 @@ export class DIContainer {
             this.orcamentoGateway = new OrcamentoMongoGateway(this.getDb());
         }
         return this.orcamentoGateway;
+    }
+
+    getTokenPort(): ITokenPort {
+        if (!this.tokenPort) {
+            if (this.tokenPortInjected) {
+                throw new Error('Token port not injected.');
+            }
+            this.tokenPort = new JwtTokenAdapter();
+        }
+        return this.tokenPort;
+    }
+
+    getCredentialsPort(): ICredentialsPort {
+        if (!this.credentialsPort) {
+            if (this.credentialsPortInjected) {
+                throw new Error('Credentials port not injected.');
+            }
+            this.credentialsPort = new EnvCredentialsAdapter();
+        }
+        return this.credentialsPort;
+    }
+
+    getAutenticarUsuarioUseCase(): AutenticarUsuarioUseCase {
+        if (!this.autenticarUsuarioUseCase) {
+            this.autenticarUsuarioUseCase = new AutenticarUsuarioUseCase(
+                this.getCredentialsPort(),
+                this.getTokenPort()
+            );
+        }
+        return this.autenticarUsuarioUseCase;
+    }
+
+    getVerificarTokenUseCase(): VerificarTokenUseCase {
+        if (!this.verificarTokenUseCase) {
+            this.verificarTokenUseCase = new VerificarTokenUseCase(this.getTokenPort());
+        }
+        return this.verificarTokenUseCase;
+    }
+
+    getAuthController(): AuthController {
+        if (!this.authController) {
+            this.authController = new AuthController(() => this.getAutenticarUsuarioUseCase());
+        }
+        return this.authController;
     }
 
     getCriarClienteUseCase(): CriarClienteUseCase {
@@ -1113,6 +1171,18 @@ export class DIContainer {
         this.resetOrdemServicoCache();
     }
 
+    injectTokenPort(port: ITokenPort): void {
+        this.tokenPort = port;
+        this.tokenPortInjected = true;
+        this.resetAuthCache();
+    }
+
+    injectCredentialsPort(port: ICredentialsPort): void {
+        this.credentialsPort = port;
+        this.credentialsPortInjected = true;
+        this.resetAuthCache();
+    }
+
     reset(): void {
         this.clienteGateway = null;
         this.veiculoGateway = null;
@@ -1145,6 +1215,7 @@ export class DIContainer {
         this.ordemServicoController = null;
         this.execucaoServicoController = null;
         this.orcamentoController = null;
+        this.authController = null;
         this.clienteServiceFacade = null;
         this.veiculoServiceFacade = null;
         this.pecaServiceFacade = null;
@@ -1157,6 +1228,10 @@ export class DIContainer {
         this.execucaoServicoPort = null;
         this.orcamentoPortInjected = false;
         this.orcamentoPort = null;
+        this.tokenPortInjected = false;
+        this.credentialsPortInjected = false;
+        this.tokenPort = null;
+        this.credentialsPort = null;
         this.resetClienteCache();
         this.resetVeiculoCache();
         this.resetPecaCache();
@@ -1165,6 +1240,7 @@ export class DIContainer {
         this.resetOrdemServicoCache();
         this.resetExecucaoServicoCache();
         this.resetOrcamentoCache();
+        this.resetAuthCache();
         this.initialized = false;
         this.db = null;
     }
@@ -1270,6 +1346,18 @@ export class DIContainer {
         this.execucaoServicoController = null;
         if (!this.execucaoServicoPortInjected) {
             this.execucaoServicoPort = null;
+        }
+    }
+
+    private resetAuthCache(): void {
+        this.autenticarUsuarioUseCase = null;
+        this.verificarTokenUseCase = null;
+        this.authController = null;
+        if (!this.tokenPortInjected) {
+            this.tokenPort = null;
+        }
+        if (!this.credentialsPortInjected) {
+            this.credentialsPort = null;
         }
     }
 }
