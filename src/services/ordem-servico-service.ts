@@ -8,7 +8,7 @@ import { IPecaService } from "../Interfaces/Peca/peca-service.interface";
 import { IServicoService } from "../Interfaces/Servico/servico-service.interface";
 import { IEstoqueService } from "../Interfaces/Estoque/estoque-service.interface";
 import { IOrcamentoService } from "../Interfaces/Orcamento/orcamento-service.interface";
-import { IExecucaoServicoService } from "../Interfaces/ExecucaoServico/execucao-servico-service.interface";
+import { IExecucaoServicoPort } from "../application/ports/execucao-servico.port";
 import { ObjectId } from "mongodb";
 import { normalizeCpfCnpj } from "../utils/cpf-cnpj-utils";
 import { OrdemPecaItem } from "../ValueObjects/ordem-peca-item";
@@ -28,7 +28,7 @@ export class OrdemServicoService implements IOrdemServicoService {
         private servicoService: IServicoService,
         private estoqueService: IEstoqueService,
         private orcamentoService: IOrcamentoService,
-        private execucaoServicoService: IExecucaoServicoService
+        private execucaoServicoPort: IExecucaoServicoPort
         ) {}
 
     async createOrdemServico(ordemServico: OrdemServico): Promise<OrdemServico> {
@@ -48,7 +48,7 @@ export class OrdemServicoService implements IOrdemServicoService {
 
         const ordemId = (ordem as any)._id?.toString();
         if (ordemId && ordem.servicos?.length) {
-            await this.execucaoServicoService.createExecucoesParaServicos(
+            await this.execucaoServicoPort.createExecucoesParaServicos(
                 ordemId,
                 ordem.servicos.map((servicoId) => servicoId.toString())
             );
@@ -87,7 +87,7 @@ export class OrdemServicoService implements IOrdemServicoService {
                 .filter((servicoId) => !servicosAtuais.includes(servicoId));
 
             if (servicosNovos.length) {
-                await this.execucaoServicoService.createExecucoesParaServicos(id, servicosNovos);
+                await this.execucaoServicoPort.createExecucoesParaServicos(id, servicosNovos);
             }
         }
     }
