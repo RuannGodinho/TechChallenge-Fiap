@@ -65,7 +65,16 @@ import { ObterDetalhesOrdemServicoUseCase } from '../../application/usecases/ord
 import { BuscarOrdensPorCpfCnpjUseCase } from '../../application/usecases/ordem-servico/buscar-ordens-por-cpf-cnpj.usecase';
 import { ClienteLookupAdapter } from '../../Adapters/adapters/cliente-lookup.adapter';
 import { VeiculoLookupAdapter } from '../../Adapters/adapters/veiculo-lookup.adapter';
-import { ExecucaoServicoLegacyAdapter } from '../../Adapters/adapters/execucao-servico.legacy.adapter';
+import { ExecucaoServicoPortAdapter } from '../../Adapters/adapters/execucao-servico.port.adapter';
+import { ExecucaoServicoMongoGateway } from '../../Adapters/gateways/execucao-servico.mongo.gateway';
+import { ExecucaoServicoPresenter } from '../../Adapters/presenters/execucao-servico.presenter';
+import { ExecucaoServicoController } from '../../Adapters/controllers/execucao-servico.controller';
+import { CriarExecucoesParaServicosUseCase } from '../../application/usecases/execucao-servico/criar-execucoes-para-servicos.usecase';
+import { IniciarExecucaoUseCase } from '../../application/usecases/execucao-servico/iniciar-execucao.usecase';
+import { FinalizarExecucaoUseCase } from '../../application/usecases/execucao-servico/finalizar-execucao.usecase';
+import { ListarExecucoesPorOrdemUseCase } from '../../application/usecases/execucao-servico/listar-execucoes-por-ordem.usecase';
+import { ObterTempoMedioServicosUseCase } from '../../application/usecases/execucao-servico/obter-tempo-medio-servicos.usecase';
+import { IExecucaoServicoGateway } from '../../application/ports/execucao-servico.gateway.port';
 import { PecaLookupAdapter } from '../../Adapters/adapters/peca-lookup.adapter';
 import { ServicoLookupAdapter } from '../../Adapters/adapters/servico-lookup.adapter';
 import { EstoqueMovimentacaoAdapter } from '../../Adapters/adapters/estoque-movimentacao.adapter';
@@ -83,8 +92,6 @@ import { IOrdemServicoRepository } from '../../Interfaces/OrdemServico/ordem-ser
 import { OrdemServicoService } from '../../services/ordem-servico-service';
 import { OrcamentoRepository } from '../../Repository/orcamento-repository';
 import { OrcamentoService } from '../../services/orcamento-service';
-import { ExecucaoServicoRepository } from '../../Repository/execucao-servico-repository';
-import { ExecucaoServicoService } from '../../services/execucao-servico-service';
 
 export class DIContainer {
     private static instance: DIContainer;
@@ -99,6 +106,7 @@ export class DIContainer {
     private estoqueGateway: IEstoqueGateway | null = null;
     private movimentacaoEstoqueGateway: IMovimentacaoEstoqueGateway | null = null;
     private ordemServicoGateway: IOrdemServicoGateway | null = null;
+    private execucaoServicoGateway: IExecucaoServicoGateway | null = null;
     private clienteGatewayInjected = false;
     private veiculoGatewayInjected = false;
     private pecaGatewayInjected = false;
@@ -106,6 +114,7 @@ export class DIContainer {
     private estoqueGatewayInjected = false;
     private movimentacaoEstoqueGatewayInjected = false;
     private ordemServicoGatewayInjected = false;
+    private execucaoServicoGatewayInjected = false;
 
     private clientePresenter: ClientePresenter | null = null;
     private veiculoPresenter: VeiculoPresenter | null = null;
@@ -118,6 +127,7 @@ export class DIContainer {
     private servicoController: ServicoController | null = null;
     private estoqueController: EstoqueController | null = null;
     private ordemServicoController: OrdemServicoController | null = null;
+    private execucaoServicoController: ExecucaoServicoController | null = null;
     private clienteServiceFacade: ClienteServiceFacade | null = null;
     private veiculoServiceFacade: VeiculoServiceFacade | null = null;
     private pecaServiceFacade: PecaServiceFacade | null = null;
@@ -162,6 +172,11 @@ export class DIContainer {
     private atualizarOrdemServicoUseCase: AtualizarOrdemServicoUseCase | null = null;
     private obterDetalhesOrdemServicoUseCase: ObterDetalhesOrdemServicoUseCase | null = null;
     private buscarOrdensPorCpfCnpjUseCase: BuscarOrdensPorCpfCnpjUseCase | null = null;
+    private criarExecucoesParaServicosUseCase: CriarExecucoesParaServicosUseCase | null = null;
+    private iniciarExecucaoUseCase: IniciarExecucaoUseCase | null = null;
+    private finalizarExecucaoUseCase: FinalizarExecucaoUseCase | null = null;
+    private listarExecucoesPorOrdemUseCase: ListarExecucoesPorOrdemUseCase | null = null;
+    private obterTempoMedioServicosUseCase: ObterTempoMedioServicosUseCase | null = null;
     private clienteLookupPort: IClienteLookupPort | null = null;
     private veiculoLookupPort: IVeiculoLookupPort | null = null;
     private execucaoServicoPort: IExecucaoServicoPort | null = null;
@@ -172,6 +187,7 @@ export class DIContainer {
     private orcamentoPort: IOrcamentoPort | null = null;
     private ordemServicoRepository: IOrdemServicoRepository | null = null;
     private ordemServicoPresenter: OrdemServicoPresenter | null = null;
+    private execucaoServicoPresenter: ExecucaoServicoPresenter | null = null;
     private legacyOrdemServicoService: OrdemServicoService | null = null;
 
     private constructor() {}
@@ -195,7 +211,8 @@ export class DIContainer {
             !this.servicoGatewayInjected ||
             !this.estoqueGatewayInjected ||
             !this.movimentacaoEstoqueGatewayInjected ||
-            !this.ordemServicoGatewayInjected
+            !this.ordemServicoGatewayInjected ||
+            !this.execucaoServicoGatewayInjected
         ) {
             this.db = await connectDatabase();
         }
@@ -282,6 +299,16 @@ export class DIContainer {
             this.ordemServicoGateway = new OrdemServicoMongoGateway(this.getDb());
         }
         return this.ordemServicoGateway;
+    }
+
+    getExecucaoServicoGateway(): IExecucaoServicoGateway {
+        if (!this.execucaoServicoGateway) {
+            if (this.execucaoServicoGatewayInjected) {
+                throw new Error('Execução de serviço gateway not injected.');
+            }
+            this.execucaoServicoGateway = new ExecucaoServicoMongoGateway(this.getDb());
+        }
+        return this.execucaoServicoGateway;
     }
 
     getCriarClienteUseCase(): CriarClienteUseCase {
@@ -486,11 +513,60 @@ export class DIContainer {
             if (this.execucaoServicoPortInjected) {
                 throw new Error('Execução serviço port not injected.');
             }
-            this.execucaoServicoPort = new ExecucaoServicoLegacyAdapter(
-                this.getLegacyExecucaoServicoService()
+            this.execucaoServicoPort = new ExecucaoServicoPortAdapter(
+                this.getCriarExecucoesParaServicosUseCase()
             );
         }
         return this.execucaoServicoPort;
+    }
+
+    getCriarExecucoesParaServicosUseCase(): CriarExecucoesParaServicosUseCase {
+        if (!this.criarExecucoesParaServicosUseCase) {
+            this.criarExecucoesParaServicosUseCase = new CriarExecucoesParaServicosUseCase(
+                this.getExecucaoServicoGateway(),
+                this.getOrdemServicoGateway(),
+                this.getServicoLookupPort()
+            );
+        }
+        return this.criarExecucoesParaServicosUseCase;
+    }
+
+    getIniciarExecucaoUseCase(): IniciarExecucaoUseCase {
+        if (!this.iniciarExecucaoUseCase) {
+            this.iniciarExecucaoUseCase = new IniciarExecucaoUseCase(
+                this.getExecucaoServicoGateway(),
+                this.getOrdemServicoGateway()
+            );
+        }
+        return this.iniciarExecucaoUseCase;
+    }
+
+    getFinalizarExecucaoUseCase(): FinalizarExecucaoUseCase {
+        if (!this.finalizarExecucaoUseCase) {
+            this.finalizarExecucaoUseCase = new FinalizarExecucaoUseCase(
+                this.getExecucaoServicoGateway(),
+                this.getOrdemServicoGateway()
+            );
+        }
+        return this.finalizarExecucaoUseCase;
+    }
+
+    getListarExecucoesPorOrdemUseCase(): ListarExecucoesPorOrdemUseCase {
+        if (!this.listarExecucoesPorOrdemUseCase) {
+            this.listarExecucoesPorOrdemUseCase = new ListarExecucoesPorOrdemUseCase(
+                this.getExecucaoServicoGateway()
+            );
+        }
+        return this.listarExecucoesPorOrdemUseCase;
+    }
+
+    getObterTempoMedioServicosUseCase(): ObterTempoMedioServicosUseCase {
+        if (!this.obterTempoMedioServicosUseCase) {
+            this.obterTempoMedioServicosUseCase = new ObterTempoMedioServicosUseCase(
+                this.getExecucaoServicoGateway()
+            );
+        }
+        return this.obterTempoMedioServicosUseCase;
     }
 
     getPecaLookupPort(): IPecaLookupPort {
@@ -748,13 +824,24 @@ export class DIContainer {
         return this.ordemServicoController;
     }
 
-    getLegacyExecucaoServicoService(): ExecucaoServicoService {
-        const execucaoServicoRepo = new ExecucaoServicoRepository();
-        return new ExecucaoServicoService(
-            execucaoServicoRepo,
-            this.getOrdemServicoRepository(),
-            this.getServicoServiceFacade()
-        );
+    getExecucaoServicoPresenter(): ExecucaoServicoPresenter {
+        if (!this.execucaoServicoPresenter) {
+            this.execucaoServicoPresenter = new ExecucaoServicoPresenter();
+        }
+        return this.execucaoServicoPresenter;
+    }
+
+    getExecucaoServicoController(): ExecucaoServicoController {
+        if (!this.execucaoServicoController) {
+            this.execucaoServicoController = new ExecucaoServicoController(
+                () => this.getListarExecucoesPorOrdemUseCase(),
+                () => this.getIniciarExecucaoUseCase(),
+                () => this.getFinalizarExecucaoUseCase(),
+                () => this.getObterTempoMedioServicosUseCase(),
+                () => this.getExecucaoServicoPresenter()
+            );
+        }
+        return this.execucaoServicoController;
     }
 
     getLegacyOrdemServicoService(): OrdemServicoService {
@@ -769,7 +856,7 @@ export class DIContainer {
                 this.getServicoServiceFacade(),
                 this.getEstoqueServiceFacade(),
                 orcamentoService,
-                this.getLegacyExecucaoServicoService()
+                this.getExecucaoServicoPort()
             );
         }
         return this.legacyOrdemServicoService;
@@ -887,12 +974,22 @@ export class DIContainer {
         this.ordemServicoGatewayInjected = true;
         this.initialized = true;
         this.resetOrdemServicoCache();
+        this.resetExecucaoServicoCache();
+    }
+
+    injectExecucaoServicoGateway(gateway: IExecucaoServicoGateway): void {
+        this.execucaoServicoGateway = gateway;
+        this.execucaoServicoGatewayInjected = true;
+        this.initialized = true;
+        this.resetExecucaoServicoCache();
+        this.resetOrdemServicoCache();
     }
 
     injectExecucaoServicoPort(port: IExecucaoServicoPort): void {
         this.execucaoServicoPort = port;
         this.execucaoServicoPortInjected = true;
         this.initialized = true;
+        this.resetExecucaoServicoCache();
         this.resetOrdemServicoCache();
     }
 
@@ -904,6 +1001,7 @@ export class DIContainer {
         this.estoqueGateway = null;
         this.movimentacaoEstoqueGateway = null;
         this.ordemServicoGateway = null;
+        this.execucaoServicoGateway = null;
         this.clienteGatewayInjected = false;
         this.veiculoGatewayInjected = false;
         this.pecaGatewayInjected = false;
@@ -911,6 +1009,7 @@ export class DIContainer {
         this.estoqueGatewayInjected = false;
         this.movimentacaoEstoqueGatewayInjected = false;
         this.ordemServicoGatewayInjected = false;
+        this.execucaoServicoGatewayInjected = false;
         this.clientePresenter = null;
         this.veiculoPresenter = null;
         this.pecaPresenter = null;
@@ -922,6 +1021,7 @@ export class DIContainer {
         this.servicoController = null;
         this.estoqueController = null;
         this.ordemServicoController = null;
+        this.execucaoServicoController = null;
         this.clienteServiceFacade = null;
         this.veiculoServiceFacade = null;
         this.pecaServiceFacade = null;
@@ -937,6 +1037,7 @@ export class DIContainer {
         this.resetServicoCache();
         this.resetEstoqueCache();
         this.resetOrdemServicoCache();
+        this.resetExecucaoServicoCache();
         this.initialized = false;
         this.db = null;
     }
@@ -1013,6 +1114,19 @@ export class DIContainer {
         this.ordemServicoPresenter = null;
         this.ordemServicoController = null;
         this.legacyOrdemServicoService = null;
+    }
+
+    private resetExecucaoServicoCache(): void {
+        this.criarExecucoesParaServicosUseCase = null;
+        this.iniciarExecucaoUseCase = null;
+        this.finalizarExecucaoUseCase = null;
+        this.listarExecucoesPorOrdemUseCase = null;
+        this.obterTempoMedioServicosUseCase = null;
+        this.execucaoServicoPresenter = null;
+        this.execucaoServicoController = null;
+        if (!this.execucaoServicoPortInjected) {
+            this.execucaoServicoPort = null;
+        }
     }
 }
 

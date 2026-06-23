@@ -39,7 +39,7 @@ const mockOrcamentoService = {
   getOrcamentosByOrdemServicoId: jest.fn(),
 };
 
-const mockExecucaoServicoService = {
+const mockExecucaoServicoPort = {
   createExecucoesParaServicos: jest.fn()
 };
 
@@ -56,7 +56,7 @@ describe('OrdemServicoService', () => {
       mockServicoService as any,
       mockEstoqueService as any,
       mockOrcamentoService as any,
-      mockExecucaoServicoService as any
+      mockExecucaoServicoPort as any
     );
   });
 
