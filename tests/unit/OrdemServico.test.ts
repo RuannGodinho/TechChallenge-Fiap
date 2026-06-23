@@ -1,103 +1,54 @@
-import { OrdemServico } from '../../src/Entities/ordem-servico';
 import { ObjectId } from 'mongodb';
-import { OrdemPecaItem } from '../../src/ValueObjects/ordem-peca-item';
+import { OrdemServico } from '../../src/enterprise/entities/ordem-servico.entity';
+import { StatusOS } from '../../src/enterprise/value-objects/status-os.vo';
 
-describe('OrdemServico', () => {
-  test('deve criar instância de OrdemServico com todos os atributos', () => {
-    const clienteId = '11144477735';
-    const veiculoId = new ObjectId();
-    const pecaItem = new OrdemPecaItem(new ObjectId(), 2, 150.00);
-    const servicoId = new ObjectId();
-    const dataAbertura = new Date();
+describe('OrdemServico entity', () => {
+    const veiculoId = new ObjectId().toString();
 
-    const ordemServico = new OrdemServico(
-      clienteId,
-      veiculoId,
-      'RECEBIDA',
-      dataAbertura,
-      [pecaItem],
-      [servicoId]
-    );
+    test('deve criar ordem com status RECEBIDA', () => {
+        const ordem = OrdemServico.create({
+            cpfCnpj: '11144477735',
+            veiculoId,
+            pecas: [],
+            servicos: [],
+        });
 
-    expect(ordemServico).toBeInstanceOf(OrdemServico);
-    expect(ordemServico.cpfCnpj).toBe(clienteId);
-    expect(ordemServico.veiculo).toEqual(veiculoId);
-    expect(ordemServico.status).toBe('RECEBIDA');
-    expect(ordemServico.dataAbertura).toEqual(dataAbertura);
-    expect(ordemServico.pecas).toHaveLength(1);
-    expect(ordemServico.servicos).toHaveLength(1);
-  });
-
-  test('deve inicializar com status válido', () => {
-    const statuses = [
-      'RECEBIDA',
-      'EM DIAGNOSTICO',
-      'AGUARDANDO APROVACAO',
-      'EM EXECUCAO',
-      'FINALIZADA',
-      'ENTREGUE'
-    ];
-
-    statuses.forEach(status => {
-      const os = new OrdemServico(
-        '11144477735',
-        new ObjectId(),
-        status as any,
-        new Date(),
-        [],
-        []
-      );
-      expect(os.status).toBe(status);
+        expect(ordem.status.value).toBe('RECEBIDA');
+        expect(ordem.cpfCnpj.value).toBe('11144477735');
+        expect(ordem.veiculoId.value).toBe(veiculoId);
     });
-  });
 
-  test('deve permitir datas opcionais (dataInicioServico e dataFechamento)', () => {
-    const ordemServico = new OrdemServico(
-      '11144477735',
-      new ObjectId(),
-      'RECEBIDA',
-      new Date(),
-      [],
-      []
-    );
+    test('deve validar transição de status permitida', () => {
+        const ordem = OrdemServico.create({
+            cpfCnpj: '11144477735',
+            veiculoId,
+        });
 
-    expect(ordemServico.dataInicioServico).toBeUndefined();
-    expect(ordemServico.dataFechamento).toBeUndefined();
+        ordem.transicionarStatus(StatusOS.from('EM DIAGNOSTICO'));
 
-    ordemServico.dataInicioServico = new Date();
-    ordemServico.dataFechamento = new Date();
+        expect(ordem.status.value).toBe('EM DIAGNOSTICO');
+    });
 
-    expect(ordemServico.dataInicioServico).toBeDefined();
-    expect(ordemServico.dataFechamento).toBeDefined();
-  });
+    test('deve rejeitar transição de status inválida', () => {
+        const ordem = OrdemServico.create({
+            cpfCnpj: '11144477735',
+            veiculoId,
+        });
 
-  test('deve permitir valorTotal opcional', () => {
-    const ordemServico = new OrdemServico(
-      '11144477735',
-      new ObjectId(),
-      'FINALIZADA',
-      new Date(),
-      [],
-      []
-    );
+        expect(() => ordem.transicionarStatus(StatusOS.from('EM EXECUCAO'))).toThrow(
+            'Não é permitido alterar status de RECEBIDA para EM EXECUCAO'
+        );
+    });
 
-    expect(ordemServico.valorTotal).toBeUndefined();
+    test('deve promover para aguardando aprovação a partir de diagnóstico', () => {
+        const ordem = OrdemServico.create({
+            cpfCnpj: '11144477735',
+            veiculoId,
+        });
 
-    ordemServico.valorTotal = 500.00;
-    expect(ordemServico.valorTotal).toBe(500.00);
-  });
+        ordem.transicionarStatus(StatusOS.from('EM DIAGNOSTICO'));
+        ordem.promoverParaAguardandoAprovacao();
 
-  test('deve inicializar pecas e servicos vazios se não fornecidos', () => {
-    const ordemServico = new OrdemServico(
-      '11144477735',
-      new ObjectId(),
-      'RECEBIDA',
-      new Date(),
-      [],
-      []
-    );
-
-    expect(ordemServico.pecas).toEqual([]);
-    expect(ordemServico.servicos).toEqual([]);
-  });
+        expect(ordem.status.value).toBe('AGUARDANDO APROVACAO');
+    });
 });

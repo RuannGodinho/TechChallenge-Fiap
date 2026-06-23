@@ -9,10 +9,12 @@ describe('ExecucaoServicoService', () => {
     getExecucaoById: jest.fn(),
     updateExecucao: jest.fn(),
     getExecucoesFinalizadas: jest.fn(),
+    getExecucoesByOrdemServicoId: jest.fn(),
   };
 
   const mockOrdemRepo = {
     getOSById: jest.fn(),
+    updateOrdemServico: jest.fn(),
   };
 
   const mockServicoService = {
@@ -63,6 +65,7 @@ describe('ExecucaoServicoService', () => {
   test('deve iniciar execução apenas quando pendente', async () => {
     const execucao = new ExecucaoServico(new ObjectId(), new ObjectId(), 'PENDENTE', null, null, new Date());
     mockRepo.getExecucaoById.mockResolvedValue(execucao);
+    mockOrdemRepo.getOSById.mockResolvedValue({ status: 'EM EXECUCAO' });
     mockRepo.updateExecucao.mockResolvedValue({ ...execucao, status: 'EM EXECUCAO', iniciadoEm: new Date() });
 
     const result = await service.iniciarExecucao(new ObjectId().toString());
@@ -82,6 +85,10 @@ describe('ExecucaoServicoService', () => {
     const execucao = new ExecucaoServico(new ObjectId(), new ObjectId(), 'EM EXECUCAO', new Date(), null, new Date());
     mockRepo.getExecucaoById.mockResolvedValue(execucao);
     mockRepo.updateExecucao.mockResolvedValue({ ...execucao, status: 'FINALIZADO', finalizadoEm: new Date() });
+    mockRepo.getExecucoesByOrdemServicoId = jest.fn().mockResolvedValue([
+      { ...execucao, status: 'FINALIZADO', finalizadoEm: new Date() },
+    ]);
+    mockOrdemRepo.updateOrdemServico.mockResolvedValue({ status: 'FINALIZADA' });
 
     const result = await service.finalizarExecucao(new ObjectId().toString());
 

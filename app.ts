@@ -5,7 +5,7 @@ import servicoRoutes from './src/infrastructure/http/servico-routes';
 import pecaRoutes from './src/infrastructure/http/peca-routes';
 import estoqueRoutes from './src/infrastructure/http/estoque-routes';
 import authRoutes from './src/infrastructure/http/routes/auth-routes';
-import ordemServicoRoutes from './src/routes/ordem-servico-routes';
+import ordemServicoRoutes from './src/infrastructure/http/ordem-servico-routes';
 import orcamentoRoutes from './src/routes/orcamento-routes';
 import execucaoServicoRoutes from './src/routes/execucao-servico-routes';
 import { normalizeBodyCase } from './src/infrastructure/http/middlewares/normalize-body-case';

@@ -126,12 +126,26 @@ export class ExecucaoServicoService implements IExecucaoServicoService {
     };
   }
 
-  async createExecucoesParaServicos(ordemServicoId: string, servicoIds: string[]): Promise<void> {
+    async createExecucoesParaServicos(ordemServicoId: string, servicoIds: string[]): Promise<void> {
     await this.validateOrdemServico(ordemServicoId);
+
+    const servicoIdsUnicos = [...new Set(servicoIds.map((servicoId) => servicoId.toString()))];
+    const execucoesExistentes = await this.repo.getExecucoesByOrdemServicoId(ordemServicoId);
+    const servicosJaExecutados = new Set(
+      execucoesExistentes.map((execucao) => execucao.servicoId.toString())
+    );
+
+    const servicosNovos = servicoIdsUnicos.filter(
+      (servicoId) => !servicosJaExecutados.has(servicoId)
+    );
+
+    if (!servicosNovos.length) {
+      return;
+    }
 
     const execucoes: ExecucaoServico[] = [];
 
-    for (const servicoId of servicoIds) {
+    for (const servicoId of servicosNovos) {
       await this.validateServico(servicoId);
       execucoes.push(
         new ExecucaoServico(

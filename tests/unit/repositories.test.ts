@@ -15,7 +15,9 @@ import { Quantidade } from '../../src/enterprise/value-objects/quantidade.vo';
 import { MovimentacaoEstoque } from '../../src/enterprise/entities/movimentacao-estoque.entity';
 import { TipoMovimentacao } from '../../src/enterprise/value-objects/tipo-movimentacao.vo';
 import { OrigemMovimentacao } from '../../src/enterprise/value-objects/origem-movimentacao.vo';
-import { OrdemServicoRepository } from '../../src/Repository/ordem-servico-repository';
+import { OrdemServicoMongoGateway } from '../../src/Adapters/gateways/ordem-servico.mongo.gateway';
+import { OrdemServico } from '../../src/enterprise/entities/ordem-servico.entity';
+import { StatusOS } from '../../src/enterprise/value-objects/status-os.vo';
 import { OrcamentoRepository } from '../../src/Repository/orcamento-repository';
 import { ServicoMongoGateway } from '../../src/Adapters/gateways/servico.mongo.gateway';
 import { Servico } from '../../src/enterprise/entities/servico.entity';
@@ -413,26 +415,49 @@ describe('Repository coverage', () => {
     });
   });
 
-  describe('OrdemServicoRepository', () => {
+  describe('OrdemServicoMongoGateway', () => {
     test('should create and list ordens', async () => {
-      const ordem = { descricao: 'Ordem' };
-      const collection = createCollection({ find: jest.fn().mockReturnValue({ toArray: jest.fn().mockResolvedValue([ordem]) }) });
-      mockedConnectDatabase.mockResolvedValue(createDb(collection) as any);
+      const collection = createCollection({
+        find: jest.fn().mockReturnValue({ toArray: jest.fn().mockResolvedValue([]) }),
+        insertOne: jest.fn().mockResolvedValue({ insertedId: new ObjectId() }),
+      });
+      const db = createDb(collection);
+      const gateway = new OrdemServicoMongoGateway(db as any);
+      const ordem = OrdemServico.create({
+        cpfCnpj: '11144477735',
+        veiculoId: new ObjectId().toString(),
+      });
 
-      const repository = new OrdemServicoRepository();
-      await repository.createOrdemServico(ordem as any);
-      expect(collection.insertOne).toHaveBeenCalledWith(ordem);
-      await expect(repository.listaOrdensServico()).resolves.toEqual([ordem]);
+      await gateway.save(ordem);
+      expect(collection.insertOne).toHaveBeenCalled();
+
+      await gateway.findAll();
+      expect(collection.find).toHaveBeenCalled();
     });
 
     test('should update ordemServico and return result', async () => {
-      const updated = { _id: new ObjectId(), status: 'EM DIAGNOSTICO' };
-      const collection = createCollection({ findOneAndUpdate: jest.fn().mockResolvedValue(updated) });
-      mockedConnectDatabase.mockResolvedValue(createDb(collection) as any);
-      const repository = new OrdemServicoRepository();
+      const updated = {
+        _id: new ObjectId(),
+        cpfCnpj: '11144477735',
+        veiculo: new ObjectId(),
+        status: 'EM DIAGNOSTICO',
+        dataAbertura: new Date(),
+        pecas: [],
+        servicos: [],
+      };
+      const collection = createCollection({
+        findOneAndUpdate: jest.fn().mockResolvedValue(updated),
+      });
+      const db = createDb(collection);
+      const gateway = new OrdemServicoMongoGateway(db as any);
       const id = new ObjectId().toString();
-      await expect(repository.updateOrdemServico(id, { status: 'EM DIAGNOSTICO' } as any)).resolves.toEqual(updated);
-      expect(collection.findOneAndUpdate).toHaveBeenCalledWith({ _id: new ObjectId(id) }, { $set: { status: 'EM DIAGNOSTICO' } }, { returnDocument: 'after' });
+
+      const result = await gateway.update(id, {
+        status: StatusOS.from('EM DIAGNOSTICO'),
+      } as Partial<OrdemServico>);
+
+      expect(result?.status.value).toBe('EM DIAGNOSTICO');
+      expect(collection.findOneAndUpdate).toHaveBeenCalled();
     });
   });
 

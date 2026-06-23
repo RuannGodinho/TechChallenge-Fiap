@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { ExecucaoServicoController } from '../controllers/execucao-servico-controller';
 import { ExecucaoServicoService } from '../services/execucao-servico-service';
 import { ExecucaoServicoRepository } from '../Repository/execucao-servico-repository';
-import { OrdemServicoRepository } from '../Repository/ordem-servico-repository';
+import { OrdemServicoMongoRepository } from '../Repository/ordem-servico-mongo.repository';
 import { DIContainer } from '../infrastructure/composition-root/di-container';
 import { authMiddleware } from '../infrastructure/http/middlewares/auth-middleware';
 
@@ -20,7 +20,7 @@ async function getExecucaoServicoController(): Promise<ExecucaoServicoController
         await container.ensureInitialized();
         const servicoService = container.getServicoServiceFacade();
         const execucaoRepo = new ExecucaoServicoRepository();
-        const ordemServicoRepo = new OrdemServicoRepository();
+        const ordemServicoRepo = new OrdemServicoMongoRepository();
         const execucaoServicoService = new ExecucaoServicoService(
             execucaoRepo,
             ordemServicoRepo,
