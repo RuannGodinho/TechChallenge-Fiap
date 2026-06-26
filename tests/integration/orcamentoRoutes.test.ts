@@ -1,121 +1,147 @@
 import request from 'supertest';
-import app from '../../app';
-import { OrcamentoRepository } from '../../src/Repository/orcamento-repository';
-import { Orcamento } from '../../src/Entities/orcamento';
-import { getAuthToken } from '../Helper/getAuthToken';
 import { ObjectId } from 'mongodb';
+import { Orcamento } from '../../src/enterprise/entities/orcamento.entity';
+import { IOrcamentoGateway } from '../../src/application/ports/orcamento.gateway.port';
+import { DIContainer } from '../../src/infrastructure/composition-root/di-container';
+import { getAuthToken } from '../Helper/getAuthToken';
+
+const orcamentosStore = new Map<string, Orcamento>();
+
+class InMemoryOrcamentoGateway implements IOrcamentoGateway {
+    async save(orcamento: Orcamento): Promise<Orcamento> {
+        const id = new ObjectId().toString();
+        const saved = Orcamento.restore({
+            id,
+            ordemServicoId: orcamento.ordemServicoId,
+            versao: orcamento.versao,
+            status: orcamento.status.value,
+            pecas: orcamento.pecas,
+            itensServicos: orcamento.itensServicos,
+            valorTotal: orcamento.valorTotal,
+            validadeEm: orcamento.validadeEm,
+            criadoEm: orcamento.criadoEm,
+        });
+        orcamentosStore.set(id, saved);
+        return saved;
+    }
+
+    async findById(id: string): Promise<Orcamento | null> {
+        return orcamentosStore.get(id) ?? null;
+    }
+
+    async findByOrdemServicoId(ordemServicoId: string): Promise<Orcamento[]> {
+        return Array.from(orcamentosStore.values()).filter(
+            (orcamento) => orcamento.ordemServicoId === ordemServicoId
+        );
+    }
+
+    async update(id: string, orcamento: Orcamento): Promise<Orcamento | null> {
+        if (!orcamentosStore.has(id)) {
+            return null;
+        }
+
+        const updated = Orcamento.restore({
+            id,
+            ordemServicoId: orcamento.ordemServicoId,
+            versao: orcamento.versao,
+            status: orcamento.status.value,
+            pecas: orcamento.pecas,
+            itensServicos: orcamento.itensServicos,
+            valorTotal: orcamento.valorTotal,
+            validadeEm: orcamento.validadeEm,
+            criadoEm: orcamento.criadoEm,
+        });
+        orcamentosStore.set(id, updated);
+        return updated;
+    }
+}
+
+const container = DIContainer.getInstance();
+container.injectOrcamentoGateway(new InMemoryOrcamentoGateway());
+
+import app from '../../app';
 
 describe('Integração - Rotas de Orçamentos', () => {
-  let _token: string;
+    let token: string;
 
-  beforeAll(async () => {
-    _token = await getAuthToken();
-  });
+    beforeAll(async () => {
+        token = await getAuthToken();
+    });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
+    beforeEach(() => {
+        orcamentosStore.clear();
+    });
 
-  test('deve validar requisição a endpoint de orçamentos', async () => {
-    const response = await request(app)
-      .post('/api/orcamentos')
-      .send({ status: 'PENDENTE' })
-      .auth(_token, { type: 'bearer' });
+    test('deve listar orçamentos por ordem de serviço', async () => {
+        const ordemServicoId = new ObjectId().toString();
+        const gateway = new InMemoryOrcamentoGateway();
+        await gateway.save(
+            Orcamento.createPendente({
+                ordemServicoId,
+                pecas: [],
+                servicos: [],
+                valorTotal: 100,
+            })
+        );
+        container.injectOrcamentoGateway(gateway);
 
-    expect([201, 400, 404]).toContain(response.status);
-  });
+        const response = await request(app)
+            .get(`/api/orcamentos/${ordemServicoId}`)
+            .auth(token, { type: 'bearer' });
 
-  test('deve criar orçamento com sucesso ou retornar erro', async () => {
-    jest.spyOn(OrcamentoRepository.prototype, 'createOrcamento').mockResolvedValue();
+        expect(response.status).toBe(200);
+        expect(response.body).toHaveLength(1);
+        expect(response.body[0].ordemServicoId).toBe(ordemServicoId);
+    });
 
-    const payload = {
-      ordemServicoId: new ObjectId().toString(),
-      versao: 1,
-      status: 'PENDENTE',
-      pecas: [],
-      itensServicos: [],
-      valorTotal: 100.00,
-      validadeEm: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      criadoEm: new Date()
-    };
+    test('deve retornar 404 ao buscar orçamentos inexistentes', async () => {
+        container.injectOrcamentoGateway(new InMemoryOrcamentoGateway());
 
-    const response = await request(app)
-      .post('/api/orcamentos')
-      .send(payload)
-      .auth(_token, { type: 'bearer' });
+        const response = await request(app)
+            .get(`/api/orcamentos/${new ObjectId()}`)
+            .auth(token, { type: 'bearer' });
 
-    expect([201, 400, 404]).toContain(response.status);
-  });
+        expect(response.status).toBe(404);
+    });
 
-  test('deve listar orçamentos por busca', async () => {
-    const mockOrcamentos = {
-      _id: new ObjectId(),
-      ordemServicoId: new ObjectId(),
-      versao: 1,
-      status: 'PENDENTE',
-      valorTotal: 100.00
-    };
+    test('deve atualizar status do orçamento', async () => {
+        const gateway = new InMemoryOrcamentoGateway();
+        const saved = await gateway.save(
+            Orcamento.createPendente({
+                ordemServicoId: new ObjectId().toString(),
+                pecas: [],
+                servicos: [],
+                valorTotal: 100,
+            })
+        );
+        container.injectOrcamentoGateway(gateway);
 
-    jest.spyOn(OrcamentoRepository.prototype, 'getOrcamentoById').mockResolvedValue(mockOrcamentos as any);
+        const response = await request(app)
+            .put(`/api/orcamentos/${saved.id}`)
+            .send({ status: 'APROVADO' })
+            .auth(token, { type: 'bearer' });
 
-    const response = await request(app)
-      .get(`/api/orcamentos/${new ObjectId()}`)
-      .auth(_token, { type: 'bearer' });
+        expect(response.status).toBe(200);
+        expect(response.body.status).toBe('APROVADO');
+    });
 
-    expect([200, 404]).toContain(response.status);
-  });
+    test('deve retornar 400 para status inválido', async () => {
+        const gateway = new InMemoryOrcamentoGateway();
+        const saved = await gateway.save(
+            Orcamento.createPendente({
+                ordemServicoId: new ObjectId().toString(),
+                pecas: [],
+                servicos: [],
+                valorTotal: 100,
+            })
+        );
+        container.injectOrcamentoGateway(gateway);
 
-  test('deve retornar 404 ao buscar orçamento inexistente', async () => {
-    jest.spyOn(OrcamentoRepository.prototype, 'getOrcamentoById').mockResolvedValue(null);
+        const response = await request(app)
+            .put(`/api/orcamentos/${saved.id}`)
+            .send({ status: 'INVALIDO' })
+            .auth(token, { type: 'bearer' });
 
-    const response = await request(app)
-      .get(`/api/orcamentos/${new ObjectId()}`)
-      .auth(_token, { type: 'bearer' });
-
-    expect([404, 400]).toContain(response.status);
-  });
-
-  test('deve atualizar status do orçamento', async () => {
-    const orcamentoId = new ObjectId();
-
-    jest.spyOn(OrcamentoRepository.prototype, 'getOrcamentoById').mockResolvedValue({
-      _id: orcamentoId,
-      status: 'PENDENTE'
-    } as any);
-
-    jest.spyOn(OrcamentoRepository.prototype, 'updateOrcamento').mockResolvedValue({
-      _id: orcamentoId,
-      status: 'APROVADO'
-    } as any);
-
-    const response = await request(app)
-      .put(`/api/orcamentos/${orcamentoId}`)
-      .send({ status: 'APROVADO' })
-      .auth(_token, { type: 'bearer' });
-
-    expect([200, 404, 400]).toContain(response.status);
-  });
-
-  test('deve incrementar versão do orçamento ao atualizar', async () => {
-    const orcamentoId = new ObjectId();
-
-    jest.spyOn(OrcamentoRepository.prototype, 'getOrcamentoById').mockResolvedValue({
-      _id: orcamentoId,
-      versao: 1,
-      status: 'PENDENTE'
-    } as any);
-
-    jest.spyOn(OrcamentoRepository.prototype, 'updateOrcamento').mockResolvedValue({
-      _id: orcamentoId,
-      versao: 2,
-      status: 'REPROVADO'
-    } as any);
-
-    const response = await request(app)
-      .put(`/api/orcamentos/${orcamentoId}`)
-      .send({ versao: 2, status: 'REPROVADO' })
-      .auth(_token, { type: 'bearer' });
-
-    expect([200, 404, 400]).toContain(response.status);
-  });
+        expect(response.status).toBe(400);
+    });
 });
