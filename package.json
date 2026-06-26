@@ -5,6 +5,8 @@
   "scripts": {
     "start": "node ./bin/www",
     "dev": "node --env-file=.env --import tsx ./src/main/server.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit",
     "test": "jest",
     "coverage": "jest --coverage",
     "sonar": "node --env-file=.env -e \"process.env.SONAR_TOKEN && require('child_process').spawnSync('npx',['sonar-scanner',`-Dsonar.token=${process.env.SONAR_TOKEN}`,`-Dsonar.login=${process.env.SONAR_TOKEN}`],{stdio:'inherit',shell:true})\""
