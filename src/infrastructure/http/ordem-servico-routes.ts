@@ -10,6 +10,50 @@ async function getOrdemServicoController() {
     return container.getOrdemServicoController();
 }
 
+/**
+ * @swagger
+ * /api/ordensServico:
+ *   post:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Cria uma ordem de serviço
+ *     tags: [Ordens de Serviço]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - cpfCnpj
+ *               - veiculoId
+ *             properties:
+ *               cpfCnpj:
+ *                 type: string
+ *               veiculoId:
+ *                 type: string
+ *               veiculo:
+ *                 type: string
+ *                 description: Alias para veiculoId
+ *               pecas:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     pecaId:
+ *                       type: string
+ *                     quantidade:
+ *                       type: number
+ *               servicos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       201:
+ *         description: Ordem de serviço criada com sucesso
+ *       400:
+ *         description: Cliente e veículo são obrigatórios
+ */
 router.post('/ordensServico', authMiddleware, async (req: Request, res: Response) => {
     const { cpfCnpj, veiculoId, veiculo, pecas, servicos } = req.body;
     const resolvedVeiculoId = veiculoId ?? veiculo;
@@ -34,6 +78,18 @@ router.post('/ordensServico', authMiddleware, async (req: Request, res: Response
     }
 });
 
+/**
+ * @swagger
+ * /api/ordensServico:
+ *   get:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Lista ordens de serviço
+ *     tags: [Ordens de Serviço]
+ *     responses:
+ *       200:
+ *         description: Lista retornada com sucesso
+ */
 router.get('/ordensServico', authMiddleware, async (_req: Request, res: Response) => {
     try {
         const controller = await getOrdemServicoController();
@@ -45,6 +101,56 @@ router.get('/ordensServico', authMiddleware, async (_req: Request, res: Response
     }
 });
 
+/**
+ * @swagger
+ * /api/ordensServico/{id}:
+ *   put:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Atualiza uma ordem de serviço
+ *     tags: [Ordens de Serviço]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               cpfCnpj:
+ *                 type: string
+ *               veiculoId:
+ *                 type: string
+ *               veiculo:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *               pecas:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     pecaId:
+ *                       type: string
+ *                     quantidade:
+ *                       type: number
+ *               servicos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Ordem de serviço atualizada com sucesso
+ *       404:
+ *         description: Ordem de serviço não encontrada
+ *       400:
+ *         description: ID ou campos de atualização inválidos
+ */
 router.put('/ordensServico/:id', authMiddleware, async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
@@ -73,6 +179,26 @@ router.put('/ordensServico/:id', authMiddleware, async (req: Request, res: Respo
     }
 });
 
+/**
+ * @swagger
+ * /api/ordensServico/{cpfCnpj}/detalhes:
+ *   get:
+ *     summary: Busca ordens de serviço com detalhes por CPF/CNPJ
+ *     tags: [Ordens de Serviço]
+ *     parameters:
+ *       - in: path
+ *         name: cpfCnpj
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Ordens retornadas com sucesso
+ *       404:
+ *         description: Cliente ou ordens não encontradas
+ *       400:
+ *         description: CPF/CNPJ obrigatório
+ */
 router.get('/ordensServico/:cpfCnpj/detalhes', async (req: Request, res: Response) => {
     try {
         const cpfCnpj = req.params.cpfCnpj as string;

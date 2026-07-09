@@ -28,6 +28,10 @@ function getAuthController() {
  *     responses:
  *       200:
  *         description: Usuario logado com sucesso
+ *       401:
+ *         description: Credenciais inválidas
+ *       400:
+ *         description: Email e senha são obrigatórios
  */
 router.post('/login', async (req: Request, res: Response) => {
     const { email, password } = req.body;
@@ -46,6 +50,20 @@ router.post('/login', async (req: Request, res: Response) => {
     return res.status(200).json(result);
 });
 
+/**
+ * @swagger
+ * /api/me:
+ *   get:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Retorna usuário autenticado
+ *     tags: [Login]
+ *     responses:
+ *       200:
+ *         description: Usuário autenticado
+ *       401:
+ *         description: Token inválido ou ausente
+ */
 router.get('/me', authMiddleware, (req: Request, res: Response) => {
     const controller = getAuthController();
     return res.json({ user: controller.toAuthenticatedUserResponse((req as any).user) });

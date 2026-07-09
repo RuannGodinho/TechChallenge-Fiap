@@ -10,6 +10,28 @@ async function getExecucaoServicoController() {
     return container.getExecucaoServicoController();
 }
 
+/**
+ * @swagger
+ * /api/execucoes-servico/{ordemServicoId}:
+ *   get:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Lista execuções de serviço por ordem de serviço
+ *     tags: [Execução de Serviço]
+ *     parameters:
+ *       - in: path
+ *         name: ordemServicoId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Execuções retornadas com sucesso
+ *       404:
+ *         description: Execuções não encontradas
+ *       400:
+ *         description: ID da ordem de serviço obrigatório
+ */
 router.get('/execucoes-servico/:ordemServicoId', authMiddleware, async (req: Request, res: Response) => {
     try {
         const ordemServicoId = req.params.ordemServicoId as string;
@@ -34,6 +56,28 @@ router.get('/execucoes-servico/:ordemServicoId', authMiddleware, async (req: Req
     }
 });
 
+/**
+ * @swagger
+ * /api/execucoes-servico/{id}/iniciar:
+ *   patch:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Inicia uma execução de serviço
+ *     tags: [Execução de Serviço]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Execução iniciada com sucesso
+ *       404:
+ *         description: Execução não encontrada
+ *       400:
+ *         description: Execução não pode ser iniciada
+ */
 router.patch('/execucoes-servico/:id/iniciar', authMiddleware, async (req: Request, res: Response) => {
     const id = req.params.id as string;
 
@@ -61,6 +105,28 @@ router.patch('/execucoes-servico/:id/iniciar', authMiddleware, async (req: Reque
     }
 });
 
+/**
+ * @swagger
+ * /api/execucoes-servico/{id}/finalizar:
+ *   patch:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Finaliza uma execução de serviço
+ *     tags: [Execução de Serviço]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Execução finalizada com sucesso
+ *       404:
+ *         description: Execução não encontrada
+ *       400:
+ *         description: Execução não pode ser finalizada
+ */
 router.patch('/execucoes-servico/:id/finalizar', authMiddleware, async (req: Request, res: Response) => {
     const id = req.params.id as string;
 
@@ -84,6 +150,18 @@ router.patch('/execucoes-servico/:id/finalizar', authMiddleware, async (req: Req
     }
 });
 
+/**
+ * @swagger
+ * /api/metricas/tempo-medio-servicos:
+ *   get:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Obtém tempo médio de execução dos serviços
+ *     tags: [Execução de Serviço]
+ *     responses:
+ *       200:
+ *         description: Métricas retornadas com sucesso
+ */
 router.get('/metricas/tempo-medio-servicos', authMiddleware, async (_req: Request, res: Response) => {
     try {
         const controller = await getExecucaoServicoController();

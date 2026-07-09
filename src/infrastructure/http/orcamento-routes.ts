@@ -10,6 +10,47 @@ async function getOrcamentoController() {
     return container.getOrcamentoController();
 }
 
+/**
+ * @swagger
+ * /api/orcamentos/{id}:
+ *   put:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Atualiza um orçamento
+ *     tags: [Orçamentos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               ordemServicoId:
+ *                 type: string
+ *               versao:
+ *                 type: number
+ *               status:
+ *                 type: string
+ *                 description: Ex. PENDENTE, APROVADO, REPROVADO
+ *               valorTotal:
+ *                 type: number
+ *               validadeEm:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       200:
+ *         description: Orçamento atualizado com sucesso
+ *       404:
+ *         description: Orçamento não encontrado
+ *       400:
+ *         description: ID ou campos de atualização inválidos
+ */
 router.put('/orcamentos/:id', authMiddleware, async (req: Request, res: Response) => {
     try {
         const id = req.params.id as string;
@@ -43,6 +84,28 @@ router.put('/orcamentos/:id', authMiddleware, async (req: Request, res: Response
     }
 });
 
+/**
+ * @swagger
+ * /api/orcamentos/{ordemServicoId}:
+ *   get:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Lista orçamentos por ordem de serviço
+ *     tags: [Orçamentos]
+ *     parameters:
+ *       - in: path
+ *         name: ordemServicoId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Orçamentos retornados com sucesso
+ *       404:
+ *         description: Orçamento não encontrado para a ordem informada
+ *       400:
+ *         description: ID da ordem de serviço obrigatório
+ */
 router.get('/orcamentos/:ordemServicoId', authMiddleware, async (req: Request, res: Response) => {
     try {
         const ordemServicoId = req.params.ordemServicoId as string;

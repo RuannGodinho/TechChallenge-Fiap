@@ -36,7 +36,7 @@ services:
       MONGO_URL: mongodb://mongodb:27017/Node-Fiap
       MONGODB_URI: mongodb://mongodb:27017/Node-Fiap
       NODE_ENV: production
-    command: sh -c "node mongo-init/seed.js && npm run start"
+    command: sh -c "node mongo-init/seed.js && npm run dev"
     logging:
       driver: "json-file"
       options:
