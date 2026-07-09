@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: api-seed-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: seed
+        image: ruanngodinho/techchallenge:latest
+        
+        command: ["node", "./mongo-init/seed.js"] 
+        
+        # 3. Puxe as mesmas variáveis de ambiente da sua API para que ele consiga logar no Mongo
+        envFrom:
+        - configMapRef:
+            name: api-config
+        - secretRef:
+            name: api-secrets
+      imagePullSecrets:
+      - name: dockerhub-cred
+            
+      restartPolicy: OnFailure

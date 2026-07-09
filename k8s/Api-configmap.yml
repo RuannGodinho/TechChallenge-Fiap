@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+data:
+  PORT: "3000"
+  MONGODB_URI: "mongodb://mongo-service:27017/Node-Fiap"
+  JWT_EXPIRES_IN: "1h"

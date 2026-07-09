@@ -129,7 +129,7 @@ http://localhost:3000/swagger.json
 
 - A configuração de banco local usa a variável `MONGODB_URI`.
 - Quando rodar por Docker Compose, a aplicação usa o serviço `mongodb` do compose.
-- O MongoDB será inicializado com os scripts do diretório `mongo-init`.
+- O seed local roda apenas no Docker Compose (`command` do serviço `api`). No Kubernetes, use o Job em `k8s/api-seed-job.yml`.
 
 ## Comandos úteis
 
