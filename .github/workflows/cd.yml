@@ -87,7 +87,14 @@ jobs:
 
       - name: Deploy MongoDB
         run: |
-          kubectl apply -f k8s/mongo/
+          if ! kubectl get storageclass gp2 >/dev/null 2>&1; then
+            kubectl apply -f k8s/mongo/mongo-storageclass.yml
+          else
+            echo "StorageClass gp2 already exists — skipping."
+          fi
+          kubectl apply -f k8s/mongo/mongo-pvc.yml
+          kubectl apply -f k8s/mongo/mongo-service.yml
+          kubectl apply -f k8s/mongo/mongo-deployment.yml
           kubectl rollout status deployment/mongo-deployment --timeout=180s
 
       - name: Deploy API
