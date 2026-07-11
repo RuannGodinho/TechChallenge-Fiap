@@ -69,7 +69,7 @@ jobs:
           fi
 
       - name: Prepare terraform.tfvars
-        run: cp terraform.tfvars.personal.example terraform.tfvars
+        run: cp terraform.tfvars.example terraform.tfvars
 
       - name: Terraform fmt
         run: terraform fmt -check -recursive
