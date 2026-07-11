@@ -11,7 +11,7 @@ export const options = {
   ],
 };
 
-const BASE_URL = 'http://localhost:30080'; // Ou o IP do seu LoadBalancer/NodePort
+const BASE_URL = 'http://ec2-32-192-239-253.compute-1.amazonaws.com:30080'; // Ou o IP do seu LoadBalancer/NodePort
 
 export default function () {
   const url = `${BASE_URL}/api/clientes`; // Substitua pela sua rota

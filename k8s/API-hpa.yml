@@ -2,17 +2,20 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: api-hpa
+  labels:
+    app: api
+    autoscaling.techchallenge/option: native-hpa
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: api-deployment # O nome exato do seu Deployment da API
+    name: api-deployment
   minReplicas: 1
-  maxReplicas: 4       # O limite máximo de Pods que o HPA pode criar
+  maxReplicas: 4
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 60 # Se a CPU passar de 60% do valor do "request", ele escala
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
