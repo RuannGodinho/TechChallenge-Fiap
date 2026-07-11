@@ -86,7 +86,6 @@ jobs:
 
       - name: Deploy MongoDB
         run: |
-          kubectl apply -f k8s/mongo/mongo-storageclass.yml
           kubectl apply -f k8s/mongo/
 
       - name: Deploy API
