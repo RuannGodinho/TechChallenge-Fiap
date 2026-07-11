@@ -82,18 +82,28 @@ jobs:
           kubectl rollout status deployment/metrics-server -n kube-system --timeout=180s
 
       - name: Deploy secrets and config
-        run: kubectl apply -f k8s/secrets/
+        run: |
+          kubectl apply -f k8s/secrets/
 
       - name: Deploy MongoDB
         run: |
           kubectl apply -f k8s/mongo/
+          kubectl rollout status deployment/mongo-deployment --timeout=180s
 
       - name: Deploy API
         run: |
           kubectl apply -f k8s/Api-deployment.yml
           kubectl apply -f k8s/Api-service.yml
           kubectl apply -f k8s/API-hpa.yml
-          kubectl apply -f k8s/api-seed-job.yml
+
+      - name: Run API seed job
+        run: |
+          if ! kubectl get job api-seed-job >/dev/null 2>&1; then
+            kubectl apply -f k8s/api-seed-job.yml
+            kubectl wait --for=condition=complete job/api-seed-job --timeout=120s
+          else
+            echo "Seed job already exists — skipping."
+          fi
 
       - name: Rollout API deployment
         run: |
