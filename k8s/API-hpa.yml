@@ -4,7 +4,6 @@ metadata:
   name: api-hpa
   labels:
     app: api
-    autoscaling.techchallenge/option: native-hpa
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
