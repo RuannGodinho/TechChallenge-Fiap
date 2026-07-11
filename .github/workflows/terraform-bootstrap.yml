@@ -46,11 +46,14 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Restore bootstrap state from S3
-        if: secrets.TF_STATE_BUCKET != ''
         env:
           TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
         run: |
-          aws s3 cp "s3://${TF_STATE_BUCKET}/bootstrap/terraform.tfstate" terraform.tfstate || true
+          if [ -n "$TF_STATE_BUCKET" ]; then
+            aws s3 cp "s3://${TF_STATE_BUCKET}/bootstrap/terraform.tfstate" terraform.tfstate || true
+          else
+            echo "TF_STATE_BUCKET not set — skipping state restore (first run)."
+          fi
 
       - name: Terraform fmt
         run: terraform fmt -check -recursive
