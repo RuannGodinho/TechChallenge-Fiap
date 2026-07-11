@@ -68,11 +68,11 @@ jobs:
             exit 1
           fi
 
-      - name: Prepare terraform.tfvars
-        run: cp terraform.tfvars.example terraform.tfvars
-
       - name: Terraform fmt
         run: terraform fmt -check -recursive
+
+      - name: Prepare terraform.tfvars
+        run: cp terraform.tfvars.example terraform.tfvars
 
       - name: Terraform init
         run: terraform init -upgrade -backend-config=backend.hcl
