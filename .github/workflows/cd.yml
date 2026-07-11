@@ -1,0 +1,117 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type "yes" to confirm deploy
+        required: false
+        default: ""
+
+concurrency:
+  group: cd-eks
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  deploy:
+    if: >
+      (github.event_name == 'workflow_run'
+        && github.event.workflow_run.conclusion == 'success'
+        && github.event.workflow_run.event == 'push')
+      || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Confirm manual deploy
+        if: github.event_name == 'workflow_dispatch' && inputs.confirm != 'yes'
+        run: |
+          echo "::error::Manual deploy requires confirm=yes."
+          exit 1
+
+      - name: Verify CI passed (manual deploy)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          CONCLUSION=$(gh run list --workflow=ci.yml --branch=main --limit=1 --json conclusion --jq '.[0].conclusion')
+          if [ "$CONCLUSION" != "success" ]; then
+            echo "::error::Latest CI run on main did not succeed (conclusion: ${CONCLUSION:-none}). Run CI first."
+            exit 1
+          fi
+          echo "Latest CI on main: success"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      - uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          tags: ruanngodinho/techchallenge:latest
+          push: true
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ vars.TF_AWS_REGION || 'us-east-1' }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig \
+            --region "${{ vars.TF_AWS_REGION || 'us-east-1' }}" \
+            --name "${{ vars.TF_CLUSTER_NAME || 'techchallenge-eks' }}"
+
+      - name: Deploy metrics-server
+        run: |
+          kubectl apply -f k8s/metrics-server.yml
+          kubectl rollout status deployment/metrics-server -n kube-system --timeout=180s
+
+      - name: Deploy secrets and config
+        run: kubectl apply -f k8s/secrets/
+
+      - name: Deploy MongoDB
+        run: |
+          kubectl apply -f k8s/mongo/mongo-storageclass.yml
+          kubectl apply -f k8s/mongo/
+
+      - name: Deploy API
+        run: |
+          kubectl apply -f k8s/Api-deployment.yml
+          kubectl apply -f k8s/Api-service.yml
+          kubectl apply -f k8s/API-hpa.yml
+          kubectl apply -f k8s/api-seed-job.yml
+
+      - name: Rollout API deployment
+        run: |
+          kubectl rollout restart deployment/api-deployment
+          kubectl rollout status deployment/api-deployment --timeout=180s
+
+      - name: Write job summary
+        run: |
+          {
+            echo "## CD deploy summary"
+            echo ""
+            echo "**Trigger:** \`${{ github.event_name }}\`"
+            echo "**Image:** \`ruanngodinho/techchallenge:latest\`"
+            echo "**Cluster:** \`${{ vars.TF_CLUSTER_NAME || 'techchallenge-eks' }}\`"
+            echo ""
+            echo "**Pods:**"
+            echo '```'
+            kubectl get pods -A
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
