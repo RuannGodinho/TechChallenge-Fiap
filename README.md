@@ -170,3 +170,13 @@ O modelo de documentos do MongoDB lida nativamente com essa variabilidade, armaz
 
 ---
 
+## Infraestrutura, Kubernetes e Deploy (Tech Challenge)
+
+| Documento | Conteúdo |
+|---|---|
+| [Arquitetura](docs/ARQUITETURA.md) | Visão da solução, diagrama, componentes e fluxo ponta a ponta |
+| [Kubernetes](docs/KUBERNETES.md) | Workloads no EKS, manifests, deploy manual e acesso |
+| [Terraform](docs/TERRAFORM.md) | Provisionamento da infraestrutura AWS |
+| [GitHub Actions](docs/GITHUB-ACTIONS.md) | Passo a passo completo pelos pipelines |
+
+
