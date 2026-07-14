@@ -51,4 +51,20 @@ describe('OrdemServico entity', () => {
 
         expect(ordem.status.value).toBe('AGUARDANDO APROVACAO');
     });
+
+    test('deve identificar status visíveis e excluídos da listagem', () => {
+        expect(StatusOS.from('EM EXECUCAO').isVisivelNaListagem()).toBe(true);
+        expect(StatusOS.from('AGUARDANDO APROVACAO').isVisivelNaListagem()).toBe(true);
+        expect(StatusOS.from('EM DIAGNOSTICO').isVisivelNaListagem()).toBe(true);
+        expect(StatusOS.from('RECEBIDA').isVisivelNaListagem()).toBe(true);
+        expect(StatusOS.from('FINALIZADA').isVisivelNaListagem()).toBe(false);
+        expect(StatusOS.from('ENTREGUE').isVisivelNaListagem()).toBe(false);
+    });
+
+    test('deve definir prioridade de listagem por status', () => {
+        expect(StatusOS.from('EM EXECUCAO').prioridadeListagem()).toBe(1);
+        expect(StatusOS.from('AGUARDANDO APROVACAO').prioridadeListagem()).toBe(2);
+        expect(StatusOS.from('EM DIAGNOSTICO').prioridadeListagem()).toBe(3);
+        expect(StatusOS.from('RECEBIDA').prioridadeListagem()).toBe(4);
+    });
 });

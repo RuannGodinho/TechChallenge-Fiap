@@ -18,6 +18,13 @@ const TRANSITIONS: Record<StatusOSValue, StatusOSValue[]> = {
     ENTREGUE: [],
 };
 
+const LISTAGEM_PRIORIDADE: Partial<Record<StatusOSValue, number>> = {
+    [StatusOSValues.EM_EXECUCAO]: 1,
+    [StatusOSValues.AGUARDANDO_APROVACAO]: 2,
+    [StatusOSValues.EM_DIAGNOSTICO]: 3,
+    [StatusOSValues.RECEBIDA]: 4,
+};
+
 export class StatusOS {
     private readonly _value: StatusOSValue;
 
@@ -56,5 +63,16 @@ export class StatusOS {
 
     isEmDiagnostico(): boolean {
         return this._value === StatusOSValues.EM_DIAGNOSTICO;
+    }
+
+    isVisivelNaListagem(): boolean {
+        return (
+            this._value !== StatusOSValues.FINALIZADA &&
+            this._value !== StatusOSValues.ENTREGUE
+        );
+    }
+
+    prioridadeListagem(): number {
+        return LISTAGEM_PRIORIDADE[this._value] ?? Number.MAX_SAFE_INTEGER;
     }
 }

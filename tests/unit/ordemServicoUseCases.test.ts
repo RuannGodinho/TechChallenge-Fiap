@@ -156,6 +156,117 @@ describe('OrdemServico use cases', () => {
         expect(ordens[0].status.value).toBe('RECEBIDA');
     });
 
+    test('deve excluir ordens finalizadas e entregues da listagem', async () => {
+        const ordens = [
+            OrdemServico.restore({
+                id: '1',
+                cpfCnpj: '11144477735',
+                veiculoId,
+                status: 'RECEBIDA',
+                dataAbertura: new Date('2026-01-01'),
+                pecas: [],
+                servicos: [],
+            }),
+            OrdemServico.restore({
+                id: '2',
+                cpfCnpj: '11144477735',
+                veiculoId,
+                status: 'FINALIZADA',
+                dataAbertura: new Date('2026-01-02'),
+                pecas: [],
+                servicos: [],
+            }),
+            OrdemServico.restore({
+                id: '3',
+                cpfCnpj: '11144477735',
+                veiculoId,
+                status: 'ENTREGUE',
+                dataAbertura: new Date('2026-01-03'),
+                pecas: [],
+                servicos: [],
+            }),
+        ];
+
+        ordemGateway.findAll.mockResolvedValue(ordens);
+
+        const resultado = await listarOrdensServicoUseCase.execute();
+
+        expect(resultado).toHaveLength(1);
+        expect(resultado[0].id).toBe('1');
+    });
+
+    test('deve ordenar ordens por prioridade de status e data de abertura', async () => {
+        const ordens = [
+            OrdemServico.restore({
+                id: 'recebida-recente',
+                cpfCnpj: '11144477735',
+                veiculoId,
+                status: 'RECEBIDA',
+                dataAbertura: new Date('2026-01-10'),
+                pecas: [],
+                servicos: [],
+            }),
+            OrdemServico.restore({
+                id: 'execucao-antiga',
+                cpfCnpj: '11144477735',
+                veiculoId,
+                status: 'EM EXECUCAO',
+                dataAbertura: new Date('2026-01-01'),
+                pecas: [],
+                servicos: [],
+            }),
+            OrdemServico.restore({
+                id: 'diagnostico-antiga',
+                cpfCnpj: '11144477735',
+                veiculoId,
+                status: 'EM DIAGNOSTICO',
+                dataAbertura: new Date('2026-01-02'),
+                pecas: [],
+                servicos: [],
+            }),
+            OrdemServico.restore({
+                id: 'aguardando-recente',
+                cpfCnpj: '11144477735',
+                veiculoId,
+                status: 'AGUARDANDO APROVACAO',
+                dataAbertura: new Date('2026-01-08'),
+                pecas: [],
+                servicos: [],
+            }),
+            OrdemServico.restore({
+                id: 'execucao-recente',
+                cpfCnpj: '11144477735',
+                veiculoId,
+                status: 'EM EXECUCAO',
+                dataAbertura: new Date('2026-01-05'),
+                pecas: [],
+                servicos: [],
+            }),
+            OrdemServico.restore({
+                id: 'recebida-antiga',
+                cpfCnpj: '11144477735',
+                veiculoId,
+                status: 'RECEBIDA',
+                dataAbertura: new Date('2026-01-03'),
+                pecas: [],
+                servicos: [],
+            }),
+        ];
+
+        ordemGateway.findAll.mockResolvedValue(ordens);
+
+        const resultado = await listarOrdensServicoUseCase.execute();
+
+        expect(resultado.map((ordem) => ordem.id)).toEqual([
+            'execucao-antiga',
+            'execucao-recente',
+            'aguardando-recente',
+            'diagnostico-antiga',
+            'recebida-antiga',
+            'recebida-recente',
+        ]);
+    });
+
     test('deve atualizar ordem de serviço existente', async () => {
         const ordemId = 'ordem-1';
         const ordem = OrdemServico.restore({
