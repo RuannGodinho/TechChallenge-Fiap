@@ -4,12 +4,12 @@ API backend para gestão de oficinas mecânicas, permitindo controlar clientes, 
 
 ## Visão Geral
 
-Desenvolvida com Node.js, TypeScript, MongoDB e Docker, aplicando boas práticas de arquitetura, segurança e testes automatizados.
+Desenvolvida com Node.js, TypeScript, MongoDB e Docker, aplicando **Clean Architecture** , segurança e testes automatizados.
 A aplicação expõe rotas REST em `/api` e documentação Swagger em `/docs`.
 
 ## Stack
 
-Node.js • TypeScript • Express • MongoDB • Docker • JWT • Jest • Swagger
+Node.js • TypeScript • Express • MongoDB • Docker • JWT • Jest • Swagger • Clean Architecture
 
 ## Requisitos
 
@@ -22,10 +22,12 @@ Node.js • TypeScript • Express • MongoDB • Docker • JWT • Jest • S
 
 - `app.ts` - instancia o Express e monta as rotas
 - `src/main/server.ts` - inicia o servidor e expõe Swagger
-- `src/config/database.ts` - conexão com MongoDB
+- `src/infrastructure/composition-root/di-container.ts` - injeção de dependências
 - `docker-compose.yml` - compose para MongoDB + API
 - `Dockerfile` - imagem Node.js para a API
 - `mongo-init/` - scripts de inicialização do MongoDB
+- `k8s/` - manifests Kubernetes
+- `infra/terraform/` - infraestrutura AWS (EKS)
 
 ## Variáveis de ambiente
 
@@ -38,6 +40,19 @@ As variáveis usadas pela aplicação são:
 - `JWT_EXPIRES_IN` - tempo de expiração do token JWT (default `1h`)
 - `AUTH_EMAIL` - e-mail do usuário padrão
 - `AUTH_PASSWORD` - senha do usuário padrão
+- `SMTP_HOST` - host SMTP (obrigatório)
+- `SMTP_PORT` - porta SMTP (obrigatório)
+- `SMTP_USER` - usuário SMTP para envio de e-mails (obrigatório)
+- `SMTP_PASS` - senha ou app password SMTP (obrigatório)
+- `SMTP_FROM` - remetente (opcional; default: `SMTP_USER`)
+- `SMTP_SECURE` - `true` para TLS na porta 465 (opcional)
+- `ORCAMENTO_EMAIL_TO` - destinatário do orçamento (obrigatório)
+
+> Configure todas as variáveis SMTP no `.env`. O compose carrega o arquivo via `env_file`.
+
+## E-mail de orçamento (SMTP)
+
+Ao criar um orçamento pendente, a API envia um e-mail via SMTP com o resumo (peças, serviços, valor total e validade). O destinatário é definido por `ORCAMENTO_EMAIL_TO`. As credenciais SMTP vêm das variáveis `SMTP_*` no `.env`.
 
 > No Docker Compose, o container da API já define `PORT`, `MONGO_URL` e `NODE_ENV`.
 
@@ -93,6 +108,7 @@ npm run coverage
 - Controle de Estoque
 - Ordem de Serviço
 - Aprovação de Orçamentos
+- Envio de orçamento por e-mail (SMTP)
 
 A API monta todas as rotas sob o prefixo `/api`.
 
@@ -174,7 +190,7 @@ O modelo de documentos do MongoDB lida nativamente com essa variabilidade, armaz
 
 | Documento | Conteúdo |
 |---|---|
-| [Arquitetura](docs/ARQUITETURA.md) | Visão da solução, diagrama, componentes e fluxo ponta a ponta |
+| [Arquitetura](docs/ARQUITETURA.md) | Visão da solução, diagrama de deploy, componentes e fluxo ponta a ponta |
 | [Kubernetes](docs/KUBERNETES.md) | Workloads no EKS, manifests, deploy manual e acesso |
 | [Terraform](docs/TERRAFORM.md) | Provisionamento da infraestrutura AWS |
 | [GitHub Actions](docs/GITHUB-ACTIONS.md) | Passo a passo completo pelos pipelines |

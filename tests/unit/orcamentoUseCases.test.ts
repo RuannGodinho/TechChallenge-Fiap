@@ -4,12 +4,14 @@ import { Peca } from '../../src/enterprise/entities/peca.entity';
 import { Servico } from '../../src/enterprise/entities/servico.entity';
 import { TipoItem } from '../../src/validators/tipo-item';
 import { IOrcamentoGateway } from '../../src/application/ports/orcamento.gateway.port';
+import { IEmailPort } from '../../src/application/ports/email.port';
 import { CriarOrcamentoPendenteUseCase } from '../../src/application/usecases/orcamento/criar-orcamento-pendente.usecase';
 import { AtualizarOrcamentoUseCase } from '../../src/application/usecases/orcamento/atualizar-orcamento.usecase';
 import { VerificarUltimoOrcamentoAprovadoUseCase } from '../../src/application/usecases/orcamento/verificar-ultimo-orcamento-aprovado.usecase';
 
 describe('Orcamento use cases', () => {
     let gateway: jest.Mocked<IOrcamentoGateway>;
+    let emailPort: jest.Mocked<IEmailPort>;
 
     beforeEach(() => {
         gateway = {
@@ -18,6 +20,10 @@ describe('Orcamento use cases', () => {
             findByOrdemServicoId: jest.fn(),
             update: jest.fn(),
         };
+
+        emailPort = {
+            sendOrcamentoPendente: jest.fn().mockResolvedValue(undefined),
+        };
     });
 
     test('criar orcamento pendente salva snapshot de pecas e servicos', async () => {
@@ -25,7 +31,7 @@ describe('Orcamento use cases', () => {
             Orcamento.restore({ ...serializeOrcamento(orcamento), id: new ObjectId().toString() })
         );
 
-        const useCase = new CriarOrcamentoPendenteUseCase(gateway);
+        const useCase = new CriarOrcamentoPendenteUseCase(gateway, emailPort);
         const ordemServicoId = new ObjectId().toString();
 
         await useCase.execute({
@@ -57,6 +63,12 @@ describe('Orcamento use cases', () => {
                 versao: 1,
                 valorTotal: 195,
                 status: expect.objectContaining({ value: 'PENDENTE' }),
+            })
+        );
+        expect(emailPort.sendOrcamentoPendente).toHaveBeenCalledWith(
+            expect.objectContaining({
+                versao: 1,
+                valorTotal: 195,
             })
         );
     });

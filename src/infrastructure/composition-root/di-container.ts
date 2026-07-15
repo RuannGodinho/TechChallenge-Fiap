@@ -97,6 +97,9 @@ import { IPecaLookupPort } from '../../application/ports/peca-lookup.port';
 import { IServicoLookupPort } from '../../application/ports/servico-lookup.port';
 import { IEstoqueMovimentacaoPort } from '../../application/ports/estoque-movimentacao.port';
 import { IOrcamentoPort } from '../../application/ports/orcamento.port';
+import { IEmailPort } from '../../application/ports/email.port';
+import { NodemailerEmailAdapter } from '../../Adapters/adapters/nodemailer-email.adapter';
+import { loadSmtpConfig } from '../../config/smtp';
 
 export class DIContainer {
     private static instance: DIContainer;
@@ -115,6 +118,7 @@ export class DIContainer {
     private orcamentoGateway: IOrcamentoGateway | null = null;
     private tokenPort: ITokenPort | null = null;
     private credentialsPort: ICredentialsPort | null = null;
+    private emailPort: IEmailPort | null = null;
     private clienteGatewayInjected = false;
     private veiculoGatewayInjected = false;
     private pecaGatewayInjected = false;
@@ -126,6 +130,7 @@ export class DIContainer {
     private orcamentoGatewayInjected = false;
     private tokenPortInjected = false;
     private credentialsPortInjected = false;
+    private emailPortInjected = false;
 
     private clientePresenter: ClientePresenter | null = null;
     private veiculoPresenter: VeiculoPresenter | null = null;
@@ -344,6 +349,16 @@ export class DIContainer {
             this.tokenPort = new JwtTokenAdapter();
         }
         return this.tokenPort;
+    }
+
+    getEmailPort(): IEmailPort {
+        if (!this.emailPort) {
+            if (this.emailPortInjected) {
+                throw new Error('EmailPort was injected but is null');
+            }
+            this.emailPort = new NodemailerEmailAdapter(loadSmtpConfig());
+        }
+        return this.emailPort;
     }
 
     getCredentialsPort(): ICredentialsPort {
@@ -678,7 +693,8 @@ export class DIContainer {
     getCriarOrcamentoPendenteUseCase(): CriarOrcamentoPendenteUseCase {
         if (!this.criarOrcamentoPendenteUseCase) {
             this.criarOrcamentoPendenteUseCase = new CriarOrcamentoPendenteUseCase(
-                this.getOrcamentoGateway()
+                this.getOrcamentoGateway(),
+                this.getEmailPort()
             );
         }
         return this.criarOrcamentoPendenteUseCase;
@@ -1056,6 +1072,12 @@ export class DIContainer {
         this.resetAuthCache();
     }
 
+    injectEmailPort(port: IEmailPort): void {
+        this.emailPort = port;
+        this.emailPortInjected = true;
+        this.resetOrcamentoCache();
+    }
+
     reset(): void {
         this.clienteGateway = null;
         this.veiculoGateway = null;
@@ -1095,8 +1117,10 @@ export class DIContainer {
         this.orcamentoPort = null;
         this.tokenPortInjected = false;
         this.credentialsPortInjected = false;
+        this.emailPortInjected = false;
         this.tokenPort = null;
         this.credentialsPort = null;
+        this.emailPort = null;
         this.resetClienteCache();
         this.resetVeiculoCache();
         this.resetPecaCache();
@@ -1188,6 +1212,9 @@ export class DIContainer {
         this.orcamentoController = null;
         if (!this.orcamentoPortInjected) {
             this.orcamentoPort = null;
+        }
+        if (!this.emailPortInjected) {
+            this.emailPort = null;
         }
     }
 

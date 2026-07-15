@@ -2,10 +2,14 @@ import { CriarOrcamentoPendenteInputDto } from '../../dtos/orcamento/orcamento.d
 import { Orcamento } from '../../../enterprise/entities/orcamento.entity';
 import { Peca } from '../../../enterprise/entities/peca.entity';
 import { Servico } from '../../../enterprise/entities/servico.entity';
+import { IEmailPort, OrcamentoEmailPayload } from '../../ports/email.port';
 import { IOrcamentoGateway } from '../../ports/orcamento.gateway.port';
 
 export class CriarOrcamentoPendenteUseCase {
-    constructor(private readonly orcamentoGateway: IOrcamentoGateway) {}
+    constructor(
+        private readonly orcamentoGateway: IOrcamentoGateway,
+        private readonly emailPort: IEmailPort
+    ) {}
 
     async execute(input: CriarOrcamentoPendenteInputDto): Promise<void> {
         const pecas = input.pecas.map(
@@ -31,6 +35,25 @@ export class CriarOrcamentoPendenteUseCase {
             valorTotal: input.valorTotal,
         });
 
-        await this.orcamentoGateway.save(orcamento);
+        const saved = await this.orcamentoGateway.save(orcamento);
+
+        await this.emailPort.sendOrcamentoPendente(this.toEmailPayload(saved));
+    }
+
+    private toEmailPayload(orcamento: Orcamento): OrcamentoEmailPayload {
+        return {
+            versao: orcamento.versao,
+            valorTotal: orcamento.valorTotal,
+            validadeEm: orcamento.validadeEm,
+            pecas: orcamento.pecas.map((peca) => ({
+                nome: peca.nome,
+                quantidade: peca.quantidade ?? 1,
+                preco: peca.preco,
+            })),
+            servicos: orcamento.itensServicos.map((servico) => ({
+                nome: servico.nome,
+                preco: servico.preco,
+            })),
+        };
     }
 }
