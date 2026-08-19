@@ -168,10 +168,8 @@ const config: Config = {
   //   "**/?(*.)+(spec|test).?([mc])[jt]s?(x)"
   // ],
 
-  // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
-  // testPathIgnorePatterns: [
-  //   "\\\\node_modules\\\\"
-  // ],
+  // Lambda package has its own Jest job in CI (auth-lambda-test).
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/lambda/'],
 
   // The regexp pattern or array of patterns that Jest uses to detect test files
   // testRegex: [],

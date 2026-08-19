@@ -23,6 +23,13 @@ concurrency:
 jobs:
   terraform:
     runs-on: ubuntu-latest
+    env:
+      TF_VAR_enable_auth_gateway: ${{ vars.ENABLE_AUTH_GATEWAY || 'false' }}
+      TF_VAR_eks_backend_url: ${{ vars.EKS_BACKEND_URL || '' }}
+      TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
+      TF_VAR_auth_email: ${{ secrets.AUTH_EMAIL }}
+      TF_VAR_auth_password: ${{ secrets.AUTH_PASSWORD }}
+      TF_VAR_jwt_expires_in: ${{ vars.JWT_EXPIRES_IN || '1h' }}
     defaults:
       run:
         working-directory: infra/terraform
@@ -74,6 +81,30 @@ jobs:
       - name: Prepare terraform.tfvars
         run: cp terraform.tfvars.example terraform.tfvars
 
+      - name: Validate auth gateway configuration
+        if: vars.ENABLE_AUTH_GATEWAY == 'true'
+        run: |
+          missing=0
+          if [ -z "$TF_VAR_jwt_secret" ]; then
+            echo "::error::ENABLE_AUTH_GATEWAY=true requires GitHub secret JWT_SECRET"
+            missing=1
+          fi
+          if [ -z "$TF_VAR_auth_email" ]; then
+            echo "::error::ENABLE_AUTH_GATEWAY=true requires GitHub secret AUTH_EMAIL"
+            missing=1
+          fi
+          if [ -z "$TF_VAR_auth_password" ]; then
+            echo "::error::ENABLE_AUTH_GATEWAY=true requires GitHub secret AUTH_PASSWORD"
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then exit 1; fi
+          echo "Auth gateway variables validated (eks_backend_url will be derived from EKS node IP)."
+
+      - name: Build auth Lambda package
+        run: |
+          cd ../../lambda/auth
+          npm ci --omit=dev
+
       - name: Terraform init
         run: terraform init -upgrade -backend-config=backend.hcl
 
@@ -99,6 +130,10 @@ jobs:
             echo "## EKS cluster outputs"
             echo ""
             echo "**Cluster:** \`$(terraform output -raw cluster_name)\`"
+            echo ""
+            echo "**Auth API Gateway URL:** \`$(terraform output -raw auth_api_gateway_url)\`"
+            echo ""
+            echo "**EKS backend URL (API Gateway → NodePort):** \`$(terraform output -raw eks_backend_url)\`"
             echo ""
             echo "**kubectl:**"
             echo '```'

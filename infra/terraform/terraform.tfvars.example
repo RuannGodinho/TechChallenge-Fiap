@@ -20,3 +20,10 @@ coredns_replica_count = 1
 enable_ebs_csi = true
 
 allowed_api_cidr = "0.0.0.0/0"
+
+# JWT auth via API Gateway + Lambda
+# Em CI: valores sensíveis vêm de GitHub Secrets via TF_VAR_* no workflow terraform.yml
+# Secrets:  JWT_SECRET, AUTH_EMAIL, AUTH_PASSWORD
+# Variables: ENABLE_AUTH_GATEWAY=true, JWT_EXPIRES_IN (opcional)
+# eks_backend_url é derivado automaticamente do IP público do node EKS (:30080)
+enable_auth_gateway = false

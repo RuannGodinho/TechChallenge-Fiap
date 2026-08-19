@@ -47,6 +47,18 @@ flowchart LR
 | `GH_REPO_PAT` | PAT fine-grained com **Secrets** + **Variables** read/write neste repo |
 | `DOCKERHUB_USERNAME` | Login para push da imagem no CD |
 | `DOCKERHUB_PASSWORD` | Token/senha Docker Hub |
+| `JWT_SECRET` | Segredo HS256 compartilhado pelos Lambdas auth-sign e auth-authorizer |
+| `AUTH_EMAIL` | Credencial de login validada pelo Lambda auth-sign |
+| `AUTH_PASSWORD` | Senha de login validada pelo Lambda auth-sign |
+
+### Variables para auth gateway (criar em **Variables**, não Secrets)
+
+| Variable | Exemplo | Quando obrigatória |
+|---|---|---|
+| `ENABLE_AUTH_GATEWAY` | `true` | Para provisionar API Gateway + Lambdas no mesmo apply do EKS |
+| `JWT_EXPIRES_IN` | `1h` | Opcional (default `1h` no workflow) |
+
+> **`EKS_BACKEND_URL` não é mais necessária** — o Terraform deriva `http://<node-public-ip>:30080` após criar o node group. Use `TF_VAR_eks_backend_url` / variável `EKS_BACKEND_URL` só como override opcional.
 
 ### Secrets criados automaticamente (após Bootstrap)
 
@@ -86,8 +98,11 @@ flowchart LR
 
 - Lê `TF_BACKEND_HCL` automaticamente
 - Copia `terraform.tfvars.example` → `terraform.tfvars`
-- Cria VPC, EKS, nodes, addons, IAM
-- Job summary mostra comando `aws eks update-kubeconfig`
+- Injeta auth via `TF_VAR_*` (Secrets/Variables do GitHub — ver Passo 1)
+- Valida `JWT_SECRET`, `AUTH_EMAIL`, `AUTH_PASSWORD` se `ENABLE_AUTH_GATEWAY=true`
+- Cria VPC, EKS, nodes, addons, IAM, API Gateway e Lambdas JWT (tudo no mesmo apply)
+- Deriva `eks_backend_url` do IP público do node EKS (`:30080`)
+- Job summary mostra `configure_kubectl`, `auth_api_gateway_url` e `eks_backend_url`
 
 **Duração típica:** 10–15 minutos.
 
@@ -142,11 +157,12 @@ Detalhes dos manifests: [KUBERNETES.md](KUBERNETES.md).
 
 ```text
 ☐ 1. Criar secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, GH_REPO_PAT, DOCKERHUB_*
-☐ 2. Terraform Bootstrap → apply, confirm=yes
-☐ 3. Verificar TF_STATE_BUCKET e TF_BACKEND_HCL em Settings → Secrets
-☐ 4. Terraform → plan, depois apply, confirm=yes
-☐ 5. Push código em main → CI verde → CD deploya
-☐ 6. Acessar http://<NODE_IP>:30080/docs
+☐ 2. Criar secrets JWT_SECRET, AUTH_EMAIL, AUTH_PASSWORD + variable ENABLE_AUTH_GATEWAY=true
+☐ 3. Terraform Bootstrap → apply, confirm=yes
+☐ 4. Verificar TF_STATE_BUCKET e TF_BACKEND_HCL em Settings → Secrets
+☐ 5. Terraform → plan, depois apply, confirm=yes (EKS + API Gateway + Lambdas juntos)
+☐ 6. Push código em main → CI verde → CD deploya a API (AUTH_MODE=gateway)
+☐ 7. Acessar https://<auth_api_gateway_url>/api/login (outputs do Terraform)
 ```
 
 ---

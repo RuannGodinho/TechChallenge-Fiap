@@ -1,0 +1,23 @@
+# Override for SAM local simulation.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.sam.yml up -d
+
+services:
+  api:
+    environment:
+      AUTH_MODE: gateway
+      JWT_SECRET: local-dev-secret
+      JWT_EXPIRES_IN: 1h
+      AUTH_EMAIL: admin@example.com
+      AUTH_PASSWORD: admin123
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/swagger.json').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s

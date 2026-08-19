@@ -108,6 +108,9 @@ Ordem completa: [GITHUB-ACTIONS.md](GITHUB-ACTIONS.md).
 | `AWS_ACCESS_KEY_ID` | Terraform + CD |
 | `AWS_SECRET_ACCESS_KEY` | Terraform + CD |
 | `GH_REPO_PAT` | Bootstrap auto-push de secrets (fine-grained: Secrets + Variables read/write) |
+| `JWT_SECRET` | Terraform — Lambdas auth-sign / auth-authorizer |
+| `AUTH_EMAIL` | Terraform — credencial de login do Lambda |
+| `AUTH_PASSWORD` | Terraform — senha de login do Lambda |
 
 ### Auto-configurados pelo Bootstrap
 
@@ -123,6 +126,22 @@ Ordem completa: [GITHUB-ACTIONS.md](GITHUB-ACTIONS.md).
 | Variable | Default | Uso |
 |---|---|---|
 | `TF_CLUSTER_NAME` | `techchallenge-eks` | CD — `update-kubeconfig` |
+| `ENABLE_AUTH_GATEWAY` | `false` | Terraform — EKS + API Gateway + Lambdas no mesmo apply |
+| `JWT_EXPIRES_IN` | `1h` | Terraform — expiração do JWT nos Lambdas |
+| `EKS_BACKEND_URL` | — | Opcional — override manual de `eks_backend_url` |
+
+### Mapeamento tfvars ↔ GitHub Actions
+
+| Terraform variable | Origem na pipeline | Tipo GitHub |
+|---|---|---|
+| `enable_auth_gateway` | `ENABLE_AUTH_GATEWAY` | Variable |
+| `eks_backend_url` | `EKS_BACKEND_URL` (opcional) | Variable — default: IP público do node `:30080` |
+| `jwt_secret` | `JWT_SECRET` | Secret |
+| `auth_email` | `AUTH_EMAIL` | Secret |
+| `auth_password` | `AUTH_PASSWORD` | Secret |
+| `jwt_expires_in` | `JWT_EXPIRES_IN` | Variable |
+
+Demais variáveis (`cluster_name`, `node_*`, etc.) continuam no `terraform.tfvars.example` copiado no workflow.
 
 ## Destroy
 
