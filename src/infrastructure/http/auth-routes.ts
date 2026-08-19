@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { DIContainer } from '../composition-root/di-container';
 import { authMiddleware } from './middlewares/auth-middleware';
+import { isGatewayAuthMode } from '../../config/auth-mode';
 
 const router = Router();
 
@@ -32,23 +33,31 @@ function getAuthController() {
  *         description: Credenciais inválidas
  *       400:
  *         description: Email e senha são obrigatórios
+ *       410:
+ *         description: Login disponível apenas via API Gateway
  */
-router.post('/login', async (req: Request, res: Response) => {
-    const { email, password } = req.body;
+if (isGatewayAuthMode) {
+    router.post('/login', (_req: Request, res: Response) => {
+        return res.status(410).json({ error: 'Login disponível apenas via API Gateway' });
+    });
+} else {
+    router.post('/login', async (req: Request, res: Response) => {
+        const { email, password } = req.body;
 
-    if (!email || !password) {
-        return res.status(400).json({ error: 'Email e senha são obrigatórios' });
-    }
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email e senha são obrigatórios' });
+        }
 
-    const controller = getAuthController();
-    const result = await controller.login(email, password);
+        const controller = getAuthController();
+        const result = await controller.login(email, password);
 
-    if ('error' in result) {
-        return res.status(401).json({ error: result.error });
-    }
+        if ('error' in result) {
+            return res.status(401).json({ error: result.error });
+        }
 
-    return res.status(200).json(result);
-});
+        return res.status(200).json(result);
+    });
+}
 
 /**
  * @swagger

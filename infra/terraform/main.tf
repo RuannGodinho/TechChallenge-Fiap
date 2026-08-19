@@ -14,6 +14,14 @@ terraform {
       source  = "hashicorp/time"
       version = "~> 0.12"
     }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.0"
+    }
+    external = {
+      source  = "hashicorp/external"
+      version = "~> 2.3"
+    }
   }
 
   # Values are supplied at init time via backend.hcl (see backend.hcl.example).

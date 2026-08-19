@@ -33,3 +33,20 @@ jobs:
 
       - run: npm ci
       - run: npm test
+
+  auth-lambda-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lambda/auth
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+          cache-dependency-path: lambda/auth/package-lock.json
+
+      - run: npm ci
+      - run: npm test

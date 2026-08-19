@@ -17,7 +17,7 @@ aws eks update-kubeconfig --region us-east-1 --name techchallenge-eks
 ```text
 namespace: default
 ├── ConfigMap api-config          (PORT, MONGODB_URI, JWT_EXPIRES_IN)
-├── Secret api-secrets            (JWT, credenciais auth, SONAR_TOKEN)
+├── Secret api-secrets            (SONAR_TOKEN — runtime auth fica nos Lambdas)
 ├── Secret dockerhub-cred         (pull da imagem privada)
 ├── Deployment mongo-deployment   (MongoDB 8 + volume EBS)
 ├── PVC mongo-pvc                 (1Gi, storageClassName: gp2)
