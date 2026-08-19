@@ -20,23 +20,20 @@ locals {
   ]))
 }
 
-resource "null_resource" "auth_lambda_build" {
+data "external" "auth_lambda_prepare" {
   count = var.enable_auth_gateway ? 1 : 0
 
-  triggers = {
-    source_hash = local.auth_lambda_source_hash
-  }
+  program = ["node", "${path.module}/scripts/prepare-auth-lambda.js"]
 
-  provisioner "local-exec" {
-    command     = "npm ci --omit=dev"
-    working_dir = "${path.module}/../../lambda/auth"
+  query = {
+    source_hash = local.auth_lambda_source_hash
   }
 }
 
 data "archive_file" "auth_lambda" {
   count = var.enable_auth_gateway ? 1 : 0
 
-  depends_on = [null_resource.auth_lambda_build]
+  depends_on = [data.external.auth_lambda_prepare]
 
   type        = "zip"
   source_dir  = "${path.module}/../../lambda/auth"
@@ -94,6 +91,18 @@ resource "aws_lambda_function" "auth_sign" {
     aws_iam_role_policy_attachment.auth_lambda_basic,
   ]
 
+  lifecycle {
+    precondition {
+      condition = (
+        var.jwt_secret != "" &&
+        var.auth_email != "" &&
+        var.auth_password != "" &&
+        var.gateway_trust_secret != ""
+      )
+      error_message = "jwt_secret, auth_email, auth_password, and gateway_trust_secret must be set when enable_auth_gateway is true."
+    }
+  }
+
   tags = local.common_tags
 }
 
@@ -118,6 +127,18 @@ resource "aws_lambda_function" "auth_authorizer" {
     aws_cloudwatch_log_group.auth_authorizer,
     aws_iam_role_policy_attachment.auth_lambda_basic,
   ]
+
+  lifecycle {
+    precondition {
+      condition = (
+        var.jwt_secret != "" &&
+        var.auth_email != "" &&
+        var.auth_password != "" &&
+        var.gateway_trust_secret != ""
+      )
+      error_message = "jwt_secret, auth_email, auth_password, and gateway_trust_secret must be set when enable_auth_gateway is true."
+    }
+  }
 
   tags = local.common_tags
 }

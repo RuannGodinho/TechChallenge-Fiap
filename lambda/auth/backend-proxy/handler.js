@@ -2,16 +2,29 @@ const http = require('http');
 const https = require('https');
 const { URL } = require('url');
 
+const BACKEND_REQUEST_TIMEOUT_MS = 10_000;
+
 function getBackendBaseUrl() {
   return (process.env.BACKEND_URL || 'http://host.docker.internal:3000').replace(/\/$/, '');
 }
 
+const STRIPPED_HEADERS = new Set([
+  'host',
+  'connection',
+  'content-length',
+  'x-user-id',
+  'x-user-email',
+  'x-gateway-trust',
+]);
+
 function buildForwardHeaders(event) {
   const headers = { ...(event.headers || {}) };
 
-  delete headers.host;
-  delete headers.connection;
-  delete headers['content-length'];
+  for (const name of Object.keys(headers)) {
+    if (STRIPPED_HEADERS.has(name.toLowerCase())) {
+      delete headers[name];
+    }
+  }
 
   const authorizer = event.requestContext?.authorizer?.lambda || {};
 
@@ -21,6 +34,11 @@ function buildForwardHeaders(event) {
 
   if (authorizer.email) {
     headers['x-user-email'] = String(authorizer.email);
+  }
+
+  const trustSecret = process.env.GATEWAY_TRUST_SECRET;
+  if (trustSecret) {
+    headers['x-gateway-trust'] = trustSecret;
   }
 
   return headers;
@@ -74,6 +92,10 @@ function forwardRequest(event) {
         });
       },
     );
+
+    request.setTimeout(BACKEND_REQUEST_TIMEOUT_MS, () => {
+      request.destroy(new Error('Backend request timed out'));
+    });
 
     request.on('error', (error) => {
       reject(error);

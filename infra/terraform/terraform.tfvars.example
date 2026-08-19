@@ -22,8 +22,8 @@ enable_ebs_csi = true
 allowed_api_cidr = "0.0.0.0/0"
 
 # JWT auth via API Gateway + Lambda
-# Em CI: valores sensíveis vêm de GitHub Secrets via TF_VAR_* no workflow terraform.yml
-# Secrets:  JWT_SECRET, AUTH_EMAIL, AUTH_PASSWORD
-# Variables: ENABLE_AUTH_GATEWAY=true, JWT_EXPIRES_IN (opcional)
-# eks_backend_url é derivado automaticamente do IP público do node EKS (:30080)
-enable_auth_gateway = false
+# enable_auth_gateway: do NOT set here — default is false in variables-auth.tf.
+# In CI: set GitHub Variable ENABLE_AUTH_GATEWAY=true (maps to TF_VAR_enable_auth_gateway).
+# Secrets via TF_VAR_*: JWT_SECRET, AUTH_EMAIL, AUTH_PASSWORD, GATEWAY_TRUST_SECRET
+# Optional variable: JWT_EXPIRES_IN (default 1h)
+# eks_backend_url is derived automatically from the EKS node public IP (:30080)

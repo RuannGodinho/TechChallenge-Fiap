@@ -82,8 +82,15 @@ jobs:
           kubectl rollout status deployment/metrics-server -n kube-system --timeout=180s
 
       - name: Deploy secrets and config
+        env:
+          GATEWAY_TRUST_SECRET: ${{ secrets.GATEWAY_TRUST_SECRET }}
         run: |
           kubectl apply -f k8s/secrets/
+          if [ -n "$GATEWAY_TRUST_SECRET" ]; then
+            TRUST_B64=$(printf '%s' "$GATEWAY_TRUST_SECRET" | base64 -w 0)
+            kubectl patch secret api-secrets --type merge \
+              -p "{\"data\":{\"GATEWAY_TRUST_SECRET\":\"$TRUST_B64\"}}"
+          fi
 
       - name: Deploy MongoDB
         run: |

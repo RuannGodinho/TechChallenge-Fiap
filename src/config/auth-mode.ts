@@ -1,5 +1,11 @@
 export type AuthMode = 'local' | 'gateway';
 
-export const authMode = (process.env.AUTH_MODE || 'local') as AuthMode;
+const configuredAuthMode = process.env.AUTH_MODE ?? 'local';
+
+if (configuredAuthMode !== 'local' && configuredAuthMode !== 'gateway') {
+    throw new Error(`Unsupported AUTH_MODE: ${configuredAuthMode}`);
+}
+
+export const authMode: AuthMode = configuredAuthMode;
 
 export const isGatewayAuthMode = authMode === 'gateway';

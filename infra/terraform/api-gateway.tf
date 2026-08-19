@@ -25,7 +25,7 @@ resource "aws_apigatewayv2_authorizer" "jwt" {
   name                              = "${local.name}-jwt-authorizer"
   authorizer_payload_format_version = "2.0"
   enable_simple_responses           = true
-  authorizer_result_ttl_in_seconds  = 300
+  authorizer_result_ttl_in_seconds  = 0
 }
 
 resource "aws_apigatewayv2_integration" "auth_sign" {
@@ -48,8 +48,9 @@ resource "aws_apigatewayv2_integration" "eks_proxy" {
   connection_type    = "INTERNET"
 
   request_parameters = {
-    "overwrite:header.X-User-Id"    = "$context.authorizer.userId"
-    "overwrite:header.X-User-Email" = "$context.authorizer.email"
+    "overwrite:header.X-Gateway-Trust" = var.gateway_trust_secret
+    "overwrite:header.X-User-Id"       = "$context.authorizer.userId"
+    "overwrite:header.X-User-Email"    = "$context.authorizer.email"
   }
 }
 

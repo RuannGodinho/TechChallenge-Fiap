@@ -50,6 +50,7 @@ flowchart LR
 | `JWT_SECRET` | Segredo HS256 compartilhado pelos Lambdas auth-sign e auth-authorizer |
 | `AUTH_EMAIL` | Credencial de login validada pelo Lambda auth-sign |
 | `AUTH_PASSWORD` | Senha de login validada pelo Lambda auth-sign |
+| `GATEWAY_TRUST_SECRET` | Segredo compartilhado API Gateway → Express (`X-Gateway-Trust`); deve ser o mesmo valor no Terraform e no pod K8s |
 
 ### Variables para auth gateway (criar em **Variables**, não Secrets)
 

@@ -8,6 +8,7 @@ describe('auth lambda jwt helpers', () => {
     process.env.JWT_EXPIRES_IN = '1h';
     process.env.AUTH_EMAIL = 'admin@example.com';
     process.env.AUTH_PASSWORD = 'admin123';
+    delete process.env.ALLOW_DEV_AUTH_DEFAULTS;
   });
 
   test('sign and verify round-trip', () => {
@@ -17,6 +18,14 @@ describe('auth lambda jwt helpers', () => {
     expect(payload.userId).toBe('mock-user');
     expect(payload.email).toBe('admin@example.com');
   });
+
+  test('rejects missing JWT_SECRET when dev defaults are disabled', () => {
+    delete process.env.JWT_SECRET;
+
+    expect(() => sign({ userId: 'mock-user', email: 'admin@example.com' })).toThrow(
+      'Missing required environment variable: JWT_SECRET',
+    );
+  });
 });
 
 describe('auth sign handler', () => {
@@ -25,6 +34,7 @@ describe('auth sign handler', () => {
     process.env.JWT_EXPIRES_IN = '1h';
     process.env.AUTH_EMAIL = 'admin@example.com';
     process.env.AUTH_PASSWORD = 'admin123';
+    delete process.env.ALLOW_DEV_AUTH_DEFAULTS;
   });
 
   test('returns token for valid credentials', async () => {
@@ -64,6 +74,7 @@ describe('auth authorizer handler', () => {
   beforeEach(() => {
     process.env.JWT_SECRET = 'test-secret';
     process.env.JWT_EXPIRES_IN = '1h';
+    delete process.env.ALLOW_DEV_AUTH_DEFAULTS;
   });
 
   test('authorizes valid bearer token', async () => {

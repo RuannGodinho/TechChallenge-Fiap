@@ -27,12 +27,19 @@ variable "auth_email" {
   description = "Login email validated by the sign Lambda"
   type        = string
   sensitive   = true
-  default     = "admin@example.com"
+  default     = ""
 }
 
 variable "auth_password" {
   description = "Login password validated by the sign Lambda"
   type        = string
   sensitive   = true
-  default     = "admin123"
+  default     = ""
+}
+
+variable "gateway_trust_secret" {
+  description = "Shared secret injected by API Gateway as X-Gateway-Trust; Express rejects gateway identity headers without it"
+  type        = string
+  sensitive   = true
+  default     = ""
 }
