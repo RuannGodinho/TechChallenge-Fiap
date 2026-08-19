@@ -9,7 +9,7 @@ parallel = true
 
 [default.local_start_api.parameters]
 port = 3001
-warm_containers = "EAGER"
+warm_containers = "LAZY"
 env_vars = "env.local.json"
 template = "template.yaml"
 

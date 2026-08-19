@@ -7,7 +7,7 @@
     "invoke:sign": "node local/invoke-sign.js",
     "invoke:authorizer": "node local/invoke-authorizer.js",
     "sam:build": "sam build",
-    "sam:start": "sam local start-api --port 3001 --env-vars env.local.json --warm-containers EAGER",
+    "sam:start": "sam local start-api --port 3001 --env-vars env.local.json --warm-containers LAZY",
     "sam:invoke:login": "sam local invoke AuthSignFunction --event events/login-event.json --env-vars env.local.json",
     "sam:invoke:authorizer": "sam local invoke AuthAuthorizerFunction --event events/authorizer-event.json --env-vars env.local.json",
     "sam:invoke:proxy": "sam local invoke BackendProxyFunction --event events/backend-proxy-event.json --env-vars env.local.json",

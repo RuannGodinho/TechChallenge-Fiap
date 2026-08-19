@@ -1,15 +1,12 @@
 # Override for SAM local simulation.
-# Usage: docker compose -f docker-compose.yml -f docker-compose.sam.yml up -d
+# Usage: docker compose -f docker-compose.yml -f docker-compose.sam.yml up -d --build
+#
+# Uses .env.sam so credentials match lambda/auth/env.local.json and template.yaml.
 
 services:
   api:
-    environment:
-      AUTH_MODE: gateway
-      GATEWAY_TRUST_SECRET: local-dev-trust-secret
-      JWT_SECRET: local-dev-secret
-      JWT_EXPIRES_IN: 1h
-      AUTH_EMAIL: admin@example.com
-      AUTH_PASSWORD: admin123
+    env_file:
+      - .env.sam
     healthcheck:
       test:
         [

@@ -11,6 +11,12 @@ Globals:
     MemorySize: 128
     Architectures:
       - x86_64
+    Environment:
+      Variables:
+        JWT_SECRET: local-dev-secret
+        JWT_EXPIRES_IN: 1h
+        AUTH_EMAIL: admin@example.com
+        AUTH_PASSWORD: admin123
 
 Resources:
   AuthHttpApi:
@@ -66,6 +72,10 @@ Resources:
       CodeUri: .
       Handler: backend-proxy/handler.handler
       Description: Proxies requests to local Express (simulates EKS HTTP_PROXY integration)
+      Environment:
+        Variables:
+          GATEWAY_TRUST_SECRET: local-dev-trust-secret
+          BACKEND_URL: http://host.docker.internal:3000
       Events:
         PublicOrdemDetalhes:
           Type: HttpApi
