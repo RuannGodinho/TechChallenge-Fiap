@@ -1,9 +1,9 @@
 locals {
   auth_lambda_env = {
-    JWT_SECRET      = var.jwt_secret
-    JWT_EXPIRES_IN  = var.jwt_expires_in
-    AUTH_EMAIL      = var.auth_email
-    AUTH_PASSWORD   = var.auth_password
+    JWT_SECRET     = var.jwt_secret
+    JWT_EXPIRES_IN = var.jwt_expires_in
+    AUTH_EMAIL     = var.auth_email
+    AUTH_PASSWORD  = var.auth_password
   }
 
   auth_lambda_source_files = [
