@@ -26,8 +26,8 @@ Node.js • TypeScript • Express • MongoDB • Docker • JWT • Jest • S
 - `docker-compose.yml` - compose para MongoDB + API
 - `Dockerfile` - imagem Node.js para a API
 - `mongo-init/` - scripts de inicialização do MongoDB
-- `k8s/` - manifests Kubernetes
-- `infra/terraform/` - infraestrutura AWS (EKS)
+- `k8s/` - manifests Kubernetes da API e do Mongo in-cluster
+- Infra EKS, Lambda e banco gerenciado: ver [docs/REPOS.md](docs/REPOS.md)
 
 ## Variáveis de ambiente
 
@@ -191,8 +191,9 @@ O modelo de documentos do MongoDB lida nativamente com essa variabilidade, armaz
 | Documento | Conteúdo |
 |---|---|
 | [Arquitetura](docs/ARQUITETURA.md) | Visão da solução, diagrama de deploy, componentes e fluxo ponta a ponta |
+| [Quatro repositórios](docs/REPOS.md) | Split Lambda / EKS / DB / app (esta branch) |
 | [Kubernetes](docs/KUBERNETES.md) | Workloads no EKS, manifests, deploy manual e acesso |
-| [Terraform](docs/TERRAFORM.md) | Provisionamento da infraestrutura AWS |
-| [GitHub Actions](docs/GITHUB-ACTIONS.md) | Passo a passo completo pelos pipelines |
+| [Terraform](docs/TERRAFORM.md) | Ponte para os repos de infraestrutura |
+| [GitHub Actions](docs/GITHUB-ACTIONS.md) | CI/CD da API neste repositório |
 
 

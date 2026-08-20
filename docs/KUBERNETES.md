@@ -4,7 +4,7 @@ Como a aplicação roda **dentro do EKS**: manifests, ordem de deploy, acesso e 
 
 ## Pré-requisitos
 
-- Cluster **EKS** ativo (`techchallenge-eks`) — ver [TERRAFORM.md](TERRAFORM.md)
+- Cluster **EKS** ativo (`techchallenge-eks`) — ver [REPOS.md](REPOS.md) / [TechChallenge-infra-eks](https://github.com/RuannGodinho/TechChallenge-infra-eks)
 - `kubectl` e `aws` CLI instalados
 - Credenciais AWS com acesso ao cluster
 

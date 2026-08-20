@@ -1,7 +1,7 @@
 # Override for SAM local simulation.
 # Usage: docker compose -f docker-compose.yml -f docker-compose.sam.yml up -d --build
 #
-# Uses .env.sam so credentials match lambda/auth/env.local.json and template.yaml.
+# Uses .env.sam so credentials match TechChallenge-lambda-auth/auth/env.local.json.
 
 services:
   api:

@@ -169,7 +169,7 @@ const config: Config = {
   // ],
 
   // Lambda package has its own Jest job in CI (auth-lambda-test).
-  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/lambda/'],
+  testPathIgnorePatterns: ['/node_modules/'],
 
   // The regexp pattern or array of patterns that Jest uses to detect test files
   // testRegex: [],
