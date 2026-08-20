@@ -41,12 +41,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          CONCLUSION=$(gh run list --workflow=ci.yml --branch=main --limit=1 --json conclusion --jq '.[0].conclusion')
+          BRANCH="${{ github.ref_name }}"
+          CONCLUSION=$(gh run list \
+            --repo "${{ github.repository }}" \
+            --workflow=ci.yml \
+            --branch="$BRANCH" \
+            --limit=1 \
+            --json conclusion \
+            --jq '.[0].conclusion')
           if [ "$CONCLUSION" != "success" ]; then
-            echo "::error::Latest CI run on main did not succeed (conclusion: ${CONCLUSION:-none}). Run CI first."
+            echo "::error::Latest CI run on ${BRANCH} did not succeed (conclusion: ${CONCLUSION:-none}). Run CI first."
             exit 1
           fi
-          echo "Latest CI on main: success"
+          echo "Latest CI on ${BRANCH}: success"
 
       - uses: actions/checkout@v4
         with:
