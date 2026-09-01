@@ -51,3 +51,8 @@ export async function closeDatabase(): Promise<void> {
         db = null;
     }
 }
+
+export async function pingDatabase(): Promise<void> {
+    const database = await connectDatabase();
+    await database.command({ ping: 1 });
+}
