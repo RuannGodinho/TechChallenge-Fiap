@@ -1,0 +1,123 @@
+# Fluent Bit mínimo: só stdout da API (default), 1 pod por node.
+# Reusa SA, ConfigMaps e Secret já criados pelo nri-bundle.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nri-bundle-newrelic-logging
+  namespace: newrelic
+  labels:
+    app: newrelic-logging
+    app.kubernetes.io/name: newrelic-logging
+    release: nri-bundle
+spec:
+  selector:
+    matchLabels:
+      app: newrelic-logging
+      release: nri-bundle
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: newrelic-logging
+        release: nri-bundle
+        kubernetes.io/os: linux
+        app.kubernetes.io/name: newrelic-logging
+    spec:
+      serviceAccountName: nri-bundle-newrelic-logging
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: newrelic-logging
+          image: docker.io/newrelic/newrelic-fluentbit-output:3.8.0
+          imagePullPolicy: IfNotPresent
+          command:
+            - /fluent-bit/bin/fluent-bit
+            - -c
+            - /fluent-bit/etc/fluent-bit.conf
+            - -e
+            - /fluent-bit/bin/out_newrelic.so
+          env:
+            - name: ENDPOINT
+              value: https://log-api.newrelic.com/log/v1
+            - name: SOURCE
+              value: k8s
+            - name: LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nri-bundle-newrelic-logging-config
+                  key: license
+            - name: CLUSTER_NAME
+              value: newrelic Cluster
+            - name: LOG_LEVEL
+              value: error
+            - name: LOG_PARSER
+              value: cri,docker
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: FB_DB
+              value: /var/log/flb_kube.db
+            # Só pods da API no namespace default — não lê Mongo nem newrelic.
+            - name: PATH
+              value: /var/log/containers/api-deployment*_default_*.log
+            - name: K8S_BUFFER_SIZE
+              value: 16k
+            - name: K8S_LOGGING_EXCLUDE
+              value: "false"
+            - name: LOW_DATA_MODE
+              value: "true"
+            - name: RETRY_LIMIT
+              value: "3"
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: SEND_OUTPUT_PLUGIN_METRICS
+              value: "false"
+            - name: METRICS_HOST
+              value: metric-api.newrelic.com
+            - name: FLUENTBIT_METRICS_TIER
+              value: basic
+            - name: DAEMONSET_NAME
+              value: nri-bundle-newrelic-logging
+            - name: NAMESPACE
+              value: newrelic
+          resources:
+            requests:
+              cpu: 15m
+              memory: 24Mi
+            limits:
+              cpu: 80m
+              memory: 48Mi
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 2020
+            initialDelaySeconds: 15
+            periodSeconds: 60
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: fluent-bit-config
+              mountPath: /fluent-bit/etc
+            - name: logs
+              mountPath: /var
+            - name: lua-scripts
+              mountPath: /fluent-bit/scripts
+              readOnly: true
+      volumes:
+        - name: lua-scripts
+          configMap:
+            name: nri-bundle-newrelic-logging-lua
+        - name: fluent-bit-config
+          configMap:
+            name: nri-bundle-newrelic-logging-fluent-bit-config
+        - name: logs
+          hostPath:
+            path: /var
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+        - effect: NoExecute
+          operator: Exists

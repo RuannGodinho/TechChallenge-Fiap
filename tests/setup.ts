@@ -10,3 +10,4 @@ process.env.MONGODB_URI = 'mongodb://localhost:27017/Node-Fiap-Test';
 
 // Set NODE_ENV to test
 process.env.NODE_ENV = 'test';
+process.env.LOG_LEVEL = 'silent';

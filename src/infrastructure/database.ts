@@ -1,5 +1,6 @@
 import { existsSync } from 'fs';
 import { MongoClient, Db } from 'mongodb';
+import { logger } from './logging/logger';
 
 function isRunningInDocker(): boolean {
     return existsSync('/.dockerenv');
@@ -37,8 +38,14 @@ export const client = {
 
 export async function connectDatabase(): Promise<Db> {
     if (!db) {
-        await getClient().connect();
-        db = getClient().db();
+        try {
+            await getClient().connect();
+            db = getClient().db();
+            logger.info({ msg: 'mongodb_connected', integration: 'mongodb' });
+        } catch (error) {
+            logger.error({ err: error, msg: 'mongodb_connect_failed', integration: 'mongodb' });
+            throw error;
+        }
     }
 
     return db;
