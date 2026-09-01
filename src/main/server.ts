@@ -2,6 +2,7 @@ import app from '../../app';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from '../config/swagger';
 import { DIContainer } from '../infrastructure/composition-root/di-container';
+import { logger } from '../infrastructure/logging/logger';
 
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -15,12 +16,11 @@ async function bootstrap() {
     await DIContainer.getInstance().initialize();
 
     app.listen(PORT, '0.0.0.0', () => {
-        console.log(`Server rodando na porta ${PORT}`);
-        console.log(`Swagger em http://localhost:${PORT}/docs`);
+        logger.info({ msg: 'server_started', port: PORT });
     });
 }
 
 bootstrap().catch((error) => {
-    console.error('Failed to start server:', error);
+    logger.fatal({ err: error, msg: 'server_start_failed' });
     process.exit(1);
 });
