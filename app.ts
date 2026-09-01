@@ -8,11 +8,13 @@ import authRoutes from './src/infrastructure/http/auth-routes';
 import ordemServicoRoutes from './src/infrastructure/http/ordem-servico-routes';
 import orcamentoRoutes from './src/infrastructure/http/orcamento-routes';
 import execucaoServicoRoutes from './src/infrastructure/http/execucao-servico-routes';
+import healthRoutes from './src/infrastructure/http/health-routes';
 import { normalizeBodyCase } from './src/infrastructure/http/middlewares/normalize-body-case';
 
 const app = express();
 
 app.use(express.json());
+app.use(healthRoutes);
 app.use(normalizeBodyCase);
 
 app.use('/api', clienteRoutes);
