@@ -88,6 +88,13 @@ jobs:
           kubectl apply -f k8s/metrics-server.yml
           kubectl rollout status deployment/metrics-server -n kube-system --timeout=180s
 
+      - name: Deploy New Relic
+        run: |
+          kubectl apply -f newrelic.yaml
+          kubectl wait --for=condition=established crd/instrumentations.newrelic.com --timeout=60s
+          kubectl rollout status deployment/nri-bundle-k8s-agents-operator -n newrelic --timeout=180s
+          kubectl apply -f k8s/instrumentation.yaml
+
       - name: Deploy secrets and config
         env:
           GATEWAY_TRUST_SECRET: ${{ secrets.GATEWAY_TRUST_SECRET }}
