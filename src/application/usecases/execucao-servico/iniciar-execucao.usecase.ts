@@ -2,11 +2,14 @@ import { ExecucaoServico } from '../../../enterprise/entities/execucao-servico.e
 import { StatusOSValues } from '../../../enterprise/value-objects/status-os.vo';
 import { IExecucaoServicoGateway } from '../../ports/execucao-servico.gateway.port';
 import { IOrdemServicoGateway } from '../../ports/ordem-servico.gateway.port';
+import { IObservabilityPort } from '../../ports/observability.port';
+import { BusinessEvent, BusinessReason } from '../../observability/business-events';
 
 export class IniciarExecucaoUseCase {
     constructor(
         private readonly execucaoServicoGateway: IExecucaoServicoGateway,
-        private readonly ordemServicoGateway: IOrdemServicoGateway
+        private readonly ordemServicoGateway: IOrdemServicoGateway,
+        private readonly observability: IObservabilityPort
     ) {}
 
     async execute(id: string): Promise<ExecucaoServico> {
@@ -27,6 +30,13 @@ export class IniciarExecucaoUseCase {
         }
 
         if (ordem.status.value !== StatusOSValues.EM_EXECUCAO) {
+            this.observability.emit({
+                msg: BusinessEvent.osProcessingFailed,
+                alert: true,
+                reason: BusinessReason.execucaoOsNotInExecution,
+                ordemServicoId: execucao.ordemServicoId,
+                execucaoId: id,
+            });
             throw new Error(
                 'Não é possível iniciar a execução de um serviço se a Ordem de Serviço não estiver em execução.'
             );
@@ -40,6 +50,12 @@ export class IniciarExecucaoUseCase {
         if (!atualizado) {
             throw new Error('Falha ao iniciar a execução.');
         }
+
+        this.observability.emit({
+            msg: BusinessEvent.execucaoStarted,
+            execucaoId: atualizado.id ?? id,
+            ordemServicoId: atualizado.ordemServicoId,
+        });
 
         return atualizado;
     }

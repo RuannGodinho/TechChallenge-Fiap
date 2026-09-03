@@ -1,4 +1,6 @@
 export interface OrcamentoEmailPayload {
+    ordemServicoId: string;
+    orcamentoId?: string;
     versao: number;
     valorTotal: number;
     validadeEm: Date;

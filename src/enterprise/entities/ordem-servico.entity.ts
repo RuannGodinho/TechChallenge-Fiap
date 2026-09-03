@@ -6,6 +6,12 @@ import { StatusOS } from "../value-objects/status-os.vo";
 
 import { OrdemPecaItem } from "../value-objects/ordem-peca-item.vo";
 
+export interface StatusTransitionResult {
+    from: string;
+    to: string;
+    durationMs: number;
+}
+
 export interface CriarOrdemServicoInput {
     cpfCnpj: string;
 
@@ -26,6 +32,8 @@ export class OrdemServico {
     status: StatusOS;
 
     dataAbertura: Date;
+
+    statusEnteredAt: Date;
 
     pecas: OrdemPecaItem[];
 
@@ -49,6 +57,8 @@ export class OrdemServico {
         id?: string,
 
         valorTotal?: number,
+
+        statusEnteredAt?: Date,
     ) {
         this.cpfCnpj = cpfCnpj;
 
@@ -65,6 +75,8 @@ export class OrdemServico {
         this.id = id;
 
         this.valorTotal = valorTotal;
+
+        this.statusEnteredAt = statusEnteredAt ?? dataAbertura;
     }
 
     static dedupeServicos(servicos: string[]): string[] {
@@ -117,6 +129,8 @@ export class OrdemServico {
         servicos: string[];
 
         valorTotal?: number;
+
+        statusEnteredAt?: Date;
     }): OrdemServico {
         return new OrdemServico(
             Documento.from(props.cpfCnpj),
@@ -136,17 +150,25 @@ export class OrdemServico {
             props.id,
 
             props.valorTotal,
+
+            props.statusEnteredAt ?? props.dataAbertura,
         );
     }
 
-    transicionarStatus(novoStatus: StatusOS): void {
+    transicionarStatus(novoStatus: StatusOS): StatusTransitionResult {
         StatusOS.validateTransition(this.status, novoStatus);
 
+        const from = this.status.value;
+        const durationMs = Math.max(0, Date.now() - this.statusEnteredAt.getTime());
+
         this.status = novoStatus;
+        this.statusEnteredAt = new Date();
+
+        return { from, to: novoStatus.value, durationMs };
     }
 
-    promoverParaAguardandoAprovacao(): void {
-        this.transicionarStatus(StatusOS.from("AGUARDANDO APROVACAO"));
+    promoverParaAguardandoAprovacao(): StatusTransitionResult {
+        return this.transicionarStatus(StatusOS.from("AGUARDANDO APROVACAO"));
     }
 
     static temItensParaAtualizar(
