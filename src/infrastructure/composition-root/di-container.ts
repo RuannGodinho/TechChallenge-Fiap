@@ -1233,6 +1233,9 @@ export class DIContainer {
         if (!this.orcamentoPortInjected) {
             this.orcamentoPort = null;
         }
+        if (!this.ordemServicoGatewayInjected) {
+            this.ordemServicoGateway = null;
+        }
         this.ordemServicoPresenter = null;
         this.ordemServicoController = null;
     }

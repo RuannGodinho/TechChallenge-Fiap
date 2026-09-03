@@ -17,10 +17,11 @@ export class AtualizarOrcamentoUseCase {
             return null;
         }
 
+        const previousStatus = existing.status.value;
         existing.aplicarAtualizacao(input);
         const updated = await this.orcamentoGateway.update(id, existing);
 
-        if (updated && input.status) {
+        if (updated && input.status && updated.status.value !== previousStatus) {
             this.observability.emit({
                 msg: BusinessEvent.orcamentoStatusChanged,
                 orcamentoId: updated.id ?? id,

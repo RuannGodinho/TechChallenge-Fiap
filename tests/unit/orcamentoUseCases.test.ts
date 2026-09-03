@@ -88,6 +88,35 @@ describe('Orcamento use cases', () => {
         expect(result).toBeNull();
     });
 
+    test('atualizar orcamento emite evento só quando o status muda', async () => {
+        const orcamento = Orcamento.createPendente({
+            ordemServicoId: new ObjectId().toString(),
+            pecas: [],
+            servicos: [],
+            valorTotal: 0,
+        });
+        orcamento.id = new ObjectId().toString();
+
+        gateway.findById.mockResolvedValue(orcamento);
+        gateway.update.mockImplementation(async (_id, current) => current);
+
+        const observability = createObservabilityMock();
+        const useCase = new AtualizarOrcamentoUseCase(gateway, observability);
+
+        await useCase.execute(orcamento.id, { status: 'PENDENTE' });
+        expect(observability.emit).not.toHaveBeenCalled();
+
+        await useCase.execute(orcamento.id, { status: 'APROVADO' });
+        expect(observability.emit).toHaveBeenCalledTimes(1);
+        expect(observability.emit).toHaveBeenCalledWith(
+            expect.objectContaining({
+                msg: 'orcamento_status_changed',
+                status: 'APROVADO',
+                orcamentoId: orcamento.id,
+            })
+        );
+    });
+
     test('atualizar orcamento valida status invalido', async () => {
         const orcamento = Orcamento.createPendente({
             ordemServicoId: new ObjectId().toString(),

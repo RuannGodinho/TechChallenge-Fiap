@@ -105,6 +105,7 @@ describe('OrdemServico extended use cases', () => {
             await expect(useCase.execute(ordem, 'EM EXECUCAO')).rejects.toThrow(
                 'Não é possível iniciar a execução da Ordem de Serviço se o orcamento não estiver aprovado.'
             );
+            expect(estoquePort.registrarSaidaOS).not.toHaveBeenCalled();
             expect(observability.emit).toHaveBeenCalledWith(
                 expect.objectContaining({
                     msg: BusinessEvent.osProcessingFailed,
@@ -121,6 +122,8 @@ describe('OrdemServico extended use cases', () => {
             await expect(useCase.execute(ordem, 'EM EXECUCAO')).rejects.toThrow(
                 'Não é permitido alterar status de RECEBIDA para EM EXECUCAO'
             );
+            expect(estoquePort.registrarSaidaOS).not.toHaveBeenCalled();
+            expect(orcamentoPort.isLatestOrcamentoApproved).not.toHaveBeenCalled();
             expect(observability.emit).toHaveBeenCalledWith(
                 expect.objectContaining({
                     msg: BusinessEvent.osProcessingFailed,

@@ -19,18 +19,32 @@ export class AlterarStatusOrdemServicoUseCase {
         try {
             status = StatusOS.from(novoStatus);
         } catch (error) {
-            this.observability.emit({
-                msg: BusinessEvent.osProcessingFailed,
-                alert: true,
-                reason: BusinessReason.illegalTransition,
-                ordemServicoId: ordem.id,
-                from: ordem.status.value,
-                to: novoStatus,
-            });
+            this.emitIllegalTransition(ordem, novoStatus);
+            throw error;
+        }
+
+        try {
+            StatusOS.validateTransition(ordem.status, status);
+        } catch (error) {
+            this.emitIllegalTransition(ordem, status.value);
             throw error;
         }
 
         if (status.value === StatusOSValues.EM_EXECUCAO) {
+            const aprovado = await this.orcamentoPort.isLatestOrcamentoApproved(ordem.id!);
+
+            if (!aprovado) {
+                this.observability.emit({
+                    msg: BusinessEvent.osProcessingFailed,
+                    alert: true,
+                    reason: BusinessReason.orcamentoNaoAprovado,
+                    ordemServicoId: ordem.id,
+                });
+                throw new Error(
+                    'Não é possível iniciar a execução da Ordem de Serviço se o orcamento não estiver aprovado.'
+                );
+            }
+
             for (const item of ordem.pecas) {
                 try {
                     await this.estoqueMovimentacaoPort.assertQuantidadeDisponivel(
@@ -62,41 +76,26 @@ export class AlterarStatusOrdemServicoUseCase {
                     origem: 'OS',
                 });
             }
-
-            const aprovado = await this.orcamentoPort.isLatestOrcamentoApproved(ordem.id!);
-
-            if (!aprovado) {
-                this.observability.emit({
-                    msg: BusinessEvent.osProcessingFailed,
-                    alert: true,
-                    reason: BusinessReason.orcamentoNaoAprovado,
-                    ordemServicoId: ordem.id,
-                });
-                throw new Error(
-                    'Não é possível iniciar a execução da Ordem de Serviço se o orcamento não estiver aprovado.'
-                );
-            }
         }
 
-        try {
-            const transition = ordem.transicionarStatus(status);
-            this.observability.emit({
-                msg: BusinessEvent.osStatusChanged,
-                ordemServicoId: ordem.id,
-                from: transition.from,
-                to: transition.to,
-                durationMs: transition.durationMs,
-            });
-        } catch (error) {
-            this.observability.emit({
-                msg: BusinessEvent.osProcessingFailed,
-                alert: true,
-                reason: BusinessReason.illegalTransition,
-                ordemServicoId: ordem.id,
-                from: ordem.status.value,
-                to: status.value,
-            });
-            throw error;
-        }
+        const transition = ordem.transicionarStatus(status);
+        this.observability.emit({
+            msg: BusinessEvent.osStatusChanged,
+            ordemServicoId: ordem.id,
+            from: transition.from,
+            to: transition.to,
+            durationMs: transition.durationMs,
+        });
+    }
+
+    private emitIllegalTransition(ordem: OrdemServico, to: string): void {
+        this.observability.emit({
+            msg: BusinessEvent.osProcessingFailed,
+            alert: true,
+            reason: BusinessReason.illegalTransition,
+            ordemServicoId: ordem.id,
+            from: ordem.status.value,
+            to,
+        });
     }
 }
