@@ -17,6 +17,8 @@ describe('NodemailerEmailAdapter', () => {
     };
 
     const payload = {
+        ordemServicoId: 'ordem-1',
+        orcamentoId: 'orcamento-1',
         versao: 1,
         valorTotal: 190,
         validadeEm: new Date('2026-01-20T00:00:00Z'),

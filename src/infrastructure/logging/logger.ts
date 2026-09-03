@@ -1,4 +1,5 @@
 import pino from 'pino';
+import { getRequestContext } from './request-context';
 
 function newRelicLinking(): Record<string, unknown> {
     try {
@@ -12,6 +13,11 @@ function newRelicLinking(): Record<string, unknown> {
     }
 }
 
+function requestContextFields(): Record<string, unknown> {
+    const { requestId } = getRequestContext();
+    return requestId ? { requestId } : {};
+}
+
 const level =
     process.env.NODE_ENV === 'test'
         ? 'silent'
@@ -21,7 +27,10 @@ export const logger = pino({
     level,
     base: { service: 'api' },
     timestamp: pino.stdTimeFunctions.isoTime,
-    mixin: newRelicLinking,
+    mixin: () => ({
+        ...newRelicLinking(),
+        ...requestContextFields(),
+    }),
     redact: {
         paths: [
             'req.headers.authorization',

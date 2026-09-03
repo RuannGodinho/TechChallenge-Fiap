@@ -6,13 +6,16 @@ import { IPecaLookupPort, PecaLookupData } from '../../ports/peca-lookup.port';
 import { IServicoLookupPort, ServicoLookupData } from '../../ports/servico-lookup.port';
 import { IEstoqueMovimentacaoPort } from '../../ports/estoque-movimentacao.port';
 import { IOrcamentoPort } from '../../ports/orcamento.port';
+import { IObservabilityPort } from '../../ports/observability.port';
+import { BusinessEvent, BusinessReason } from '../../observability/business-events';
 
 export class AtualizarItensOrdemServicoUseCase {
     constructor(
         private readonly pecaLookupPort: IPecaLookupPort,
         private readonly servicoLookupPort: IServicoLookupPort,
         private readonly estoqueMovimentacaoPort: IEstoqueMovimentacaoPort,
-        private readonly orcamentoPort: IOrcamentoPort
+        private readonly orcamentoPort: IOrcamentoPort,
+        private readonly observability: IObservabilityPort
     ) {}
 
     async execute(ordem: OrdemServico, input: AtualizarOrdemServicoInputDto): Promise<void> {
@@ -33,7 +36,18 @@ export class AtualizarItensOrdemServicoUseCase {
 
             const quantidade = item.quantidade;
 
-            await this.estoqueMovimentacaoPort.assertQuantidadeDisponivel(item.pecaId, quantidade);
+            try {
+                await this.estoqueMovimentacaoPort.assertQuantidadeDisponivel(item.pecaId, quantidade);
+            } catch (error) {
+                this.observability.emit({
+                    msg: BusinessEvent.osProcessingFailed,
+                    alert: true,
+                    reason: BusinessReason.estoqueInsuficiente,
+                    ordemServicoId: ordem.id,
+                    pecaId: item.pecaId,
+                });
+                throw error;
+            }
 
             const valorUnitario = peca.preco;
             valorTotal += quantidade * valorUnitario;
@@ -67,7 +81,14 @@ export class AtualizarItensOrdemServicoUseCase {
                 servicos: servicosOrcamento,
             });
 
-            ordem.promoverParaAguardandoAprovacao();
+            const transition = ordem.promoverParaAguardandoAprovacao();
+            this.observability.emit({
+                msg: BusinessEvent.osStatusChanged,
+                ordemServicoId: ordem.id,
+                from: transition.from,
+                to: transition.to,
+                durationMs: transition.durationMs,
+            });
         }
     }
 }

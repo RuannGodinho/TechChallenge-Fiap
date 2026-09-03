@@ -8,6 +8,7 @@ import { IEmailPort } from '../../src/application/ports/email.port';
 import { CriarOrcamentoPendenteUseCase } from '../../src/application/usecases/orcamento/criar-orcamento-pendente.usecase';
 import { AtualizarOrcamentoUseCase } from '../../src/application/usecases/orcamento/atualizar-orcamento.usecase';
 import { VerificarUltimoOrcamentoAprovadoUseCase } from '../../src/application/usecases/orcamento/verificar-ultimo-orcamento-aprovado.usecase';
+import { createObservabilityMock } from '../Helper/observability';
 
 describe('Orcamento use cases', () => {
     let gateway: jest.Mocked<IOrcamentoGateway>;
@@ -31,7 +32,11 @@ describe('Orcamento use cases', () => {
             Orcamento.restore({ ...serializeOrcamento(orcamento), id: new ObjectId().toString() })
         );
 
-        const useCase = new CriarOrcamentoPendenteUseCase(gateway, emailPort);
+        const useCase = new CriarOrcamentoPendenteUseCase(
+            gateway,
+            emailPort,
+            createObservabilityMock()
+        );
         const ordemServicoId = new ObjectId().toString();
 
         await useCase.execute({
@@ -67,6 +72,7 @@ describe('Orcamento use cases', () => {
         );
         expect(emailPort.sendOrcamentoPendente).toHaveBeenCalledWith(
             expect.objectContaining({
+                ordemServicoId,
                 versao: 1,
                 valorTotal: 195,
             })
@@ -76,7 +82,7 @@ describe('Orcamento use cases', () => {
     test('atualizar orcamento retorna null quando nao existe', async () => {
         gateway.findById.mockResolvedValue(null);
 
-        const useCase = new AtualizarOrcamentoUseCase(gateway);
+        const useCase = new AtualizarOrcamentoUseCase(gateway, createObservabilityMock());
         const result = await useCase.execute(new ObjectId().toString(), { status: 'APROVADO' });
 
         expect(result).toBeNull();
@@ -92,7 +98,7 @@ describe('Orcamento use cases', () => {
 
         gateway.findById.mockResolvedValue(orcamento);
 
-        const useCase = new AtualizarOrcamentoUseCase(gateway);
+        const useCase = new AtualizarOrcamentoUseCase(gateway, createObservabilityMock());
 
         await expect(useCase.execute(new ObjectId().toString(), { status: 'INVALIDO' })).rejects.toThrow(
             'Status inválido'

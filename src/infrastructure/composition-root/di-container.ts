@@ -100,6 +100,8 @@ import { IOrcamentoPort } from '../../application/ports/orcamento.port';
 import { IEmailPort } from '../../application/ports/email.port';
 import { NodemailerEmailAdapter } from '../../Adapters/adapters/nodemailer-email.adapter';
 import { loadSmtpConfig } from '../../config/smtp';
+import { IObservabilityPort } from '../../application/ports/observability.port';
+import { PinoObservabilityAdapter } from '../logging/pino-observability.adapter';
 
 export class DIContainer {
     private static instance: DIContainer;
@@ -119,6 +121,8 @@ export class DIContainer {
     private tokenPort: ITokenPort | null = null;
     private credentialsPort: ICredentialsPort | null = null;
     private emailPort: IEmailPort | null = null;
+    private observabilityPort: IObservabilityPort | null = null;
+    private observabilityPortInjected = false;
     private clienteGatewayInjected = false;
     private veiculoGatewayInjected = false;
     private pecaGatewayInjected = false;
@@ -316,7 +320,10 @@ export class DIContainer {
             if (this.ordemServicoGatewayInjected) {
                 throw new Error('Ordem de serviço gateway not injected.');
             }
-            this.ordemServicoGateway = new OrdemServicoMongoGateway(this.getDb());
+            this.ordemServicoGateway = new OrdemServicoMongoGateway(
+                this.getDb(),
+                this.getObservabilityPort()
+            );
         }
         return this.ordemServicoGateway;
     }
@@ -349,6 +356,16 @@ export class DIContainer {
             this.tokenPort = new JwtTokenAdapter();
         }
         return this.tokenPort;
+    }
+
+    getObservabilityPort(): IObservabilityPort {
+        if (!this.observabilityPort) {
+            if (this.observabilityPortInjected) {
+                throw new Error('Observability port not injected.');
+            }
+            this.observabilityPort = new PinoObservabilityAdapter();
+        }
+        return this.observabilityPort;
     }
 
     getEmailPort(): IEmailPort {
@@ -619,7 +636,8 @@ export class DIContainer {
         if (!this.iniciarExecucaoUseCase) {
             this.iniciarExecucaoUseCase = new IniciarExecucaoUseCase(
                 this.getExecucaoServicoGateway(),
-                this.getOrdemServicoGateway()
+                this.getOrdemServicoGateway(),
+                this.getObservabilityPort()
             );
         }
         return this.iniciarExecucaoUseCase;
@@ -629,7 +647,8 @@ export class DIContainer {
         if (!this.finalizarExecucaoUseCase) {
             this.finalizarExecucaoUseCase = new FinalizarExecucaoUseCase(
                 this.getExecucaoServicoGateway(),
-                this.getOrdemServicoGateway()
+                this.getOrdemServicoGateway(),
+                this.getObservabilityPort()
             );
         }
         return this.finalizarExecucaoUseCase;
@@ -694,7 +713,8 @@ export class DIContainer {
         if (!this.criarOrcamentoPendenteUseCase) {
             this.criarOrcamentoPendenteUseCase = new CriarOrcamentoPendenteUseCase(
                 this.getOrcamentoGateway(),
-                this.getEmailPort()
+                this.getEmailPort(),
+                this.getObservabilityPort()
             );
         }
         return this.criarOrcamentoPendenteUseCase;
@@ -703,7 +723,8 @@ export class DIContainer {
     getAtualizarOrcamentoUseCase(): AtualizarOrcamentoUseCase {
         if (!this.atualizarOrcamentoUseCase) {
             this.atualizarOrcamentoUseCase = new AtualizarOrcamentoUseCase(
-                this.getOrcamentoGateway()
+                this.getOrcamentoGateway(),
+                this.getObservabilityPort()
             );
         }
         return this.atualizarOrcamentoUseCase;
@@ -731,7 +752,8 @@ export class DIContainer {
         if (!this.alterarStatusOrdemServicoUseCase) {
             this.alterarStatusOrdemServicoUseCase = new AlterarStatusOrdemServicoUseCase(
                 this.getOrcamentoPort(),
-                this.getEstoqueMovimentacaoPort()
+                this.getEstoqueMovimentacaoPort(),
+                this.getObservabilityPort()
             );
         }
         return this.alterarStatusOrdemServicoUseCase;
@@ -743,7 +765,8 @@ export class DIContainer {
                 this.getPecaLookupPort(),
                 this.getServicoLookupPort(),
                 this.getEstoqueMovimentacaoPort(),
-                this.getOrcamentoPort()
+                this.getOrcamentoPort(),
+                this.getObservabilityPort()
             );
         }
         return this.atualizarItensOrdemServicoUseCase;
@@ -790,7 +813,8 @@ export class DIContainer {
                 this.getOrdemServicoGateway(),
                 this.getClienteLookupPort(),
                 this.getVeiculoLookupPort(),
-                this.getExecucaoServicoPort()
+                this.getExecucaoServicoPort(),
+                this.getObservabilityPort()
             );
         }
         return this.criarOrdemServicoUseCase;
@@ -1078,6 +1102,14 @@ export class DIContainer {
         this.resetOrcamentoCache();
     }
 
+    injectObservabilityPort(port: IObservabilityPort): void {
+        this.observabilityPort = port;
+        this.observabilityPortInjected = true;
+        this.resetOrdemServicoCache();
+        this.resetExecucaoServicoCache();
+        this.resetOrcamentoCache();
+    }
+
     reset(): void {
         this.clienteGateway = null;
         this.veiculoGateway = null;
@@ -1118,9 +1150,11 @@ export class DIContainer {
         this.tokenPortInjected = false;
         this.credentialsPortInjected = false;
         this.emailPortInjected = false;
+        this.observabilityPortInjected = false;
         this.tokenPort = null;
         this.credentialsPort = null;
         this.emailPort = null;
+        this.observabilityPort = null;
         this.resetClienteCache();
         this.resetVeiculoCache();
         this.resetPecaCache();

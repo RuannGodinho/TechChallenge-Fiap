@@ -9,6 +9,8 @@ import { IEstoqueMovimentacaoPort } from '../../src/application/ports/estoque-mo
 import { IPecaLookupPort } from '../../src/application/ports/peca-lookup.port';
 import { IServicoLookupPort } from '../../src/application/ports/servico-lookup.port';
 import { BuscarVeiculoPorIdUseCase } from '../../src/application/usecases/veiculo/buscar-veiculo-por-id.usecase';
+import { createObservabilityMock } from '../Helper/observability';
+import { BusinessEvent, BusinessReason } from '../../src/application/observability/business-events';
 
 describe('OrdemServico extended use cases', () => {
     const veiculoId = new ObjectId().toString();
@@ -18,6 +20,7 @@ describe('OrdemServico extended use cases', () => {
     describe('AlterarStatusOrdemServicoUseCase', () => {
         let orcamentoPort: jest.Mocked<IOrcamentoPort>;
         let estoquePort: jest.Mocked<IEstoqueMovimentacaoPort>;
+        let observability: ReturnType<typeof createObservabilityMock>;
         let useCase: AlterarStatusOrdemServicoUseCase;
 
         beforeEach(() => {
@@ -29,7 +32,12 @@ describe('OrdemServico extended use cases', () => {
                 assertQuantidadeDisponivel: jest.fn().mockResolvedValue(undefined),
                 registrarSaidaOS: jest.fn().mockResolvedValue(undefined),
             };
-            useCase = new AlterarStatusOrdemServicoUseCase(orcamentoPort, estoquePort);
+            observability = createObservabilityMock();
+            useCase = new AlterarStatusOrdemServicoUseCase(
+                orcamentoPort,
+                estoquePort,
+                observability
+            );
         });
 
         test('deve transicionar para status simples sem validar estoque', async () => {
@@ -39,6 +47,13 @@ describe('OrdemServico extended use cases', () => {
 
             expect(ordem.status.value).toBe('EM DIAGNOSTICO');
             expect(estoquePort.assertQuantidadeDisponivel).not.toHaveBeenCalled();
+            expect(observability.emit).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    msg: BusinessEvent.osStatusChanged,
+                    from: 'RECEBIDA',
+                    to: 'EM DIAGNOSTICO',
+                })
+            );
         });
 
         test('deve validar estoque e orçamento ao iniciar execução', async () => {
@@ -58,6 +73,21 @@ describe('OrdemServico extended use cases', () => {
             expect(estoquePort.registrarSaidaOS).toHaveBeenCalledWith(pecaId, 2);
             expect(orcamentoPort.isLatestOrcamentoApproved).toHaveBeenCalledWith('ordem-1');
             expect(ordem.status.value).toBe('EM EXECUCAO');
+            expect(observability.emit).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    msg: BusinessEvent.estoqueMovimentado,
+                    pecaId,
+                    quantidade: 2,
+                    origem: 'OS',
+                })
+            );
+            expect(observability.emit).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    msg: BusinessEvent.osStatusChanged,
+                    from: 'AGUARDANDO APROVACAO',
+                    to: 'EM EXECUCAO',
+                })
+            );
         });
 
         test('deve rejeitar início de execução sem orçamento aprovado', async () => {
@@ -74,6 +104,31 @@ describe('OrdemServico extended use cases', () => {
 
             await expect(useCase.execute(ordem, 'EM EXECUCAO')).rejects.toThrow(
                 'Não é possível iniciar a execução da Ordem de Serviço se o orcamento não estiver aprovado.'
+            );
+            expect(observability.emit).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    msg: BusinessEvent.osProcessingFailed,
+                    alert: true,
+                    reason: BusinessReason.orcamentoNaoAprovado,
+                    ordemServicoId: 'ordem-1',
+                })
+            );
+        });
+
+        test('deve emitir falha quando transição for ilegal', async () => {
+            const ordem = OrdemServico.create({ cpfCnpj: '11144477735', veiculoId });
+
+            await expect(useCase.execute(ordem, 'EM EXECUCAO')).rejects.toThrow(
+                'Não é permitido alterar status de RECEBIDA para EM EXECUCAO'
+            );
+            expect(observability.emit).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    msg: BusinessEvent.osProcessingFailed,
+                    alert: true,
+                    reason: BusinessReason.illegalTransition,
+                    from: 'RECEBIDA',
+                    to: 'EM EXECUCAO',
+                })
             );
         });
     });
@@ -115,7 +170,8 @@ describe('OrdemServico extended use cases', () => {
                 pecaLookup,
                 servicoLookup,
                 estoquePort,
-                orcamentoPort
+                orcamentoPort,
+                createObservabilityMock()
             );
         });
 
