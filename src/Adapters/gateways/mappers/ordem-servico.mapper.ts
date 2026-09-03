@@ -21,6 +21,8 @@ export interface OrdemServicoPersistenceModel {
 
     dataAbertura: Date;
 
+    statusEnteredAt?: Date;
+
     pecas?: OrdemPecaItemPersistenceModel[];
 
     servicos?: Array<{ toString(): string } | string>;
@@ -40,6 +42,8 @@ export class OrdemServicoMapper {
             status: ordem.status.value,
 
             dataAbertura: ordem.dataAbertura,
+
+            statusEnteredAt: ordem.statusEnteredAt,
 
             pecas: ordem.pecas.map((item) => ({
                 pecaId: new ObjectId(item.pecaId.value),
@@ -92,6 +96,8 @@ export class OrdemServicoMapper {
             ),
 
             valorTotal: raw.valorTotal,
+
+            statusEnteredAt: raw.statusEnteredAt ?? raw.dataAbertura,
         });
     }
 }

@@ -4,11 +4,14 @@ import { Peca } from '../../../enterprise/entities/peca.entity';
 import { Servico } from '../../../enterprise/entities/servico.entity';
 import { IEmailPort, OrcamentoEmailPayload } from '../../ports/email.port';
 import { IOrcamentoGateway } from '../../ports/orcamento.gateway.port';
+import { IObservabilityPort } from '../../ports/observability.port';
+import { BusinessEvent } from '../../observability/business-events';
 
 export class CriarOrcamentoPendenteUseCase {
     constructor(
         private readonly orcamentoGateway: IOrcamentoGateway,
-        private readonly emailPort: IEmailPort
+        private readonly emailPort: IEmailPort,
+        private readonly observability: IObservabilityPort
     ) {}
 
     async execute(input: CriarOrcamentoPendenteInputDto): Promise<void> {
@@ -37,11 +40,20 @@ export class CriarOrcamentoPendenteUseCase {
 
         const saved = await this.orcamentoGateway.save(orcamento);
 
+        this.observability.emit({
+            msg: BusinessEvent.orcamentoCreated,
+            orcamentoId: saved.id,
+            versao: saved.versao,
+            ordemServicoId: saved.ordemServicoId,
+        });
+
         await this.emailPort.sendOrcamentoPendente(this.toEmailPayload(saved));
     }
 
     private toEmailPayload(orcamento: Orcamento): OrcamentoEmailPayload {
         return {
+            ordemServicoId: orcamento.ordemServicoId,
+            orcamentoId: orcamento.id,
             versao: orcamento.versao,
             valorTotal: orcamento.valorTotal,
             validadeEm: orcamento.validadeEm,

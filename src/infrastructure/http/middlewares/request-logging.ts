@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { NextFunction, Request, Response } from 'express';
 import { logger } from '../../logging/logger';
+import { runWithRequestContext } from '../../logging/request-context';
 
 const SKIP_EXACT = new Set(['/health', '/ready', '/swagger.json']);
 
@@ -39,5 +40,5 @@ export function requestLogging(req: Request, res: Response, next: NextFunction) 
         logger.info(payload);
     });
 
-    next();
+    runWithRequestContext({ requestId }, () => next());
 }

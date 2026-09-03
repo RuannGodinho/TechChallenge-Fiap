@@ -61,6 +61,40 @@ describe('OrdemServico entity', () => {
         expect(StatusOS.from('ENTREGUE').isVisivelNaListagem()).toBe(false);
     });
 
+    test('deve registrar statusEnteredAt na criação e ao transicionar', () => {
+        const ordem = OrdemServico.create({
+            cpfCnpj: '11144477735',
+            veiculoId,
+        });
+
+        expect(ordem.statusEnteredAt).toEqual(ordem.dataAbertura);
+
+        const enteredAt = new Date(Date.now() - 5 * 60_000);
+        ordem.statusEnteredAt = enteredAt;
+
+        const transition = ordem.transicionarStatus(StatusOS.from('EM DIAGNOSTICO'));
+
+        expect(transition.from).toBe('RECEBIDA');
+        expect(transition.to).toBe('EM DIAGNOSTICO');
+        expect(transition.durationMs).toBeGreaterThanOrEqual(5 * 60_000);
+        expect(ordem.statusEnteredAt.getTime()).toBeGreaterThan(enteredAt.getTime());
+    });
+
+    test('deve usar dataAbertura quando restore não tem statusEnteredAt', () => {
+        const dataAbertura = new Date('2026-01-01T00:00:00Z');
+        const ordem = OrdemServico.restore({
+            id: 'ordem-1',
+            cpfCnpj: '11144477735',
+            veiculoId,
+            status: 'RECEBIDA',
+            dataAbertura,
+            pecas: [],
+            servicos: [],
+        });
+
+        expect(ordem.statusEnteredAt).toEqual(dataAbertura);
+    });
+
     test('deve definir prioridade de listagem por status', () => {
         expect(StatusOS.from('EM EXECUCAO').prioridadeListagem()).toBe(1);
         expect(StatusOS.from('AGUARDANDO APROVACAO').prioridadeListagem()).toBe(2);
