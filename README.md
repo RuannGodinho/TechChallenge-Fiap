@@ -9,7 +9,7 @@ Este repositório entrega **somente a aplicação**: código Node.js, `Dockerfil
 - Expor o domínio da oficina em HTTP (`/api`), com contrato OpenAPI em `/docs`.
 - Rodar igual no notebook (Compose) e no EKS (mesma imagem Docker).
 - Isolar regras de negócio de Express, MongoDB e AWS (**Clean Architecture**).
-- No cluster: API + Mongo in-cluster + HPA. Login de produção **não** entra neste repo.
+- No cluster: API + HPA. O Mongo sobe pelo [TechChallenge-infra-db](https://github.com/RuannGodinho/TechChallenge-infra-db). Login de produção **não** entra neste repo.
 
 Decisões deste repo (monolito, REST, HPA, OS): [RFCs](docs/rfcs/README.md) e [ADRs](docs/adrs/README.md). Nuvem, JWT e Mongo canônicos nos [repos irmãos](docs/REPOS.md).
 
@@ -26,7 +26,7 @@ Decisões deste repo (monolito, REST, HPA, OS): [RFCs](docs/rfcs/README.md) e [A
 | Contrato | OpenAPI / Swagger UI |
 | Testes | Jest, SuperTest |
 | Empacote | Docker (`node:20-alpine`) |
-| Orquestração | Kubernetes (Deployment, Service NodePort `30080`, HPA, PVC) |
+| Orquestração | Kubernetes (Deployment, Service NodePort `30080`, HPA) |
 | CI/CD | GitHub Actions → Docker Hub `ruanngodinho/techchallenge:latest` |
 
 ## Arquitetura deste repositório
@@ -43,7 +43,10 @@ flowchart TB
   subgraph thisrepo [Este repositório no EKS]
     NP[Service NodePort :30080] --> ApiPod[Deployment api]
     HPA[HPA CPU 60% / 1-4] --> ApiPod
-    ApiPod --> MongoSvc[Service mongo ClusterIP]
+    ApiPod -->|MONGODB_URI mongo-service| MongoSvc[mongo-service]
+  end
+
+  subgraph dbrepo [TechChallenge-infra-db]
     MongoSvc --> MongoPod[Deployment mongo]
     MongoPod --> PVC[(PVC EBS 1Gi)]
   end
@@ -140,9 +143,9 @@ Secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `DOCKERHUB_USERNAME`, `DO
 
 ```bash
 aws eks update-kubeconfig --region us-east-1 --name techchallenge-eks
+# Mongo já deve estar no ar (CD do TechChallenge-infra-db)
 kubectl apply -f k8s/metrics-server.yml
 kubectl apply -f k8s/secrets/
-kubectl apply -f k8s/mongo/
 kubectl apply -f k8s/Api-deployment.yml
 kubectl apply -f k8s/Api-service.yml
 kubectl apply -f k8s/API-hpa.yml
@@ -151,7 +154,7 @@ kubectl get job api-seed-job || kubectl apply -f k8s/api-seed-job.yml
 
 Passo a passo e troubleshooting: [docs/KUBERNETES.md](docs/KUBERNETES.md).
 
-Ordem ponta a ponta (quatro repos): infra EKS → Atlas opcional → **este repo** → Lambda/Gateway.
+Ordem ponta a ponta (quatro repos): infra EKS → **Mongo (infra-db)** → este repo → Lambda/Gateway.
 
 ## Variáveis de ambiente
 
@@ -177,7 +180,7 @@ src/enterprise/          entidades e value objects
 src/application/         casos de uso e ports
 src/Adapters/            controllers, presenters, gateways Mongo
 src/infrastructure/      Express, DI, middlewares
-k8s/                     API, Mongo in-cluster, HPA, seed
+k8s/                     API, HPA, seed (Mongo fica no infra-db)
 mongo-init/              seed local e Job Kubernetes
 docs/                    arquitetura, RFCs, ADRs
 ```
@@ -188,7 +191,7 @@ docs/                    arquitetura, RFCs, ADRs
 |---|---|
 | [TechChallenge-infra-eks](https://github.com/RuannGodinho/TechChallenge-infra-eks) | VPC, EKS, SSM |
 | [TechChallenge-lambda-auth](https://github.com/RuannGodinho/TechChallenge-lambda-auth) | JWT + API Gateway |
-| [TechChallenge-infra-db](https://github.com/RuannGodinho/TechChallenge-infra-db) | Atlas M0 (opt-in) |
+| [TechChallenge-infra-db](https://github.com/RuannGodinho/TechChallenge-infra-db) | Mongo no EKS + Atlas opt-in |
 
 ## Documentação
 

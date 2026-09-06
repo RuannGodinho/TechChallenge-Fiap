@@ -106,16 +106,12 @@ jobs:
               -p "{\"data\":{\"GATEWAY_TRUST_SECRET\":\"$TRUST_B64\"}}"
           fi
 
-      - name: Deploy MongoDB
+      - name: Wait for Mongo from TechChallenge-infra-db
         run: |
-          if ! kubectl get storageclass gp2 >/dev/null 2>&1; then
-            kubectl apply -f k8s/mongo/mongo-storageclass.yml
-          else
-            echo "StorageClass gp2 already exists — skipping."
+          if ! kubectl get svc mongo-service >/dev/null 2>&1; then
+            echo "::error::mongo-service ausente. Rode o CD do TechChallenge-infra-db antes da API."
+            exit 1
           fi
-          kubectl apply -f k8s/mongo/mongo-pvc.yml
-          kubectl apply -f k8s/mongo/mongo-service.yml
-          kubectl apply -f k8s/mongo/mongo-deployment.yml
           kubectl rollout status deployment/mongo-deployment --timeout=180s
 
       - name: Deploy API
