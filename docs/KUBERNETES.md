@@ -139,5 +139,6 @@ http://<IP_PUBLICO_DO_NODE>:30080/docs
 ## Documentação relacionada
 
 - [Arquitetura](ARQUITETURA.md)
-- [Terraform](TERRAFORM.md)
+- [Diagrama de Componentes](ARQUITETURA-COMPONENTES.md)
+- [Terraform (infra-eks)](https://github.com/RuannGodinho/TechChallenge-infra-eks/blob/main/docs/TERRAFORM.md)
 - [GitHub Actions](GITHUB-ACTIONS.md)

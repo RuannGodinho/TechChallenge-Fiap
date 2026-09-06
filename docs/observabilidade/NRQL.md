@@ -20,9 +20,9 @@ Widgets sugeridos nesse dashboard:
 1. **Billboard** — OS criadas hoje; falhas de processamento hoje.
 2. **Line** — volume diário de OS (`TIMESERIES 1 day`).
 3. **Bar** — tempo médio em Diagnóstico, Execução e Finalização (`FACET \`from\``).
-4. **Line** — erros SMTP/Mongo no tempo (`FACET integration`).
+4. **Line** — erros do processo da OS + SMTP/Mongo (`os_processing_failed`, `smtp_send_failed`, `integration_failed`).
 5. **Pie ou Bar** — falhas de regra por `reason`.
-6. **Table** — últimas falhas com `ordemServicoId`, `reason`, `requestId`.
+6. **Table** — últimas falhas com `ordemServicoId`, `msg`, `reason`, `requestId`.
 
 APM continua aberto numa aba para provar o agente. O dashboard de **negócio** é o Custom.
 
@@ -61,25 +61,31 @@ FACET `from`
 SINCE 7 days ago
 ```
 
-### 4. Erros e falhas nas integrações (Line)
+### 4. Erros do processo da OS e das integrações (Line)
+
+Regra de negócio + SMTP + Mongo no mesmo gráfico.
 
 ```sql
 SELECT count(*) FROM Log
-WHERE msg IN ('smtp_send_failed', 'integration_failed')
-FACET integration, msg
+WHERE event = 'business'
+  AND msg IN ('os_processing_failed', 'smtp_send_failed', 'integration_failed')
+FACET msg
 TIMESERIES
 SINCE 1 day ago
 ```
 
-### 5. Falhas de processamento de OS hoje (Billboard)
+### 5. Falhas hoje (Billboard)
 
 ```sql
 SELECT count(*) FROM Log
-WHERE event = 'business' AND msg = 'os_processing_failed' AND alert = true
+WHERE event = 'business'
+  AND msg IN ('os_processing_failed', 'smtp_send_failed', 'integration_failed')
 SINCE 1 day ago
 ```
 
-### 6. Falhas de regra por motivo (Pie)
+### 6. Detalhe por motivo (Pie / Bar)
+
+`reason` nas regras; `integration` no SMTP/Mongo (pode vir vazio no facet de `reason`).
 
 ```sql
 SELECT count(*) FROM Log
@@ -88,23 +94,21 @@ FACET reason
 SINCE 7 days ago
 ```
 
+```sql
+SELECT count(*) FROM Log
+WHERE event = 'business'
+  AND msg IN ('os_processing_failed', 'smtp_send_failed', 'integration_failed')
+FACET msg, reason, integration
+SINCE 7 days ago
+```
+
 ### 7. Últimas falhas com correlação (Table)
 
 ```sql
-SELECT ordemServicoId, reason, requestId, `from`, `to`, pecaId
+SELECT ordemServicoId, orcamentoId, msg, reason, integration, requestId, `from`, `to`, pecaId
 FROM Log
-WHERE event = 'business' AND msg = 'os_processing_failed'
-SINCE 1 day ago
-LIMIT 50
-```
-
-### 8. SMTP / Mongo amarrados à OS (Table)
-
-```sql
-SELECT ordemServicoId, orcamentoId, integration, msg, requestId
-FROM Log
-WHERE msg IN ('smtp_send_failed', 'integration_failed')
-  AND ordemServicoId IS NOT NULL
+WHERE event = 'business'
+  AND msg IN ('os_processing_failed', 'smtp_send_failed', 'integration_failed')
 SINCE 1 day ago
 LIMIT 50
 ```
@@ -112,6 +116,34 @@ LIMIT 50
 ---
 
 ## Alertas (criar em Alerts → NRQL)
+
+Não cole a query do **gráfico** (com `FACET msg` ou `TIMESERIES`). Em Logs o New Relic proíbe facet em `message` / `msg` / `messageId` / `timestamp`. O Pino grava `msg`; a UI trata isso como `message`.
+
+Alerta do dashboard de erros da OS — **Alerts & AI → Alert Conditions → New alert condition → NRQL**:
+
+```sql
+SELECT count(*) FROM Log
+WHERE event = 'business'
+  AND msg IN ('os_processing_failed', 'smtp_send_failed', 'integration_failed')
+```
+
+Configuração sugerida:
+
+- **Window**: 5 minutes
+- **Threshold**: `above 0` at least once (qualquer falha dispara)
+- Sem `FACET`, sem `TIMESERIES` (o alerta adiciona o tempo sozinho)
+- Destino: e-mail ou Slack da equipe
+
+Para separar por tipo no alerta (sem usar `msg`):
+
+```sql
+SELECT count(*) FROM Log
+WHERE event = 'business'
+  AND msg IN ('os_processing_failed', 'smtp_send_failed', 'integration_failed')
+FACET reason
+```
+
+`reason` só vem nas falhas de regra; SMTP/Mongo ficam num bucket vazio. O `count(*)` sem facet é o que fecha o enunciado.
 
 ### 1. Falha no processamento de OS
 

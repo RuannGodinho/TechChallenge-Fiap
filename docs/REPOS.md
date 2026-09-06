@@ -1,17 +1,17 @@
 # Quatro repositórios
 
-Esta branch (`feat/split-four-repos`) deixa o **TechChallenge-Fiap** só com a aplicação Kubernetes. Lambda, EKS e banco gerenciado foram extraídos.
+A entrega está em quatro GitHubs. Cada um carrega a documentação do **que ele provisiona ou executa**.
 
-A `main` do monorepo **não foi alterada**. Merge só depois de validar os quatro repos.
-
-| # | Repositório | Papel | CI/CD |
+| # | Repositório | Código | Documentação canônica |
 |---|---|---|---|
-| 4 | [TechChallenge-Fiap](https://github.com/RuannGodinho/TechChallenge-Fiap) (este, nesta branch) | API Node, Dockerfile, manifests K8s (API + Mongo in-cluster) | `ci.yml` + `cd.yml` |
-| 2 | [TechChallenge-infra-eks](https://github.com/RuannGodinho/TechChallenge-infra-eks) | Terraform VPC + EKS + SSM | GitHub Actions Terraform |
-| 1 | [TechChallenge-lambda-auth](https://github.com/RuannGodinho/TechChallenge-lambda-auth) | Lambdas JWT + API Gateway | Jest + Terraform |
-| 3 | [TechChallenge-infra-db](https://github.com/RuannGodinho/TechChallenge-infra-db) | Terraform MongoDB Atlas M0 (opt-in) | Terraform |
+| 4 | [TechChallenge-Fiap](https://github.com/RuannGodinho/TechChallenge-Fiap) (este) | API Node, Dockerfile, `k8s/` | [docs/](.) — componentes, OS, ER, HPA, REST, Clean Architecture |
+| 2 | [TechChallenge-infra-eks](https://github.com/RuannGodinho/TechChallenge-infra-eks) | Terraform VPC + EKS + SSM | [docs/](https://github.com/RuannGodinho/TechChallenge-infra-eks/tree/main/docs) — RFC/ADR 001, 007, 008, 010 |
+| 1 | [TechChallenge-lambda-auth](https://github.com/RuannGodinho/TechChallenge-lambda-auth) | Lambdas JWT + API Gateway | [docs/](https://github.com/RuannGodinho/TechChallenge-lambda-auth/tree/main/docs) — sequência de auth, RFC/ADR 003 |
+| 3 | [TechChallenge-infra-db](https://github.com/RuannGodinho/TechChallenge-infra-db) | Terraform Atlas M0 | [docs/](https://github.com/RuannGodinho/TechChallenge-infra-db/tree/main/docs) — RFC/ADR 002 |
 
-## Ordem de deploy (após cutover)
+Índice da solução (checklist do enunciado): [ARQUITETURA.md](ARQUITETURA.md).
+
+## Ordem de deploy
 
 1. Bootstrap S3 / EKS (`TechChallenge-infra-eks`) — publica `/techchallenge/eks/*` no SSM
 2. (Opcional) Atlas (`TechChallenge-infra-db`) — publica `/techchallenge/db/mongodb_uri`
@@ -23,5 +23,5 @@ A `main` do monorepo **não foi alterada**. Merge só depois de validar os quatr
 Enquanto a `main` não receber esta branch:
 
 - Produção continua no Terraform/CI do monorepo (`eks/terraform.tfstate`)
-- Os repos novos usam keys `split/...` e **não devem** dar apply contra o state antigo
+- Os repos novos usam keys isoladas e **não devem** dar apply contra o state antigo
 - Mongo permanece no cluster (`k8s/mongo/`) até `enable_managed_db=true`
