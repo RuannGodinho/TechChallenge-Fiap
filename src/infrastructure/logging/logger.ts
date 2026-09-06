@@ -27,6 +27,11 @@ export const logger = pino({
     level,
     base: { service: 'api' },
     timestamp: pino.stdTimeFunctions.isoTime,
+    formatters: {
+        level(label) {
+            return { level: label };
+        },
+    },
     mixin: () => ({
         ...newRelicLinking(),
         ...requestContextFields(),

@@ -14,7 +14,11 @@ spec:
     image: newrelic/newrelic-node-init:13-nodejs20x
     env:
     - name: NEW_RELIC_LOG
-      value: stdout
+      value: stderr
+    # Fluent Bit já envia o stdout da API. Sem isso o agente reenvia o mesmo log
+    # (Pino level 30/50 + cópia com info/error).
+    - name: NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED
+      value: "false"
     # Example overriding the appName configuration
     # - name: NEW_RELIC_APP_NAME
     #   valueFrom:
