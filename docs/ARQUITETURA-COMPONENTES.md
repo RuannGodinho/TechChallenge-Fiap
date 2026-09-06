@@ -10,7 +10,7 @@ O cliente HTTP acessa apenas o **API Gateway**. O cluster EKS não expõe login:
 |---|---|
 | Nuvem | Subgrafo `AWS us-east-1`: API Gateway, Lambdas, VPC/EKS, SSM, S3, CloudWatch |
 | APIs | Lambda `AuthSign` (`POST /api/login`) + Express no EKS (`/api`, `/docs`) |
-| Banco | Mongo in-cluster (PVC EBS) e Atlas M0 opt-in |
+| Banco | Mongo no EKS via TechChallenge-infra-db (PVC EBS); Atlas M0 opt-in |
 | Monitoramento | metrics-server + HPA, CloudWatch das Lambdas, Fluent Bit + New Relic |
 
 ---
@@ -90,7 +90,7 @@ flowchart TB
 
 1. **Nuvem / borda:** API Gateway é o único ponto de entrada público (região `us-east-1`).
 2. **APIs:** login na Lambda `AuthSign`; demais rotas passam pelo authorizer JWT e seguem para o Express no EKS.
-3. **Banco:** MongoDB in-cluster com volume EBS; Atlas M0 entra só com `enable_managed_db=true`.
+3. **Banco:** MongoDB no EKS (Deployment + PVC), aplicado pelo [TechChallenge-infra-db](https://github.com/RuannGodinho/TechChallenge-infra-db). Atlas M0 continua opt-in nesse mesmo repo.
 4. **Monitoramento:** metrics-server alimenta o HPA; Lambdas gravam logs no CloudWatch; a API emite JSON `event = business` para o New Relic (Fluent Bit).
 
 Em ambiente local (`sam local`), a integração HTTP do Gateway é simulada pela Lambda `BackendProxyFunction`, que encaminha para `http://localhost:3000`. Em produção, o Gateway usa a URL publicada no SSM (`/techchallenge/eks/backend_url`).
@@ -158,7 +158,7 @@ flowchart TB
 | API Gateway HTTP API | AWS | Entrada HTTPS, authorizer JWT e proxy HTTP para o EKS |
 | Lambda AuthSign | Node.js 20 | Valida e-mail/senha (`AUTH_EMAIL` / `AUTH_PASSWORD`) e assina JWT (`HS256`, expiração `JWT_EXPIRES_IN`) |
 | Lambda Authorizer | Node.js 20 | Valida `Authorization: Bearer`; devolve `userId` e `email` no contexto |
-| EKS | Kubernetes | Orquestra API, Mongo in-cluster, HPA e metrics-server |
+| EKS | Kubernetes | Orquestra API, HPA e metrics-server; o Mongo é apply do infra-db |
 | Service `api-service` | NodePort 30080 | Expõe o container `:3000` no IP público do node |
 | SSM Parameter Store | AWS | `backend_url` para o Gateway; URI do Atlas quando habilitado |
 | S3 | AWS | Backend remoto do Terraform |
@@ -195,7 +195,7 @@ Rotas montadas em `app.ts` sob `/api`:
 
 | Componente | Onde | Função |
 |---|---|---|
-| MongoDB 8 in-cluster | `mongo-deployment` + PVC `mongo-pvc` (1 Gi, `gp2`) | Persistência atual da API (`MONGODB_URI` → `mongo-service:27017/Node-Fiap`) |
+| MongoDB 8 no EKS | Repo `TechChallenge-infra-db` (`k8s/`) | Persistência da API (`MONGODB_URI` → `mongo-service:27017/Node-Fiap`) |
 | `mongo-service` | ClusterIP `:27017` | DNS interno do cluster |
 | MongoDB Atlas M0 | Repo `TechChallenge-infra-db` | Persistência gerenciada (opt-in) |
 | Coleção `OrdemServico` | Banco `Node-Fiap` | Documento da OS (cliente, veículo, peças, serviços, status, `dataAbertura`, `statusEnteredAt`) |

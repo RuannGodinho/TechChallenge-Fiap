@@ -25,7 +25,7 @@ Auth serverless, cluster e Atlas mudam em ritmos diferentes da aplicação. Um �
 | 4 | `TechChallenge-Fiap` (este) | API, Dockerfile, `k8s/` (API + Mongo) | `ci.yml` + `cd.yml` |
 | 2 | `TechChallenge-infra-eks` | VPC, EKS, SSM, bootstrap S3 | Terraform |
 | 1 | `TechChallenge-lambda-auth` | Lambdas JWT + API Gateway | Jest + Terraform |
-| 3 | `TechChallenge-infra-db` | Atlas M0 opt-in | Terraform |
+| 3 | `TechChallenge-infra-db` | Mongo no EKS (`k8s/`) + Atlas M0 opt-in | CD kubectl + Terraform |
 
 Contrato entre repos: **SSM** (`backend_url`, `mongodb_uri`) e o **mesmo** `GATEWAY_TRUST_SECRET` nos dois lados.
 

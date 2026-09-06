@@ -58,10 +58,10 @@ A escolha por **NodePort** (`30080`) em vez de Ingress/ALB reduz custo em labora
 | Orquestração | Manifests em `k8s/` no EKS | Deploy reproduzível, restart automático |
 | Infra como código | Repo `TechChallenge-infra-eks` (Terraform) | VPC, cluster e IAM versionados |
 | Auth serverless | Repo `TechChallenge-lambda-auth` | JWT no API Gateway; API em `AUTH_MODE=gateway` |
-| Banco gerenciado | Repo `TechChallenge-infra-db` (Atlas M0, opt-in) | Caminho de menor custo; Mongo in-cluster até o cutover |
+| Banco | Repo `TechChallenge-infra-db` (Mongo no EKS; Atlas opt-in) | Este repo não aplica Deployment de banco |
 | CI/CD | `ci.yml` + `cd.yml` neste repo | Testes automáticos; deploy só após CI verde |
 | Escalabilidade | HPA CPU 60%, 1–4 réplicas | Resposta a carga sem intervenção manual |
-| Persistência | MongoDB + PVC EBS (`gp2`) até migrar para Atlas | Dados sobrevivem restart do pod |
+| Persistência | Mongo no EKS via [TechChallenge-infra-db](https://github.com/RuannGodinho/TechChallenge-infra-db) | API só consome `mongo-service`; o banco não sobe neste repo |
 | Observabilidade básica | metrics-server + HPA + CloudWatch Logs das Lambdas | CPU para autoscaling e auditoria de auth |
 | Observabilidade de negócio | Logs JSON (`event = business`) + New Relic NRQL | Volume de OS, tempo por status e alertas de falha |
 
@@ -72,8 +72,8 @@ A escolha por **NodePort** (`30080`) em vez de Ingress/ALB reduz custo em labora
 ```text
 1. SETUP (uma vez)     TechChallenge-infra-eks bootstrap → bucket S3
 2. INFRA (manual)      TechChallenge-infra-eks apply → EKS + SSM
-3. DB (opt-in)         TechChallenge-infra-db apply → Atlas M0
-4. APP (push main)     CI → CD → API :30080 (+ Mongo in-cluster)
+3. DB                  TechChallenge-infra-db CD → mongo-service no EKS
+4. APP (push main)     CI → CD → API :30080
 5. AUTH (manual)       TechChallenge-lambda-auth apply → API Gateway
 ```
 

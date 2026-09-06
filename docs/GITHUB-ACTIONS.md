@@ -19,10 +19,12 @@ flowchart LR
 
   subgraph others [Repos irmaos]
     EKS[TechChallenge-infra-eks]
+    DB[TechChallenge-infra-db]
     LAM[TechChallenge-lambda-auth]
   end
 
-  EKS -->|cluster pronto| D
+  EKS -->|cluster pronto| DB
+  DB -->|mongo-service| D
   P --> C -->|success| D
   LAM -->|API Gateway apos a API| D
 ```
@@ -49,6 +51,6 @@ Terraform, JWT_SECRET e AUTH_* ficam no [TechChallenge-infra-eks](https://github
 
 1. Cluster EKS existente (monorepo `main` ou, após cutover, apply no repo EKS).
 2. Push nesta branch dispara CI. CD automático continua amarrado à `main` — deploy desta branch é **manual** (`workflow_dispatch` com `confirm=yes`) para não alterar produção sem querer.
-3. O CD aplica metrics-server, secrets, Mongo in-cluster, API, HPA e seed.
+3. O CD aplica metrics-server, secrets, API, HPA e seed. O Mongo precisa já estar no cluster (CD do TechChallenge-infra-db).
 
 Passo a passo de Kubernetes: [KUBERNETES.md](KUBERNETES.md).
