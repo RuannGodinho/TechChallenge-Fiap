@@ -15,7 +15,8 @@ export class CriarClienteUseCase implements ICriarClienteUseCase {
                 input.nome,
                 input.email,
                 input.cpf,
-                input.telefone
+                input.telefone,
+                input.status
             );
 
             return await this.gateway.save(cliente);

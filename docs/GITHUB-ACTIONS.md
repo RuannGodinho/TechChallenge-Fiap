@@ -6,8 +6,8 @@ Nesta branch este repositório só entrega a **API no EKS**. Infra EKS, Lambda e
 
 | Workflow | Arquivo | Gatilho | O que faz |
 |---|---|---|---|
-| **CI** | `ci.yml` | PR + push `main` / `develop` / `feat/split-four-repos` | `npm ci` → build → test |
-| **CD** | `cd.yml` | CI OK no push `main` ou manual | Docker push + deploy `k8s/` |
+| **CI** | `ci.yml` | PR + push `main` / `develop` / `release` | `npm ci` → build → test |
+| **CD** | `cd.yml` | CI OK em `main` (prod) ou `release` (homolog), ou manual | Docker push + deploy `k8s/` |
 
 ```mermaid
 flowchart LR
@@ -43,14 +43,14 @@ flowchart LR
 
 Variables: `TF_AWS_REGION` (default `us-east-1`), `TF_CLUSTER_NAME` (default `techchallenge-eks`).
 
-Terraform, JWT_SECRET e AUTH_* ficam no [TechChallenge-infra-eks](https://github.com/RuannGodinho/TechChallenge-infra-eks) e no [TechChallenge-lambda-auth](https://github.com/RuannGodinho/TechChallenge-lambda-auth).
+Terraform e JWT_SECRET ficam no [TechChallenge-infra-eks](https://github.com/RuannGodinho/TechChallenge-infra-eks) e no [TechChallenge-lambda-auth](https://github.com/RuannGodinho/TechChallenge-lambda-auth).
 
 ---
 
 ## Deploy da API
 
 1. Cluster EKS existente (monorepo `main` ou, após cutover, apply no repo EKS).
-2. Push nesta branch dispara CI. CD automático continua amarrado à `main` — deploy desta branch é **manual** (`workflow_dispatch` com `confirm=yes`) para não alterar produção sem querer.
-3. O CD aplica metrics-server, secrets, API, HPA e seed. O Mongo precisa já estar no cluster (CD do TechChallenge-infra-db).
+2. `release` é a branch de homologação: CI + CD automático com imagem `:homolog`. `main` é produção (`:latest`). Deploy manual: `workflow_dispatch` com `confirm=yes`.
+3. O CD aplica metrics-server, secrets, Mongo in-cluster, API, HPA e seed.
 
 Passo a passo de Kubernetes: [KUBERNETES.md](KUBERNETES.md).

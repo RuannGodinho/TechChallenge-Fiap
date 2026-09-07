@@ -3,6 +3,7 @@ export interface CreateClienteInputDto {
     email: string;
     cpf: string;
     telefone: string;
+    status?: string;
 }
 
 export interface UpdateClienteInputDto {
@@ -10,6 +11,7 @@ export interface UpdateClienteInputDto {
     email?: string;
     cpf?: string;
     telefone?: string;
+    status?: string;
 }
 
 export interface ClienteResponseDto {
@@ -18,4 +20,5 @@ export interface ClienteResponseDto {
     email: string;
     cpf: string;
     telefone: string;
+    status: string;
 }

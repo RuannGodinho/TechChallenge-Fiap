@@ -9,13 +9,22 @@ export function gatewayUserMiddleware(req: Request, res: Response, next: NextFun
 
     const userId = req.headers['x-user-id'];
     const email = req.headers['x-user-email'];
+    const cpf = req.headers['x-user-cpf'];
 
-    if (!userId || !email || Array.isArray(userId) || Array.isArray(email)) {
+    if (
+        !userId ||
+        !email ||
+        !cpf ||
+        Array.isArray(userId) ||
+        Array.isArray(email) ||
+        Array.isArray(cpf)
+    ) {
         return res.status(401).json({ error: 'Token não informado' });
     }
 
     (req as Request & { user: TokenPayloadDto }).user = {
         userId: String(userId),
+        cpf: String(cpf),
         email: String(email),
     };
 

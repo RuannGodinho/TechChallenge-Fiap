@@ -2,6 +2,7 @@ import { UpdateClienteInputDto } from '../../dtos/cliente/cliente.dtos';
 import { Cliente } from '../../../enterprise/entities/cliente.entity';
 import { Documento } from '../../../enterprise/value-objects/documento.vo';
 import { Email } from '../../../enterprise/value-objects/email.vo';
+import { StatusCliente } from '../../../enterprise/value-objects/status-cliente.vo';
 import { IClienteGateway } from '../../ports/cliente.gateway.port';
 
 export interface IAtualizarClienteUseCase {
@@ -22,7 +23,8 @@ export class AtualizarClienteUseCase implements IAtualizarClienteUseCase {
         const documento = input.cpf ? Documento.from(input.cpf) : existing.documento;
         const telefone = input.telefone ?? existing.telefone;
 
-        const updated = new Cliente(nome, email, documento, telefone, existing.id);
+        const status = input.status ? StatusCliente.from(input.status) : existing.status;
+        const updated = new Cliente(nome, email, documento, telefone, existing.id, status);
         return this.gateway.update(id, updated);
     }
 }

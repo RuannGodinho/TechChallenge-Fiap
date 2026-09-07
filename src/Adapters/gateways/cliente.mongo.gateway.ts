@@ -38,7 +38,8 @@ export class ClienteMongoGateway implements IClienteGateway {
             cliente.email,
             cliente.documento,
             cliente.telefone,
-            result.insertedId.toString()
+            result.insertedId.toString(),
+            cliente.status
         );
     }
 

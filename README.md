@@ -88,7 +88,46 @@ Consulta pública (sem JWT): `GET /api/ordensServico/:cpfCnpj/detalhes`.
 
 ## Execução local
 
-### Docker Compose (recomendado)
+- `app.ts` - instancia o Express e monta as rotas
+- `src/main/server.ts` - inicia o servidor e expõe Swagger
+- `src/infrastructure/composition-root/di-container.ts` - injeção de dependências
+- `docker-compose.yml` - compose para MongoDB + API
+- `Dockerfile` - imagem Node.js para a API
+- `mongo-init/` - scripts de inicialização do MongoDB
+- `k8s/` - manifests Kubernetes da API e do Mongo in-cluster
+- Infra EKS, Lambda e banco gerenciado: ver [docs/REPOS.md](docs/REPOS.md)
+
+## Variáveis de ambiente
+
+As variáveis usadas pela aplicação são:
+
+- `MONGODB_URI` - string de conexão com MongoDB
+- `PORT` - porta onde a API irá rodar (default `3000`)
+- `NODE_ENV` - ambiente da aplicação
+- `JWT_SECRET` - segredo JWT
+- `JWT_EXPIRES_IN` - tempo de expiração do token JWT (default `1h`)
+- `AUTH_MODE` - `local` (login por CPF nesta API) ou `gateway` (login na Lambda)
+- `GATEWAY_TRUST_SECRET` - confiança Gateway → pod e lookup interno da Lambda
+- `SMTP_HOST` - host SMTP (obrigatório)
+- `SMTP_PORT` - porta SMTP (obrigatório)
+- `SMTP_USER` - usuário SMTP para envio de e-mails (obrigatório)
+- `SMTP_PASS` - senha ou app password SMTP (obrigatório)
+- `SMTP_FROM` - remetente (opcional; default: `SMTP_USER`)
+- `SMTP_SECURE` - `true` para TLS na porta 465 (opcional)
+- `ORCAMENTO_EMAIL_TO` - destinatário do orçamento (obrigatório)
+
+> Configure todas as variáveis SMTP no `.env`. O compose carrega o arquivo via `env_file`.
+
+## E-mail de orçamento (SMTP)
+
+Ao criar um orçamento pendente, a API envia um e-mail via SMTP com o resumo (peças, serviços, valor total e validade). O destinatário é definido por `ORCAMENTO_EMAIL_TO`. As credenciais SMTP vêm das variáveis `SMTP_*` no `.env`.
+
+> No Docker Compose, o container da API já define `PORT`, `MONGO_URL` e `NODE_ENV`.
+
+## Executando do zero com Docker
+
+1. Garanta que Docker e Docker Compose estão instalados.
+2. No diretório do projeto, execute:
 
 ```bash
 cp .env.example .env   # ajuste SMTP, JWT e AUTH_*
@@ -126,7 +165,13 @@ npm run coverage
 
 ## Deploy
 
-Pré-requisito: EKS no ar (repo de infra). Neste repo **não** há Terraform de VPC/cluster.
+- Autenticação JWT por CPF do cliente (status ATIVO)
+- CRUD de Clientes
+- Gestão de Veículos
+- Controle de Estoque
+- Ordem de Serviço
+- Aprovação de Orçamentos
+- Envio de orçamento por e-mail (SMTP)
 
 ### GitHub Actions
 
@@ -135,7 +180,11 @@ Pré-requisito: EKS no ar (repo de infra). Neste repo **não** há Terraform de 
 | CI (`.github/workflows/ci.yml`) | PR e push | `npm ci`, typecheck, testes |
 | CD (`.github/workflows/cd.yml`) | CI verde na `main`, ou `workflow_dispatch` | Build/push Docker Hub + `kubectl apply` de `k8s/` |
 
-Nesta branch (`feat/split-four-repos`) o CD para o cluster é **manual** (`workflow_dispatch` com `confirm=yes`), para não sobrescrever a `main`.
+Login local: `POST /api/login` com `{ "cpf": "81788455045" }` (cliente ATIVO do seed). Cliente INATIVO (`52263606068`) retorna 403. Nas demais rotas: `Authorization: Bearer <token>`.
+
+Branches de entrega: `release` = homologação (imagem `:homolog`); `main` = produção (`:latest`).
+
+## Segurança
 
 Secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `DOCKERHUB_USERNAME`, `DOCKERHUB_PASSWORD`, `GATEWAY_TRUST_SECRET`. Detalhe: [docs/GITHUB-ACTIONS.md](docs/GITHUB-ACTIONS.md).
 
@@ -206,3 +255,4 @@ docs/                    arquitetura, RFCs, ADRs
 | [Kubernetes](docs/KUBERNETES.md) | Manifests e acesso |
 | [GitHub Actions](docs/GITHUB-ACTIONS.md) | CI/CD deste repo |
 | [Quatro repositórios](docs/REPOS.md) | Split e ordem de deploy |
+  [Contrato auth CPF](docs/CONTRATO-AUTH-CPF.md) | Login por CPF, lookup da Lambda, branches `release`/`main` |

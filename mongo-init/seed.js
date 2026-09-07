@@ -34,11 +34,11 @@ async function runSeed() {
 
     console.log('Inserindo Clientes...');
     await db.collection('Clientes').insertMany([
-      { nome: 'Ruann Godinho', email: 'ruann@gmail.com', cpf: '81788455045', telefone: '15997653816' },
-      { nome: 'Maria Silva', email: 'maria@gmail.com', cpf: '81421981009', telefone: '11988887777' },
-      { nome: 'Carlos Souza', email: 'carlos@gmail.com', cpf: '20004874080', telefone: '21999996666' },
-      { nome: 'Fernanda Lima', email: 'fernanda@gmail.com', cpf: '17281988010', telefone: '31977774444' },
-      { nome: 'João Pereira', email: 'joao@gmail.com', cpf: '52263606068', telefone: '11995553322' },
+      { nome: 'Ruann Godinho', email: 'ruann@gmail.com', cpf: '81788455045', telefone: '15997653816', status: 'ATIVO' },
+      { nome: 'Maria Silva', email: 'maria@gmail.com', cpf: '81421981009', telefone: '11988887777', status: 'ATIVO' },
+      { nome: 'Carlos Souza', email: 'carlos@gmail.com', cpf: '20004874080', telefone: '21999996666', status: 'ATIVO' },
+      { nome: 'Fernanda Lima', email: 'fernanda@gmail.com', cpf: '17281988010', telefone: '31977774444', status: 'ATIVO' },
+      { nome: 'João Pereira', email: 'joao@gmail.com', cpf: '52263606068', telefone: '11995553322', status: 'INATIVO' },
     ]);
 
     console.log('Inserindo Veículos...');

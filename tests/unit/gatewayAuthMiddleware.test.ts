@@ -12,8 +12,9 @@ describe('gatewayUserMiddleware', () => {
         const req = {
             headers: {
                 'x-gateway-trust': trustSecret,
-                'x-user-id': 'mock-user',
-                'x-user-email': 'admin@example.com',
+                'x-user-id': 'cli-1',
+                'x-user-email': 'ruann@gmail.com',
+                'x-user-cpf': '81788455045',
             },
         } as unknown as Request;
 
@@ -26,9 +27,12 @@ describe('gatewayUserMiddleware', () => {
 
         gatewayUserMiddleware(req, res, next);
 
-        expect((req as Request & { user: { userId: string; email: string } }).user).toEqual({
-            userId: 'mock-user',
-            email: 'admin@example.com',
+        expect(
+            (req as Request & { user: { userId: string; cpf: string; email: string } }).user
+        ).toEqual({
+            userId: 'cli-1',
+            cpf: '81788455045',
+            email: 'ruann@gmail.com',
         });
         expect(next).toHaveBeenCalled();
     });
