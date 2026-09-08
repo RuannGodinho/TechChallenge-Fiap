@@ -150,6 +150,10 @@ router.get('/clientes/:id', authMiddleware, async (req: Request, res: Response) 
  *                 description: CPF ou CNPJ do cliente
  *               telefone:
  *                 type: string
+ *               status:
+ *                 type: string
+ *                 enum: [ATIVO, INATIVO]
+ *                 description: Default ATIVO
  *     responses:
  *       201:
  *         description: Cliente criado com sucesso
@@ -158,7 +162,7 @@ router.get('/clientes/:id', authMiddleware, async (req: Request, res: Response) 
  */
 router.post('/clientes', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const { nome, email, cpf, telefone } = req.body;
+        const { nome, email, cpf, telefone, status } = req.body;
 
         if (!nome || !email || !cpf || !telefone) {
             return res.status(400).json({
@@ -167,7 +171,13 @@ router.post('/clientes', authMiddleware, async (req: Request, res: Response) => 
         }
 
         const controller = await getClienteController();
-        const responseDto = await controller.criarCliente({ nome, email, cpf, telefone });
+        const responseDto = await controller.criarCliente({
+            nome,
+            email,
+            cpf,
+            telefone,
+            status,
+        });
         return res.status(201).json(responseDto);
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Internal server error';
@@ -205,6 +215,9 @@ router.post('/clientes', authMiddleware, async (req: Request, res: Response) => 
  *                 type: string
  *               telefone:
  *                 type: string
+ *               status:
+ *                 type: string
+ *                 enum: [ATIVO, INATIVO]
  *     responses:
  *       200:
  *         description: Cliente atualizado com sucesso

@@ -9,6 +9,7 @@ export class ClientePresenter {
             email: cliente.email.value,
             cpf: cliente.documento.formatted,
             telefone: cliente.telefone,
+            status: cliente.status.value,
         };
     }
 

@@ -2,6 +2,7 @@ import nodemailer, { Transporter } from 'nodemailer';
 import { EmailDeliveryError } from '../../application/errors/email.errors';
 import { IEmailPort, OrcamentoEmailPayload } from '../../application/ports/email.port';
 import { SmtpConfig } from '../../config/smtp';
+import { logger } from '../../infrastructure/logging/logger';
 import { OrcamentoEmailPresenter } from '../presenters/orcamento-email.presenter';
 
 export class NodemailerEmailAdapter implements IEmailPort {
@@ -20,8 +21,27 @@ export class NodemailerEmailAdapter implements IEmailPort {
                 subject: this.presenter.buildSubject(payload),
                 text: this.presenter.buildBody(payload),
             });
+            logger.info({
+                msg: 'smtp_sent',
+                event: 'business',
+                integration: 'smtp',
+                host: this.smtpConfig.host,
+                versao: payload.versao,
+                ordemServicoId: payload.ordemServicoId,
+                orcamentoId: payload.orcamentoId,
+            });
         } catch (error: unknown) {
             const reason = error instanceof Error ? error.message : String(error);
+            logger.error({
+                err: error,
+                msg: 'smtp_send_failed',
+                event: 'business',
+                alert: true,
+                integration: 'smtp',
+                host: this.smtpConfig.host,
+                ordemServicoId: payload.ordemServicoId,
+                orcamentoId: payload.orcamentoId,
+            });
             throw new EmailDeliveryError(
                 `Falha ao enviar o orçamento por e-mail para o destinatário configurado em ORCAMENTO_EMAIL_TO: ${reason}`
             );

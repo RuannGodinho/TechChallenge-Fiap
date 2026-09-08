@@ -83,12 +83,11 @@ import { ListarOrcamentosPorOrdemUseCase } from '../../application/usecases/orca
 import { VerificarUltimoOrcamentoAprovadoUseCase } from '../../application/usecases/orcamento/verificar-ultimo-orcamento-aprovado.usecase';
 import { IOrcamentoGateway } from '../../application/ports/orcamento.gateway.port';
 import { JwtTokenAdapter } from '../../Adapters/adapters/jwt-token.adapter';
-import { EnvCredentialsAdapter } from '../../Adapters/adapters/env-credentials.adapter';
 import { AuthController } from '../../Adapters/controllers/auth.controller';
 import { AutenticarUsuarioUseCase } from '../../application/usecases/auth/autenticar-usuario.usecase';
+import { ConsultarClienteAuthUseCase } from '../../application/usecases/auth/consultar-cliente-auth.usecase';
 import { VerificarTokenUseCase } from '../../application/usecases/auth/verificar-token.usecase';
 import { ITokenPort } from '../../application/ports/token.port';
-import { ICredentialsPort } from '../../application/ports/credentials.port';
 import { IOrdemServicoGateway } from '../../application/ports/ordem-servico.gateway.port';
 import { IClienteLookupPort } from '../../application/ports/cliente-lookup.port';
 import { IVeiculoLookupPort } from '../../application/ports/veiculo-lookup.port';
@@ -100,6 +99,8 @@ import { IOrcamentoPort } from '../../application/ports/orcamento.port';
 import { IEmailPort } from '../../application/ports/email.port';
 import { NodemailerEmailAdapter } from '../../Adapters/adapters/nodemailer-email.adapter';
 import { loadSmtpConfig } from '../../config/smtp';
+import { IObservabilityPort } from '../../application/ports/observability.port';
+import { PinoObservabilityAdapter } from '../logging/pino-observability.adapter';
 
 export class DIContainer {
     private static instance: DIContainer;
@@ -117,8 +118,9 @@ export class DIContainer {
     private execucaoServicoGateway: IExecucaoServicoGateway | null = null;
     private orcamentoGateway: IOrcamentoGateway | null = null;
     private tokenPort: ITokenPort | null = null;
-    private credentialsPort: ICredentialsPort | null = null;
     private emailPort: IEmailPort | null = null;
+    private observabilityPort: IObservabilityPort | null = null;
+    private observabilityPortInjected = false;
     private clienteGatewayInjected = false;
     private veiculoGatewayInjected = false;
     private pecaGatewayInjected = false;
@@ -129,7 +131,6 @@ export class DIContainer {
     private execucaoServicoGatewayInjected = false;
     private orcamentoGatewayInjected = false;
     private tokenPortInjected = false;
-    private credentialsPortInjected = false;
     private emailPortInjected = false;
 
     private clientePresenter: ClientePresenter | null = null;
@@ -195,6 +196,7 @@ export class DIContainer {
     private listarOrcamentosPorOrdemUseCase: ListarOrcamentosPorOrdemUseCase | null = null;
     private verificarUltimoOrcamentoAprovadoUseCase: VerificarUltimoOrcamentoAprovadoUseCase | null = null;
     private autenticarUsuarioUseCase: AutenticarUsuarioUseCase | null = null;
+    private consultarClienteAuthUseCase: ConsultarClienteAuthUseCase | null = null;
     private verificarTokenUseCase: VerificarTokenUseCase | null = null;
     private clienteLookupPort: IClienteLookupPort | null = null;
     private veiculoLookupPort: IVeiculoLookupPort | null = null;
@@ -316,7 +318,10 @@ export class DIContainer {
             if (this.ordemServicoGatewayInjected) {
                 throw new Error('Ordem de serviço gateway not injected.');
             }
-            this.ordemServicoGateway = new OrdemServicoMongoGateway(this.getDb());
+            this.ordemServicoGateway = new OrdemServicoMongoGateway(
+                this.getDb(),
+                this.getObservabilityPort()
+            );
         }
         return this.ordemServicoGateway;
     }
@@ -351,6 +356,16 @@ export class DIContainer {
         return this.tokenPort;
     }
 
+    getObservabilityPort(): IObservabilityPort {
+        if (!this.observabilityPort) {
+            if (this.observabilityPortInjected) {
+                throw new Error('Observability port not injected.');
+            }
+            this.observabilityPort = new PinoObservabilityAdapter();
+        }
+        return this.observabilityPort;
+    }
+
     getEmailPort(): IEmailPort {
         if (!this.emailPort) {
             if (this.emailPortInjected) {
@@ -361,24 +376,23 @@ export class DIContainer {
         return this.emailPort;
     }
 
-    getCredentialsPort(): ICredentialsPort {
-        if (!this.credentialsPort) {
-            if (this.credentialsPortInjected) {
-                throw new Error('Credentials port not injected.');
-            }
-            this.credentialsPort = new EnvCredentialsAdapter();
-        }
-        return this.credentialsPort;
-    }
-
     getAutenticarUsuarioUseCase(): AutenticarUsuarioUseCase {
         if (!this.autenticarUsuarioUseCase) {
             this.autenticarUsuarioUseCase = new AutenticarUsuarioUseCase(
-                this.getCredentialsPort(),
+                this.getClienteGateway(),
                 this.getTokenPort()
             );
         }
         return this.autenticarUsuarioUseCase;
+    }
+
+    getConsultarClienteAuthUseCase(): ConsultarClienteAuthUseCase {
+        if (!this.consultarClienteAuthUseCase) {
+            this.consultarClienteAuthUseCase = new ConsultarClienteAuthUseCase(
+                this.getClienteGateway()
+            );
+        }
+        return this.consultarClienteAuthUseCase;
     }
 
     getVerificarTokenUseCase(): VerificarTokenUseCase {
@@ -390,7 +404,10 @@ export class DIContainer {
 
     getAuthController(): AuthController {
         if (!this.authController) {
-            this.authController = new AuthController(() => this.getAutenticarUsuarioUseCase());
+            this.authController = new AuthController(
+                () => this.getAutenticarUsuarioUseCase(),
+                () => this.getConsultarClienteAuthUseCase()
+            );
         }
         return this.authController;
     }
@@ -619,7 +636,8 @@ export class DIContainer {
         if (!this.iniciarExecucaoUseCase) {
             this.iniciarExecucaoUseCase = new IniciarExecucaoUseCase(
                 this.getExecucaoServicoGateway(),
-                this.getOrdemServicoGateway()
+                this.getOrdemServicoGateway(),
+                this.getObservabilityPort()
             );
         }
         return this.iniciarExecucaoUseCase;
@@ -629,7 +647,8 @@ export class DIContainer {
         if (!this.finalizarExecucaoUseCase) {
             this.finalizarExecucaoUseCase = new FinalizarExecucaoUseCase(
                 this.getExecucaoServicoGateway(),
-                this.getOrdemServicoGateway()
+                this.getOrdemServicoGateway(),
+                this.getObservabilityPort()
             );
         }
         return this.finalizarExecucaoUseCase;
@@ -694,7 +713,8 @@ export class DIContainer {
         if (!this.criarOrcamentoPendenteUseCase) {
             this.criarOrcamentoPendenteUseCase = new CriarOrcamentoPendenteUseCase(
                 this.getOrcamentoGateway(),
-                this.getEmailPort()
+                this.getEmailPort(),
+                this.getObservabilityPort()
             );
         }
         return this.criarOrcamentoPendenteUseCase;
@@ -703,7 +723,8 @@ export class DIContainer {
     getAtualizarOrcamentoUseCase(): AtualizarOrcamentoUseCase {
         if (!this.atualizarOrcamentoUseCase) {
             this.atualizarOrcamentoUseCase = new AtualizarOrcamentoUseCase(
-                this.getOrcamentoGateway()
+                this.getOrcamentoGateway(),
+                this.getObservabilityPort()
             );
         }
         return this.atualizarOrcamentoUseCase;
@@ -731,7 +752,8 @@ export class DIContainer {
         if (!this.alterarStatusOrdemServicoUseCase) {
             this.alterarStatusOrdemServicoUseCase = new AlterarStatusOrdemServicoUseCase(
                 this.getOrcamentoPort(),
-                this.getEstoqueMovimentacaoPort()
+                this.getEstoqueMovimentacaoPort(),
+                this.getObservabilityPort()
             );
         }
         return this.alterarStatusOrdemServicoUseCase;
@@ -743,7 +765,8 @@ export class DIContainer {
                 this.getPecaLookupPort(),
                 this.getServicoLookupPort(),
                 this.getEstoqueMovimentacaoPort(),
-                this.getOrcamentoPort()
+                this.getOrcamentoPort(),
+                this.getObservabilityPort()
             );
         }
         return this.atualizarItensOrdemServicoUseCase;
@@ -790,7 +813,8 @@ export class DIContainer {
                 this.getOrdemServicoGateway(),
                 this.getClienteLookupPort(),
                 this.getVeiculoLookupPort(),
-                this.getExecucaoServicoPort()
+                this.getExecucaoServicoPort(),
+                this.getObservabilityPort()
             );
         }
         return this.criarOrdemServicoUseCase;
@@ -1066,15 +1090,17 @@ export class DIContainer {
         this.resetAuthCache();
     }
 
-    injectCredentialsPort(port: ICredentialsPort): void {
-        this.credentialsPort = port;
-        this.credentialsPortInjected = true;
-        this.resetAuthCache();
-    }
-
     injectEmailPort(port: IEmailPort): void {
         this.emailPort = port;
         this.emailPortInjected = true;
+        this.resetOrcamentoCache();
+    }
+
+    injectObservabilityPort(port: IObservabilityPort): void {
+        this.observabilityPort = port;
+        this.observabilityPortInjected = true;
+        this.resetOrdemServicoCache();
+        this.resetExecucaoServicoCache();
         this.resetOrcamentoCache();
     }
 
@@ -1116,11 +1142,11 @@ export class DIContainer {
         this.orcamentoPortInjected = false;
         this.orcamentoPort = null;
         this.tokenPortInjected = false;
-        this.credentialsPortInjected = false;
         this.emailPortInjected = false;
+        this.observabilityPortInjected = false;
         this.tokenPort = null;
-        this.credentialsPort = null;
         this.emailPort = null;
+        this.observabilityPort = null;
         this.resetClienteCache();
         this.resetVeiculoCache();
         this.resetPecaCache();
@@ -1142,6 +1168,7 @@ export class DIContainer {
         this.atualizarClienteUseCase = null;
         this.deletarClienteUseCase = null;
         this.clienteController = null;
+        this.resetAuthCache();
     }
 
     private resetVeiculoCache(): void {
@@ -1199,6 +1226,9 @@ export class DIContainer {
         if (!this.orcamentoPortInjected) {
             this.orcamentoPort = null;
         }
+        if (!this.ordemServicoGatewayInjected) {
+            this.ordemServicoGateway = null;
+        }
         this.ordemServicoPresenter = null;
         this.ordemServicoController = null;
     }
@@ -1233,13 +1263,11 @@ export class DIContainer {
 
     private resetAuthCache(): void {
         this.autenticarUsuarioUseCase = null;
+        this.consultarClienteAuthUseCase = null;
         this.verificarTokenUseCase = null;
         this.authController = null;
         if (!this.tokenPortInjected) {
             this.tokenPort = null;
-        }
-        if (!this.credentialsPortInjected) {
-            this.credentialsPort = null;
         }
     }
 }

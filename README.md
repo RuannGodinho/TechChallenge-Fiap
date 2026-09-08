@@ -1,24 +1,92 @@
-# Node-Fiap
+# TechChallenge-Fiap
 
-API backend para gestão de oficinas mecânicas, permitindo controlar clientes, veículos, ordens de serviço, estoque e orçamentos.
+API REST da **oficina mecânica Node-Fiap**: clientes, veículos, peças, serviços, estoque, ordens de serviço, orçamentos e execução.
 
-## Visão Geral
+Este repositório entrega **somente a aplicação**: código Node.js, `Dockerfile`, Compose local e manifests Kubernetes (`k8s/`). Cluster EKS, autenticação no API Gateway e MongoDB Atlas vivem em [repositórios irmãos](docs/REPOS.md).
 
-Desenvolvida com Node.js, TypeScript, MongoDB e Docker, aplicando **Clean Architecture** , segurança e testes automatizados.
-A aplicação expõe rotas REST em `/api` e documentação Swagger em `/docs`.
+## Propósito
 
-## Stack
+- Expor o domínio da oficina em HTTP (`/api`), com contrato OpenAPI em `/docs`.
+- Rodar igual no notebook (Compose) e no EKS (mesma imagem Docker).
+- Isolar regras de negócio de Express, MongoDB e AWS (**Clean Architecture**).
+- No cluster: API + HPA. O Mongo sobe pelo [TechChallenge-infra-db](https://github.com/RuannGodinho/TechChallenge-infra-db). Login de produção **não** entra neste repo.
 
-Node.js • TypeScript • Express • MongoDB • Docker • JWT • Jest • Swagger • Clean Architecture
+Decisões deste repo (monolito, REST, HPA, OS): [RFCs](docs/rfcs/README.md) e [ADRs](docs/adrs/README.md). Nuvem, JWT e Mongo canônicos nos [repos irmãos](docs/REPOS.md).
+
+## Tecnologias
+
+| Camada | Tecnologia |
+|---|---|
+| Runtime | Node.js 20, TypeScript 5 |
+| HTTP | Express 4 |
+| Persistência | MongoDB 8 (`MONGODB_URI`) |
+| Auth local | JWT HS256 (`AUTH_MODE=local`) |
+| Auth no EKS | `AUTH_MODE=gateway` — JWT fica nas Lambdas do repo de auth |
+| E-mail | Nodemailer (SMTP) |
+| Contrato | OpenAPI / Swagger UI |
+| Testes | Jest, SuperTest |
+| Empacote | Docker (`node:20-alpine`) |
+| Orquestração | Kubernetes (Deployment, Service NodePort `30080`, HPA) |
+| CI/CD | GitHub Actions → Docker Hub `ruanngodinho/techchallenge:latest` |
+
+## Arquitetura deste repositório
+
+O que **este** repo constrói e sobe. A borda (API Gateway + Lambdas) e o Terraform do cluster estão fora.
+
+```mermaid
+flowchart TB
+  subgraph local [Local — Docker Compose]
+    Dev[HTTP :3000] --> ApiLocal[API Express]
+    ApiLocal --> MongoLocal[(Mongo :27017)]
+  end
+
+  subgraph thisrepo [Este repositório no EKS]
+    NP[Service NodePort :30080] --> ApiPod[Deployment api]
+    HPA[HPA CPU 60% / 1-4] --> ApiPod
+    ApiPod -->|MONGODB_URI mongo-service| MongoSvc[mongo-service]
+  end
+
+  subgraph dbrepo [TechChallenge-infra-db]
+    MongoSvc --> MongoPod[Deployment mongo]
+    MongoPod --> PVC[(PVC EBS 1Gi)]
+  end
+
+  subgraph layers [Clean Architecture]
+    Ent[enterprise] --> App[application]
+    App --> Adp[Adapters]
+    Adp --> Inf[infrastructure]
+  end
+
+  Img[Dockerfile / Docker Hub] --> ApiLocal
+  Img --> ApiPod
+```
+
+No EKS o cliente de produção não fala com o NodePort: o [TechChallenge-lambda-auth](https://github.com/RuannGodinho/TechChallenge-lambda-auth) faz proxy autenticado. Visão completa: [diagrama de componentes](docs/ARQUITETURA-COMPONENTES.md).
+
+## APIs — Swagger e Postman
+
+Não há collection Postman versionada. A fonte do contrato é o **OpenAPI** gerado pela própria API.
+
+| Ambiente | Swagger UI | OpenAPI JSON (importe no Postman) |
+|---|---|---|
+| Local (Compose) | [http://localhost:3000/docs](http://localhost:3000/docs) | [http://localhost:3000/swagger.json](http://localhost:3000/swagger.json) |
+| EKS (NodePort) | `http://<IP_DO_NODE>:30080/docs` | `http://<IP_DO_NODE>:30080/swagger.json` |
+| Produção (API Gateway) | `https://<api-id>.execute-api.us-east-1.amazonaws.com/docs` | `https://<api-id>.execute-api.us-east-1.amazonaws.com/swagger.json` |
+
+**Postman:** Import → Link → cole a URL do `swagger.json`.
+
+Login local: `POST /api/login` com `AUTH_EMAIL` / `AUTH_PASSWORD` do `.env`. Nas demais rotas: header `Authorization: Bearer <token>`.
+
+Consulta pública (sem JWT): `GET /api/ordensServico/:cpfCnpj/detalhes`.
 
 ## Requisitos
 
-- Docker
-- Docker Compose
-- Node.js 20.x (para execução local sem Docker)
-- npm 10.x ou superior
+- Docker e Docker Compose (execução local)
+- Node.js 20.x e npm 10+ (testes / run sem Docker)
+- Arquivo `.env` a partir de [`.env.example`](.env.example)
+- Para deploy no cluster: `kubectl`, AWS CLI, cluster `techchallenge-eks` já criado no [TechChallenge-infra-eks](https://github.com/RuannGodinho/TechChallenge-infra-eks)
 
-## Estrutura principal
+## Execução local
 
 - `app.ts` - instancia o Express e monta as rotas
 - `src/main/server.ts` - inicia o servidor e expõe Swagger
@@ -26,8 +94,8 @@ Node.js • TypeScript • Express • MongoDB • Docker • JWT • Jest • S
 - `docker-compose.yml` - compose para MongoDB + API
 - `Dockerfile` - imagem Node.js para a API
 - `mongo-init/` - scripts de inicialização do MongoDB
-- `k8s/` - manifests Kubernetes
-- `infra/terraform/` - infraestrutura AWS (EKS)
+- `k8s/` - manifests Kubernetes da API e do Mongo in-cluster
+- Infra EKS, Lambda e banco gerenciado: ver [docs/REPOS.md](docs/REPOS.md)
 
 ## Variáveis de ambiente
 
@@ -38,8 +106,8 @@ As variáveis usadas pela aplicação são:
 - `NODE_ENV` - ambiente da aplicação
 - `JWT_SECRET` - segredo JWT
 - `JWT_EXPIRES_IN` - tempo de expiração do token JWT (default `1h`)
-- `AUTH_EMAIL` - e-mail do usuário padrão
-- `AUTH_PASSWORD` - senha do usuário padrão
+- `AUTH_MODE` - `local` (login por CPF nesta API) ou `gateway` (login na Lambda)
+- `GATEWAY_TRUST_SECRET` - confiança Gateway → pod e lookup interno da Lambda
 - `SMTP_HOST` - host SMTP (obrigatório)
 - `SMTP_PORT` - porta SMTP (obrigatório)
 - `SMTP_USER` - usuário SMTP para envio de e-mails (obrigatório)
@@ -62,47 +130,42 @@ Ao criar um orçamento pendente, a API envia um e-mail via SMTP com o resumo (pe
 2. No diretório do projeto, execute:
 
 ```bash
+cp .env.example .env   # ajuste SMTP, JWT e AUTH_*
 docker compose up -d --build
-```
-
-3. Verifique o status dos containers:
-
-```bash
 docker compose ps
 ```
 
-4. Acesse a API em:
-
-- `http://localhost:3000`
-- Swagger: `http://localhost:3000/docs`
-
-5. Para parar os containers:
+- API: http://localhost:3000
+- Swagger: http://localhost:3000/docs
+- Mongo: `localhost:27017`, banco `Node-Fiap` (seed roda no start da API)
 
 ```bash
+docker compose logs -f api
 docker compose down
 ```
 
-6. Para reconstruir tudo após mudança no Dockerfile ou dependências:
+`AUTH_MODE=local` (default): o Express emite e valida o JWT.
+
+### Sem Docker
 
 ```bash
-docker compose up -d --build --force-recreate
+cp .env.example .env
+# suba um Mongo em mongodb://127.0.0.1:27017/Node-Fiap
+npm ci
+npm test
+npm run dev
 ```
 
-## Rodando testes
+### Testes
 
 ```bash
 npm test
-```
-
-### Cobertura
-
-```bash
 npm run coverage
 ```
 
-## Principais Recursos
+## Deploy
 
-- Autenticação JWT
+- Autenticação JWT por CPF do cliente (status ATIVO)
 - CRUD de Clientes
 - Gestão de Veículos
 - Controle de Estoque
@@ -110,89 +173,86 @@ npm run coverage
 - Aprovação de Orçamentos
 - Envio de orçamento por e-mail (SMTP)
 
-A API monta todas as rotas sob o prefixo `/api`.
+### GitHub Actions
 
-Consulte `/docs` para referência completa.
+| Workflow | Quando | O que faz |
+|---|---|---|
+| CI (`.github/workflows/ci.yml`) | PR e push | `npm ci`, typecheck, testes |
+| CD (`.github/workflows/cd.yml`) | CI verde na `main`, ou `workflow_dispatch` | Build/push Docker Hub + `kubectl apply` de `k8s/` |
+
+Login local: `POST /api/login` com `{ "cpf": "81788455045" }` (cliente ATIVO do seed). Cliente INATIVO (`52263606068`) retorna 403. Nas demais rotas: `Authorization: Bearer <token>`.
+
+Branches de entrega: `release` = homologação (imagem `:homolog`); `main` = produção (`:latest`).
 
 ## Segurança
 
-- JWT Authentication
-- Variáveis sensíveis por ambiente
-- Testes com OWASP ZAP
-- Validação de entrada
+Secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `DOCKERHUB_USERNAME`, `DOCKERHUB_PASSWORD`, `GATEWAY_TRUST_SECRET`. Detalhe: [docs/GITHUB-ACTIONS.md](docs/GITHUB-ACTIONS.md).
 
-## Documentação Swagger
+### Manual (`kubectl`)
 
-A documentação da API fica disponível em:
-
-```text
-http://localhost:3000/docs
+```bash
+aws eks update-kubeconfig --region us-east-1 --name techchallenge-eks
+# Mongo já deve estar no ar (CD do TechChallenge-infra-db)
+kubectl apply -f k8s/metrics-server.yml
+kubectl apply -f k8s/secrets/
+kubectl apply -f k8s/Api-deployment.yml
+kubectl apply -f k8s/Api-service.yml
+kubectl apply -f k8s/API-hpa.yml
+kubectl get job api-seed-job || kubectl apply -f k8s/api-seed-job.yml
 ```
 
-Ou diretamente o JSON do Swagger em:
+Passo a passo e troubleshooting: [docs/KUBERNETES.md](docs/KUBERNETES.md).
+
+Ordem ponta a ponta (quatro repos): infra EKS → **Mongo (infra-db)** → este repo → Lambda/Gateway.
+
+## Variáveis de ambiente
+
+| Variável | Uso |
+|---|---|
+| `PORT` | HTTP (default `3000`) |
+| `MONGODB_URI` | Conexão MongoDB |
+| `NODE_ENV` | Ambiente |
+| `AUTH_MODE` | `local` (Compose) ou `gateway` (EKS) |
+| `JWT_SECRET` / `JWT_EXPIRES_IN` | JWT no modo local |
+| `AUTH_EMAIL` / `AUTH_PASSWORD` | Usuário mock no modo local |
+| `GATEWAY_TRUST_SECRET` | Confiança Gateway → pod (`AUTH_MODE=gateway`) |
+| `SMTP_HOST` `SMTP_PORT` `SMTP_USER` `SMTP_PASS` | Envio de orçamento |
+| `SMTP_FROM` / `SMTP_SECURE` | Remetente / TLS 465 |
+| `ORCAMENTO_EMAIL_TO` | Destinatário do orçamento |
+
+No Compose, `PORT`, `MONGODB_URI` e `NODE_ENV` vêm do `docker-compose.yml`; o restante do `.env`.
+
+## Estrutura
 
 ```text
-http://localhost:3000/swagger.json
+src/enterprise/          entidades e value objects
+src/application/         casos de uso e ports
+src/Adapters/            controllers, presenters, gateways Mongo
+src/infrastructure/      Express, DI, middlewares
+k8s/                     API, HPA, seed (Mongo fica no infra-db)
+mongo-init/              seed local e Job Kubernetes
+docs/                    arquitetura, RFCs, ADRs
 ```
 
-## Qualidade
+## Repositórios irmãos
 
-- Jest unit tests
-- Cobertura de testes
+| Repositório | Papel |
+|---|---|
+| [TechChallenge-infra-eks](https://github.com/RuannGodinho/TechChallenge-infra-eks) | VPC, EKS, SSM |
+| [TechChallenge-lambda-auth](https://github.com/RuannGodinho/TechChallenge-lambda-auth) | JWT + API Gateway |
+| [TechChallenge-infra-db](https://github.com/RuannGodinho/TechChallenge-infra-db) | Mongo no EKS + Atlas opt-in |
 
-
-## Observações
-
-- A configuração de banco local usa a variável `MONGODB_URI`.
-- Quando rodar por Docker Compose, a aplicação usa o serviço `mongodb` do compose.
-- O seed local roda apenas no Docker Compose (`command` do serviço `api`). No Kubernetes, use o Job em `k8s/api-seed-job.yml`.
-
-## Comandos úteis
-
-- Subir containers: `docker compose up -d --build`
-- Parar containers: `docker compose down`
-- Ver logs do container da API: `docker compose logs -f api`
-- Ver logs do MongoDB: `docker compose logs -f mongodb`
-
-
-## Justificativa da Escolha do Banco de Dados: MongoDB
-Para este projeto, optamos pelo MongoDB como solução de persistência de dados. Abaixo, detalhamos os motivos técnicos que sustentam essa decisão baseada nas necessidades da oficina:
-
-## Modelagem Orientada a Documentos e DDD
-A Ordem de Serviço (OS) é um exemplo clássico de um Agregado complexo no Domain-Driven Design. No MongoDB, podemos armazenar a OS como um documento único que contém:
-
-- Dados do veículo e do cliente (ou referências).
-
-- Uma lista aninhada de serviços realizados.
-
-- Uma lista aninhada de peças utilizadas.
-
-- Histórico de mudanças de status.
-
-Essa estrutura evita múltiplos JOINs complexos (comuns em bancos relacionais), permitindo que todo o contexto da OS seja recuperado em uma única consulta, o que acelera o tempo de resposta da API para o cliente final.
-
-## Flexibilidade de Esquema (Schema-less)
-Sendo um sistema em estágio de MVP, o fluxo da oficina pode evoluir rapidamente. Hoje, uma peça tem "nome e preço"; amanhã, pode precisar de "número de série, lote e validade da garantia".
-
-O MongoDB permite que o esquema evolua sem a necessidade de migrações de banco de dados (migrations) pesadas que poderiam causar downtime no atendimento da oficina.
-
-## Variabilidade dos Dados de Atendimento
-Cada atendimento na oficina é único:
-
-Uma troca de óleo é simples e possui poucos dados.
-
-Uma retífica de motor pode envolver dezenas de peças e sub-serviços.
-O modelo de documentos do MongoDB lida nativamente com essa variabilidade, armazenando apenas os campos necessários para cada registro, otimizando o armazenamento.
-
----
-
-## Infraestrutura, Kubernetes e Deploy (Tech Challenge)
+## Documentação
 
 | Documento | Conteúdo |
 |---|---|
-| [Arquitetura](docs/ARQUITETURA.md) | Visão da solução, diagrama de deploy, componentes e fluxo ponta a ponta |
-| [Kubernetes](docs/KUBERNETES.md) | Workloads no EKS, manifests, deploy manual e acesso |
-| [Terraform](docs/TERRAFORM.md) | Provisionamento da infraestrutura AWS |
-| [GitHub Actions](docs/GITHUB-ACTIONS.md) | Passo a passo completo pelos pipelines |
-
-
+| [Arquitetura](docs/ARQUITETURA.md) | Índice e checklist do enunciado |
+| [Componentes](docs/ARQUITETURA-COMPONENTES.md) | Nuvem, APIs, banco, monitoramento |
+| [Sequência — Auth](https://github.com/RuannGodinho/TechChallenge-lambda-auth/blob/main/docs/ARQUITETURA-SEQUENCIA-AUTENTICACAO.md) | Login JWT (repo lambda-auth) |
+| [Sequência — OS](docs/ARQUITETURA-SEQUENCIA-ORDEM-SERVICO.md) | Abertura de OS |
+| [Modelo de dados](docs/ARQUITETURA-MODELO-DADOS.md) | Justificativa do Mongo, ER e relacionamentos |
+| [RFCs](docs/rfcs/README.md) / [ADRs](docs/adrs/README.md) | Decisões técnicas e permanentes |
+| [Kubernetes](docs/KUBERNETES.md) | Manifests e acesso |
+| [GitHub Actions](docs/GITHUB-ACTIONS.md) | CI/CD deste repo |
+| [Quatro repositórios](docs/REPOS.md) | Split e ordem de deploy |
+  [Contrato auth CPF](docs/CONTRATO-AUTH-CPF.md) | Login por CPF, lookup da Lambda, branches `release`/`main` |

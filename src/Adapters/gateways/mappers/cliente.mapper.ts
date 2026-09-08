@@ -1,6 +1,7 @@
 import { Cliente } from '../../../enterprise/entities/cliente.entity';
 import { Documento } from '../../../enterprise/value-objects/documento.vo';
 import { Email } from '../../../enterprise/value-objects/email.vo';
+import { StatusCliente } from '../../../enterprise/value-objects/status-cliente.vo';
 
 export interface ClientePersistenceModel {
     _id?: { toString(): string };
@@ -8,6 +9,7 @@ export interface ClientePersistenceModel {
     email: string;
     cpf: string;
     telefone: string;
+    status?: string;
 }
 
 export class ClienteMapper {
@@ -17,6 +19,7 @@ export class ClienteMapper {
             email: cliente.email.value,
             cpf: cliente.documento.value,
             telefone: cliente.telefone,
+            status: cliente.status.value,
         };
     }
 
@@ -27,7 +30,8 @@ export class ClienteMapper {
             Email.from(raw.email),
             Documento.from(raw.cpf),
             raw.telefone,
-            id
+            id,
+            raw.status ? StatusCliente.from(raw.status) : StatusCliente.ativo()
         );
     }
 }

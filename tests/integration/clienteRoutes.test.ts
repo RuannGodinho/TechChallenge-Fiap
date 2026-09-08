@@ -32,7 +32,8 @@ class InMemoryClienteGateway implements IClienteGateway {
             cliente.email,
             cliente.documento,
             cliente.telefone,
-            id
+            id,
+            cliente.status
         );
         clientesStore.set(id, saved);
         return saved;
@@ -48,7 +49,8 @@ class InMemoryClienteGateway implements IClienteGateway {
             cliente.email,
             cliente.documento,
             cliente.telefone,
-            id
+            id,
+            cliente.status
         );
         clientesStore.set(id, updated);
         return updated;

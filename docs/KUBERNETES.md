@@ -4,7 +4,7 @@ Como a aplicação roda **dentro do EKS**: manifests, ordem de deploy, acesso e 
 
 ## Pré-requisitos
 
-- Cluster **EKS** ativo (`techchallenge-eks`) — ver [TERRAFORM.md](TERRAFORM.md)
+- Cluster **EKS** ativo (`techchallenge-eks`) — ver [REPOS.md](REPOS.md) / [TechChallenge-infra-eks](https://github.com/RuannGodinho/TechChallenge-infra-eks)
 - `kubectl` e `aws` CLI instalados
 - Credenciais AWS com acesso ao cluster
 
@@ -16,12 +16,9 @@ aws eks update-kubeconfig --region us-east-1 --name techchallenge-eks
 
 ```text
 namespace: default
-├── ConfigMap api-config          (PORT, MONGODB_URI, JWT_EXPIRES_IN)
-├── Secret api-secrets            (JWT, credenciais auth, SONAR_TOKEN)
+├── ConfigMap api-config          (PORT, MONGODB_URI → mongo-service, JWT_EXPIRES_IN)
+├── Secret api-secrets            (SONAR_TOKEN — runtime auth fica nos Lambdas)
 ├── Secret dockerhub-cred         (pull da imagem privada)
-├── Deployment mongo-deployment   (MongoDB 8 + volume EBS)
-├── PVC mongo-pvc                 (1Gi, storageClassName: gp2)
-├── Service mongo-service         (ClusterIP :27017)
 ├── Deployment api-deployment     (imagem Docker Hub, 1 réplica base)
 ├── Service api-service           (NodePort 30080 → container :3000)
 ├── HPA api-hpa                   (1–4 réplicas, CPU 60%)
@@ -35,13 +32,9 @@ namespace: kube-system
 
 | Arquivo | Recurso | Detalhe |
 |---|---|---|
-| `k8s/secrets/Api-configmap.yml` | ConfigMap | URI do Mongo interno (`mongo-service:27017`) |
+| `k8s/secrets/Api-configmap.yml` | ConfigMap | `MONGODB_URI` aponta para `mongo-service:27017` (pod sobe no [infra-db](https://github.com/RuannGodinho/TechChallenge-infra-db)) |
 | `k8s/secrets/api-secrets.yml` | Secret | Variáveis sensíveis da API |
 | `k8s/secrets/dockerhub-cred.yml` | Secret | `imagePullSecrets` para Docker Hub |
-| `k8s/mongo/mongo-storageclass.yml` | StorageClass | `gp2` via EBS CSI (só se não existir) |
-| `k8s/mongo/mongo-pvc.yml` | PVC | 1Gi persistente para Mongo |
-| `k8s/mongo/mongo-deployment.yml` | Deployment | MongoDB com volume montado |
-| `k8s/mongo/mongo-service.yml` | Service | DNS interno `mongo-service` |
 | `k8s/Api-deployment.yml` | Deployment | API com requests/limits CPU e memória |
 | `k8s/Api-service.yml` | Service | **NodePort 30080** — acesso externo |
 | `k8s/API-hpa.yml` | HPA | Escala quando CPU média > 60% do request (`100m`) |
@@ -61,7 +54,7 @@ O workflow **CD** (`.github/workflows/cd.yml`) executa automaticamente após CI 
 
 1. Build e push `ruanngodinho/techchallenge:latest`
 2. `aws eks update-kubeconfig`
-3. metrics-server → secrets → Mongo → API → HPA
+3. metrics-server → secrets → espera `mongo-service` (repo infra-db) → API → HPA
 4. Seed job (só se não existir)
 5. `rollout restart` da API para puxar imagem `:latest`
 
@@ -81,11 +74,8 @@ kubectl apply -f k8s/secrets/Api-configmap.yml
 kubectl apply -f k8s/secrets/api-secrets.yml
 kubectl apply -f k8s/secrets/dockerhub-cred.yml
 
-# 3. Mongo (StorageClass só na primeira vez se gp2 não existir)
-kubectl get storageclass gp2 || kubectl apply -f k8s/mongo/mongo-storageclass.yml
-kubectl apply -f k8s/mongo/mongo-pvc.yml
-kubectl apply -f k8s/mongo/mongo-service.yml
-kubectl apply -f k8s/mongo/mongo-deployment.yml
+# 3. Mongo já deve existir (CD do TechChallenge-infra-db)
+kubectl get svc mongo-service
 kubectl rollout status deployment/mongo-deployment --timeout=180s
 
 # 4. API
@@ -130,14 +120,15 @@ http://<IP_PUBLICO_DO_NODE>:30080/docs
 | Sintoma | Causa provável | Ação |
 |---|---|---|
 | HPA `cpu: <unknown>` | metrics-server ausente | `kubectl apply -f k8s/metrics-server.yml` |
-| PVC `Pending` | EBS CSI ou StorageClass | Verificar addon e `kubectl get sc` |
+| PVC `Pending` / `mongo-service` ausente | Mongo ainda não foi aplicado no infra-db | CD do [TechChallenge-infra-db](https://github.com/RuannGodinho/TechChallenge-infra-db) |
 | `ImagePullBackOff` | Secret `dockerhub-cred` | Verificar credencial Docker Hub |
 | API não responde em :30080 | SG do node | Terraform libera NodePort 30080 |
 | Secret conflict no apply | YAML exportado do cluster | Remover `resourceVersion`, `uid` dos manifests |
-| StorageClass gp2 forbidden | Já existe no EKS | Pular `mongo-storageclass.yml` |
+| StorageClass gp2 forbidden | Já existe no EKS | O CD do infra-db já ignora se `gp2` existir |
 
 ## Documentação relacionada
 
 - [Arquitetura](ARQUITETURA.md)
-- [Terraform](TERRAFORM.md)
+- [Diagrama de Componentes](ARQUITETURA-COMPONENTES.md)
+- [Terraform (infra-eks)](https://github.com/RuannGodinho/TechChallenge-infra-eks/blob/main/docs/TERRAFORM.md)
 - [GitHub Actions](GITHUB-ACTIONS.md)

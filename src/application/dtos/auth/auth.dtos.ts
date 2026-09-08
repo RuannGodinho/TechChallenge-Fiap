@@ -1,16 +1,17 @@
 export interface LoginInputDto {
-    email: string;
-    password: string;
+    cpf: string;
 }
 
 export interface LoginResultDto {
     success: boolean;
     token?: string;
     error?: string;
+    statusCode?: number;
 }
 
 export interface TokenPayloadDto {
     userId: string;
+    cpf: string;
     email: string;
 }
 
@@ -20,5 +21,6 @@ export interface LoginResponseDto {
 
 export interface AuthenticatedUserResponseDto {
     userId: string;
+    cpf: string;
     email: string;
 }

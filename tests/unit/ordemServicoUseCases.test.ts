@@ -11,12 +11,16 @@ import { IOrdemServicoGateway } from '../../src/application/ports/ordem-servico.
 import { IClienteLookupPort } from '../../src/application/ports/cliente-lookup.port';
 import { IVeiculoLookupPort } from '../../src/application/ports/veiculo-lookup.port';
 import { IExecucaoServicoPort } from '../../src/application/ports/execucao-servico.port';
+import { createObservabilityMock } from '../Helper/observability';
+import { IObservabilityPort } from '../../src/application/ports/observability.port';
+import { BusinessEvent, BusinessReason } from '../../src/application/observability/business-events';
 
 describe('OrdemServico use cases', () => {
     let ordemGateway: jest.Mocked<IOrdemServicoGateway>;
     let clienteLookup: jest.Mocked<IClienteLookupPort>;
     let veiculoLookup: jest.Mocked<IVeiculoLookupPort>;
     let execucaoPort: jest.Mocked<IExecucaoServicoPort>;
+    let observability: jest.Mocked<IObservabilityPort>;
     let criarOrdemServicoUseCase: CriarOrdemServicoUseCase;
     let listarOrdensServicoUseCase: ListarOrdensServicoUseCase;
     let alterarStatusUseCase: jest.Mocked<AlterarStatusOrdemServicoUseCase>;
@@ -62,11 +66,13 @@ describe('OrdemServico use cases', () => {
             createExecucoesParaServicos: jest.fn().mockResolvedValue(undefined),
         };
 
+        observability = createObservabilityMock();
         criarOrdemServicoUseCase = new CriarOrdemServicoUseCase(
             ordemGateway,
             clienteLookup,
             veiculoLookup,
-            execucaoPort
+            execucaoPort,
+            observability
         );
 
         listarOrdensServicoUseCase = new ListarOrdensServicoUseCase(ordemGateway);
@@ -118,6 +124,13 @@ describe('OrdemServico use cases', () => {
         expect(execucaoPort.createExecucoesParaServicos).toHaveBeenCalledWith('generated-id', [
             servicoId,
         ]);
+        expect(observability.emit).toHaveBeenCalledWith(
+            expect.objectContaining({
+                msg: BusinessEvent.osCreated,
+                ordemServicoId: 'generated-id',
+                status: 'RECEBIDA',
+            })
+        );
     });
 
     test('deve rejeitar criação quando cliente não existe', async () => {
@@ -131,6 +144,12 @@ describe('OrdemServico use cases', () => {
         ).rejects.toThrow('Cliente não encontrado para o CPF/CNPJ fornecido.');
 
         expect(ordemGateway.save).not.toHaveBeenCalled();
+        expect(observability.emit).toHaveBeenCalledWith(
+            expect.objectContaining({
+                msg: BusinessEvent.osCreateRejected,
+                reason: BusinessReason.clienteNaoEncontrado,
+            })
+        );
     });
 
     test('deve rejeitar criação quando veículo não existe', async () => {

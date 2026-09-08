@@ -9,11 +9,14 @@ import { CriarExecucoesParaServicosUseCase } from '../../src/application/usecase
 import { IniciarExecucaoUseCase } from '../../src/application/usecases/execucao-servico/iniciar-execucao.usecase';
 import { FinalizarExecucaoUseCase } from '../../src/application/usecases/execucao-servico/finalizar-execucao.usecase';
 import { ObterTempoMedioServicosUseCase } from '../../src/application/usecases/execucao-servico/obter-tempo-medio-servicos.usecase';
+import { createObservabilityMock } from '../Helper/observability';
+import { BusinessEvent, BusinessReason } from '../../src/application/observability/business-events';
 
 describe('ExecucaoServico use cases', () => {
     let execucaoGateway: jest.Mocked<IExecucaoServicoGateway>;
     let ordemGateway: jest.Mocked<IOrdemServicoGateway>;
     let servicoLookup: jest.Mocked<IServicoLookupPort>;
+    let observability: ReturnType<typeof createObservabilityMock>;
     let criarExecucoesUseCase: CriarExecucoesParaServicosUseCase;
     let iniciarExecucaoUseCase: IniciarExecucaoUseCase;
     let finalizarExecucaoUseCase: FinalizarExecucaoUseCase;
@@ -54,8 +57,17 @@ describe('ExecucaoServico use cases', () => {
             ordemGateway,
             servicoLookup
         );
-        iniciarExecucaoUseCase = new IniciarExecucaoUseCase(execucaoGateway, ordemGateway);
-        finalizarExecucaoUseCase = new FinalizarExecucaoUseCase(execucaoGateway, ordemGateway);
+        observability = createObservabilityMock();
+        iniciarExecucaoUseCase = new IniciarExecucaoUseCase(
+            execucaoGateway,
+            ordemGateway,
+            observability
+        );
+        finalizarExecucaoUseCase = new FinalizarExecucaoUseCase(
+            execucaoGateway,
+            ordemGateway,
+            observability
+        );
         obterTempoMedioUseCase = new ObterTempoMedioServicosUseCase(execucaoGateway);
     });
 
@@ -120,6 +132,44 @@ describe('ExecucaoServico use cases', () => {
 
         expect(result.status.value).toBe('EM EXECUCAO');
         expect(execucaoGateway.update).toHaveBeenCalled();
+        expect(observability.emit).toHaveBeenCalledWith(
+            expect.objectContaining({
+                msg: BusinessEvent.execucaoStarted,
+                execucaoId: 'exec-1',
+                ordemServicoId: ordemId,
+            })
+        );
+    });
+
+    test('deve rejeitar iniciar execução quando OS não estiver em execução', async () => {
+        const execucao = ExecucaoServico.create(ordemId, servicoId);
+        execucao.id = 'exec-1';
+
+        execucaoGateway.findById.mockResolvedValue(execucao);
+        ordemGateway.findById.mockResolvedValue(
+            OrdemServico.restore({
+                id: ordemId,
+                cpfCnpj: '11144477735',
+                veiculoId: new ObjectId().toString(),
+                status: StatusOSValues.RECEBIDA,
+                dataAbertura: new Date(),
+                pecas: [],
+                servicos: [servicoId],
+            })
+        );
+
+        await expect(iniciarExecucaoUseCase.execute('exec-1')).rejects.toThrow(
+            'Não é possível iniciar a execução de um serviço se a Ordem de Serviço não estiver em execução.'
+        );
+        expect(observability.emit).toHaveBeenCalledWith(
+            expect.objectContaining({
+                msg: BusinessEvent.osProcessingFailed,
+                alert: true,
+                reason: BusinessReason.execucaoOsNotInExecution,
+                execucaoId: 'exec-1',
+                ordemServicoId: ordemId,
+            })
+        );
     });
 
     test('deve rejeitar iniciar execução já iniciada', async () => {
@@ -170,6 +220,18 @@ describe('ExecucaoServico use cases', () => {
                 finalizadoEm: new Date(),
             }),
         ]);
+        ordemGateway.findById.mockResolvedValue(
+            OrdemServico.restore({
+                id: ordemId,
+                cpfCnpj: '11144477735',
+                veiculoId: new ObjectId().toString(),
+                status: StatusOSValues.EM_EXECUCAO,
+                dataAbertura: new Date(),
+                pecas: [],
+                servicos: [servicoId],
+            })
+        );
+        ordemGateway.update.mockImplementation(async (_id, ordem) => ordem as OrdemServico);
 
         const result = await finalizarExecucaoUseCase.execute('exec-1');
 
@@ -178,6 +240,19 @@ describe('ExecucaoServico use cases', () => {
             ordemId,
             expect.objectContaining({
                 status: expect.objectContaining({ value: StatusOSValues.FINALIZADA }),
+            })
+        );
+        expect(observability.emit).toHaveBeenCalledWith(
+            expect.objectContaining({
+                msg: BusinessEvent.osAutoFinalized,
+                ordemServicoId: ordemId,
+            })
+        );
+        expect(observability.emit).toHaveBeenCalledWith(
+            expect.objectContaining({
+                msg: BusinessEvent.osStatusChanged,
+                from: StatusOSValues.EM_EXECUCAO,
+                to: StatusOSValues.FINALIZADA,
             })
         );
     });

@@ -4,7 +4,7 @@ on:
   workflow_run:
     workflows: [CI]
     types: [completed]
-    branches: [main]
+    branches: [main, develop, release]
   workflow_dispatch:
     inputs:
       confirm:
@@ -41,16 +41,35 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          CONCLUSION=$(gh run list --workflow=ci.yml --branch=main --limit=1 --json conclusion --jq '.[0].conclusion')
+          BRANCH="${{ github.ref_name }}"
+          CONCLUSION=$(gh run list \
+            --repo "${{ github.repository }}" \
+            --workflow=ci.yml \
+            --branch="$BRANCH" \
+            --limit=1 \
+            --json conclusion \
+            --jq '.[0].conclusion')
           if [ "$CONCLUSION" != "success" ]; then
-            echo "::error::Latest CI run on main did not succeed (conclusion: ${CONCLUSION:-none}). Run CI first."
+            echo "::error::Latest CI run on ${BRANCH} did not succeed (conclusion: ${CONCLUSION:-none}). Run CI first."
             exit 1
           fi
-          echo "Latest CI on main: success"
+          echo "Latest CI on ${BRANCH}: success"
 
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      - name: Resolve image tag
+        id: image
+        run: |
+          BRANCH="${{ github.event.workflow_run.head_branch || github.ref_name }}"
+          if [ "$BRANCH" = "release" ]; then
+            echo "tag=homolog" >> "$GITHUB_OUTPUT"
+            echo "environment=homolog" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+            echo "environment=production" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: docker/login-action@v4
         with:
@@ -61,7 +80,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          tags: ruanngodinho/techchallenge:latest
+          tags: ruanngodinho/techchallenge:${{ steps.image.outputs.tag }}
           push: true
 
       - uses: aws-actions/configure-aws-credentials@v4
@@ -81,25 +100,36 @@ jobs:
           kubectl apply -f k8s/metrics-server.yml
           kubectl rollout status deployment/metrics-server -n kube-system --timeout=180s
 
+      - name: Deploy New Relic
+        run: |
+          kubectl apply -f newrelic.yaml
+          kubectl wait --for=condition=established crd/instrumentations.newrelic.com --timeout=60s
+          kubectl rollout status deployment/nri-bundle-k8s-agents-operator -n newrelic --timeout=180s
+          kubectl apply -f k8s/instrumentation.yaml
+
       - name: Deploy secrets and config
+        env:
+          GATEWAY_TRUST_SECRET: ${{ secrets.GATEWAY_TRUST_SECRET }}
         run: |
           kubectl apply -f k8s/secrets/
-
-      - name: Deploy MongoDB
-        run: |
-          if ! kubectl get storageclass gp2 >/dev/null 2>&1; then
-            kubectl apply -f k8s/mongo/mongo-storageclass.yml
-          else
-            echo "StorageClass gp2 already exists — skipping."
+          if [ -n "$GATEWAY_TRUST_SECRET" ]; then
+            TRUST_B64=$(printf '%s' "$GATEWAY_TRUST_SECRET" | base64 -w 0)
+            kubectl patch secret api-secrets --type merge \
+              -p "{\"data\":{\"GATEWAY_TRUST_SECRET\":\"$TRUST_B64\"}}"
           fi
-          kubectl apply -f k8s/mongo/mongo-pvc.yml
-          kubectl apply -f k8s/mongo/mongo-service.yml
-          kubectl apply -f k8s/mongo/mongo-deployment.yml
+
+      - name: Wait for Mongo from TechChallenge-infra-db
+        run: |
+          if ! kubectl get svc mongo-service >/dev/null 2>&1; then
+            echo "::error::mongo-service ausente. Rode o CD do TechChallenge-infra-db antes da API."
+            exit 1
+          fi
           kubectl rollout status deployment/mongo-deployment --timeout=180s
 
       - name: Deploy API
         run: |
           kubectl apply -f k8s/Api-deployment.yml
+          kubectl set image deployment/api-deployment api=ruanngodinho/techchallenge:${{ steps.image.outputs.tag }}
           kubectl apply -f k8s/Api-service.yml
           kubectl apply -f k8s/API-hpa.yml
 
@@ -123,7 +153,8 @@ jobs:
             echo "## CD deploy summary"
             echo ""
             echo "**Trigger:** \`${{ github.event_name }}\`"
-            echo "**Image:** \`ruanngodinho/techchallenge:latest\`"
+            echo "**Image:** \`ruanngodinho/techchallenge:${{ steps.image.outputs.tag }}\`"
+            echo "**Environment:** \`${{ steps.image.outputs.environment }}\`"
             echo "**Cluster:** \`${{ vars.TF_CLUSTER_NAME || 'techchallenge-eks' }}\`"
             echo ""
             echo "**Pods:**"
