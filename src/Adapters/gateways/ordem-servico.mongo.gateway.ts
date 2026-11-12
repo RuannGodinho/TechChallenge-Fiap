@@ -58,6 +58,7 @@ export class OrdemServicoMongoGateway implements IOrdemServicoGateway {
                 servicos: ordem.servicos,
                 valorTotal: ordem.valorTotal,
                 statusEnteredAt: ordem.statusEnteredAt,
+                statusHistory: ordem.statusHistory,
             });
         } catch (error) {
             this.emitMongoFailure(ordem.id, error);
@@ -90,6 +91,10 @@ export class OrdemServicoMongoGateway implements IOrdemServicoGateway {
 
         if (ordem.statusEnteredAt) {
             updates.statusEnteredAt = ordem.statusEnteredAt;
+        }
+
+        if (ordem.statusHistory) {
+            updates.statusHistory = ordem.statusHistory;
         }
 
         if (ordem.valorTotal != null) {

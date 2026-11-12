@@ -1,3 +1,4 @@
+import { DownstreamServiceError } from '../../errors/downstream-service.error';
 import { CriarOrdemServicoInputDto } from '../../dtos/ordem-servico/ordem-servico.dtos';
 import { OrdemServico } from '../../../enterprise/entities/ordem-servico.entity';
 import { IOrdemServicoGateway } from '../../ports/ordem-servico.gateway.port';
@@ -53,7 +54,14 @@ export class CriarOrdemServicoUseCase {
         });
 
         if (saved.id && saved.servicos.length > 0) {
-            await this.execucaoServicoPort.createExecucoesParaServicos(saved.id, saved.servicos);
+            try {
+                await this.execucaoServicoPort.createExecucoesParaServicos(saved.id, saved.servicos);
+            } catch (error) {
+                if (error instanceof DownstreamServiceError) {
+                    throw new DownstreamServiceError(error.service, error.message, saved.id);
+                }
+                throw error;
+            }
         }
 
         return saved;

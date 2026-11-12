@@ -124,6 +124,8 @@ class InMemoryOrdemServicoGateway implements IOrdemServicoGateway {
             veiculoId: ordem.veiculoId.value,
             status: ordem.status.value,
             dataAbertura: ordem.dataAbertura,
+            statusEnteredAt: ordem.statusEnteredAt,
+            statusHistory: ordem.statusHistory,
             pecas: ordem.pecas.map((item) => ({
                 pecaId: item.pecaId.value,
                 quantidade: item.quantidade,
@@ -147,6 +149,8 @@ class InMemoryOrdemServicoGateway implements IOrdemServicoGateway {
             veiculoId: ordem.veiculoId?.value ?? existing.veiculoId.value,
             status: ordem.status?.value ?? existing.status.value,
             dataAbertura: ordem.dataAbertura ?? existing.dataAbertura,
+            statusEnteredAt: ordem.statusEnteredAt ?? existing.statusEnteredAt,
+            statusHistory: ordem.statusHistory ?? existing.statusHistory,
             pecas: (ordem.pecas ?? existing.pecas).map((item) => ({
                 pecaId: item.pecaId.value,
                 quantidade: item.quantidade,
@@ -245,4 +249,18 @@ describe('Integração - Rotas de Ordens de Serviço', () => {
         expect(response.status).toBe(200);
         expect(response.body).toHaveLength(1);
     });
+    test('deve registrar e retornar o histórico após uma mudança de status', async () => {
+        const created = await request(app).post('/api/ordensServico')
+            .send({ cpfCnpj: '11144477735', veiculoId, pecas: [], servicos: [] })
+            .auth(_token, { type: 'bearer' });
+        expect(created.status).toBe(201);
+        const updated = await request(app).put(`/api/ordensServico/${created.body.id}`)
+            .send({ status: 'EM DIAGNOSTICO' }).auth(_token, { type: 'bearer' });
+        expect(updated.status).toBe(200);
+        expect(updated.body.statusHistory.map((entry: { status: string }) => entry.status))
+            .toEqual(['RECEBIDA', 'EM DIAGNOSTICO']);
+        const listed = await request(app).get('/api/ordensServico').auth(_token, { type: 'bearer' });
+        expect(listed.body[0].statusHistory).toEqual(updated.body.statusHistory);
+    });
+
 });

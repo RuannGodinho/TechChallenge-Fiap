@@ -55,5 +55,18 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  billing-consumer:
+    profiles: ["messaging"]
+    build: .
+    env_file: .env
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/Node-Fiap
+      NODE_ENV: production
+    command: npm run billing-consumer
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   mongo_data:

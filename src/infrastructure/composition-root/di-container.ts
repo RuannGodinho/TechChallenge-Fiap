@@ -1,3 +1,4 @@
+import { ServiceHttpClient, ExecutionHttpAdapter, PecaHttpAdapter, ServicoHttpAdapter, BillingHttpAdapter } from '../../Adapters/adapters/service-http.adapter';
 import { Db } from 'mongodb';
 import { connectDatabase } from '../database';
 import { ClienteMongoGateway } from '../../Adapters/gateways/cliente.mongo.gateway';
@@ -228,13 +229,7 @@ export class DIContainer {
         if (
             !this.clienteGatewayInjected ||
             !this.veiculoGatewayInjected ||
-            !this.pecaGatewayInjected ||
-            !this.servicoGatewayInjected ||
-            !this.estoqueGatewayInjected ||
-            !this.movimentacaoEstoqueGatewayInjected ||
-            !this.ordemServicoGatewayInjected ||
-            !this.execucaoServicoGatewayInjected ||
-            !this.orcamentoGatewayInjected
+            !this.ordemServicoGatewayInjected
         ) {
             this.db = await connectDatabase();
         }
@@ -614,9 +609,7 @@ export class DIContainer {
             if (this.execucaoServicoPortInjected) {
                 throw new Error('Execução serviço port not injected.');
             }
-            this.execucaoServicoPort = new ExecucaoServicoPortAdapter(
-                this.getCriarExecucoesParaServicosUseCase()
-            );
+            this.execucaoServicoPort = new ExecutionHttpAdapter(new ServiceHttpClient(process.env.EXECUTION_SERVICE_URL, 'Execution'));
         }
         return this.execucaoServicoPort;
     }
@@ -674,24 +667,21 @@ export class DIContainer {
 
     getPecaLookupPort(): IPecaLookupPort {
         if (!this.pecaLookupPort) {
-            this.pecaLookupPort = new PecaLookupAdapter(this.getBuscarPecaPorIdUseCase());
+            this.pecaLookupPort = new PecaHttpAdapter(new ServiceHttpClient(process.env.EXECUTION_SERVICE_URL, 'Execution'));
         }
         return this.pecaLookupPort;
     }
 
     getServicoLookupPort(): IServicoLookupPort {
         if (!this.servicoLookupPort) {
-            this.servicoLookupPort = new ServicoLookupAdapter(this.getBuscarServicoPorIdUseCase());
+            this.servicoLookupPort = new ServicoHttpAdapter(new ServiceHttpClient(process.env.EXECUTION_SERVICE_URL, 'Execution'));
         }
         return this.servicoLookupPort;
     }
 
     getEstoqueMovimentacaoPort(): IEstoqueMovimentacaoPort {
         if (!this.estoqueMovimentacaoPort) {
-            this.estoqueMovimentacaoPort = new EstoqueMovimentacaoAdapter(
-                this.getBuscarEstoquePorPecaIdUseCase(),
-                this.getRegistrarMovimentacaoEstoqueUseCase()
-            );
+            this.estoqueMovimentacaoPort = new ExecutionHttpAdapter(new ServiceHttpClient(process.env.EXECUTION_SERVICE_URL, 'Execution'));
         }
         return this.estoqueMovimentacaoPort;
     }
@@ -701,10 +691,7 @@ export class DIContainer {
             if (this.orcamentoPortInjected) {
                 throw new Error('Orçamento port not injected.');
             }
-            this.orcamentoPort = new OrcamentoPortAdapter(
-                this.getCriarOrcamentoPendenteUseCase(),
-                this.getVerificarUltimoOrcamentoAprovadoUseCase()
-            );
+            this.orcamentoPort = new BillingHttpAdapter(new ServiceHttpClient(process.env.BILLING_SERVICE_URL, 'Billing', process.env.BILLING_INTERNAL_API_KEY));
         }
         return this.orcamentoPort;
     }

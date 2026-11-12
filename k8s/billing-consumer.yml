@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-orders-billing-consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-orders-billing-consumer
+  template:
+    metadata:
+      labels:
+        app: service-orders-billing-consumer
+    spec:
+      containers:
+        - name: consumer
+          image: ruanngodinho/techchallenge:latest
+          command: ["npm", "run", "billing-consumer"]
+          envFrom:
+            - configMapRef:
+                name: api-config
+            - secretRef:
+                name: api-secrets
+      imagePullSecrets:
+        - name: dockerhub-cred

@@ -78,6 +78,12 @@ export class AlterarStatusOrdemServicoUseCase {
             }
         }
 
+        if (status.value === StatusOSValues.ENTREGUE) {
+            if (!ordem.id || !this.orcamentoPort.isPaymentConfirmed || !(await this.orcamentoPort.isPaymentConfirmed(ordem.id))) {
+                throw new Error('Não é possível entregar uma ordem sem pagamento confirmado.');
+            }
+        }
+
         const transition = ordem.transicionarStatus(status);
         this.observability.emit({
             msg: BusinessEvent.osStatusChanged,

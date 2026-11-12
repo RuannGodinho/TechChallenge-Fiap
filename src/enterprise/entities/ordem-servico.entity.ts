@@ -25,6 +25,7 @@ export interface CriarOrdemServicoInput {
 export class OrdemServico {
     id?: string;
 
+
     cpfCnpj: Documento;
 
     veiculoId: VeiculoId;
@@ -34,6 +35,8 @@ export class OrdemServico {
     dataAbertura: Date;
 
     statusEnteredAt: Date;
+
+    statusHistory: Array<{ status: string; enteredAt: Date }>;
 
     pecas: OrdemPecaItem[];
 
@@ -59,6 +62,7 @@ export class OrdemServico {
         valorTotal?: number,
 
         statusEnteredAt?: Date,
+        statusHistory?: Array<{ status: string; enteredAt: Date }>,
     ) {
         this.cpfCnpj = cpfCnpj;
 
@@ -77,6 +81,7 @@ export class OrdemServico {
         this.valorTotal = valorTotal;
 
         this.statusEnteredAt = statusEnteredAt ?? dataAbertura;
+        this.statusHistory = statusHistory ?? [{ status: status.value, enteredAt: this.statusEnteredAt }];
     }
 
     static dedupeServicos(servicos: string[]): string[] {
@@ -98,7 +103,7 @@ export class OrdemServico {
 
         const servicos = OrdemServico.dedupeServicos(input.servicos ?? []);
 
-        return new OrdemServico(
+        const ordem = new OrdemServico(
             cpfCnpj,
 
             veiculoId,
@@ -111,11 +116,13 @@ export class OrdemServico {
 
             servicos,
         );
+        return ordem;
     }
 
     static restore(props: {
         id?: string;
 
+    
         cpfCnpj: string;
 
         veiculoId: string;
@@ -131,6 +138,7 @@ export class OrdemServico {
         valorTotal?: number;
 
         statusEnteredAt?: Date;
+        statusHistory?: Array<{ status: string; enteredAt: Date }>;
     }): OrdemServico {
         return new OrdemServico(
             Documento.from(props.cpfCnpj),
@@ -152,6 +160,7 @@ export class OrdemServico {
             props.valorTotal,
 
             props.statusEnteredAt ?? props.dataAbertura,
+            props.statusHistory,
         );
     }
 
@@ -163,6 +172,7 @@ export class OrdemServico {
 
         this.status = novoStatus;
         this.statusEnteredAt = new Date();
+        this.statusHistory.push({ status: novoStatus.value, enteredAt: this.statusEnteredAt });
 
         return { from, to: novoStatus.value, durationMs };
     }

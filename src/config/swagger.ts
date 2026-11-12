@@ -4,7 +4,7 @@ const options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "API Oficina",
+      title: "Service Orders API",
       version: "1.0.0",
       description: "Sistema de gestão de oficina mecânica"
     },
@@ -23,7 +23,7 @@ const options = {
       }
     ]
   },
-  apis: ["./src/infrastructure/http/*.ts", "./src/Adapters/controllers/*.ts"]
+  apis: ["./src/infrastructure/http/cliente-routes.ts", "./src/infrastructure/http/veiculo-routes.ts", "./src/infrastructure/http/auth-routes.ts", "./src/infrastructure/http/ordem-servico-routes.ts"]
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

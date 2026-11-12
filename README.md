@@ -1,5 +1,8 @@
 # TechChallenge-Fiap
 
+> **Service Orders extraction in progress:** this repository now mounts customer, vehicle, authentication, and order routes. Billing and Execution routes belong to separate services. See [Service Orders contracts and setup](docs/SERVICE-ORDERS.md) for required configuration, API changes, and current limitations. The historical monolith documentation below has not yet been fully updated.
+
+
 API REST da **oficina mecânica Node-Fiap**: clientes, veículos, peças, serviços, estoque, ordens de serviço, orçamentos e execução.
 
 Este repositório entrega **somente a aplicação**: código Node.js, `Dockerfile`, Compose local e manifests Kubernetes (`k8s/`). Cluster EKS, autenticação no API Gateway e MongoDB Atlas vivem em [repositórios irmãos](docs/REPOS.md).

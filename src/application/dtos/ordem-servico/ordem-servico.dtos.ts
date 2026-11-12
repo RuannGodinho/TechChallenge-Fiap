@@ -26,6 +26,7 @@ export interface OrdemServicoResponseDto {
     cpfCnpj: string;
     veiculoId: string;
     status: string;
+    statusHistory: Array<{ status: string; enteredAt: Date }>;
     dataAbertura: Date;
     pecas: OrdemPecaItemDto[];
     servicos: string[];
@@ -58,6 +59,8 @@ export interface OrdemServicoDetalhesResponseDto {
     cpfCnpj: string;
 
     status: string;
+
+    statusHistory: Array<{ status: string; enteredAt: Date }>;
 
     dataAbertura: Date;
 
