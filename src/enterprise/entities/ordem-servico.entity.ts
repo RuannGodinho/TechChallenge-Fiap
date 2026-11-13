@@ -186,7 +186,7 @@ export class OrdemServico {
 
         servicos?: unknown[] | null,
     ): boolean {
-        return !!(pecas?.length && servicos?.length);
+        return !!(pecas?.length || servicos?.length);
     }
 
     aplicarItens(

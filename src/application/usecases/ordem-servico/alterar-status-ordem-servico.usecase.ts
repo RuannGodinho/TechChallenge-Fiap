@@ -49,7 +49,8 @@ export class AlterarStatusOrdemServicoUseCase {
                 try {
                     await this.estoqueMovimentacaoPort.assertQuantidadeDisponivel(
                         item.pecaId.value,
-                        item.quantidade
+                        item.quantidade,
+                        ordem.id
                     );
                 } catch (error) {
                     this.observability.emit({
@@ -66,7 +67,8 @@ export class AlterarStatusOrdemServicoUseCase {
             for (const item of ordem.pecas) {
                 await this.estoqueMovimentacaoPort.registrarSaidaOS(
                     item.pecaId.value,
-                    item.quantidade
+                    item.quantidade,
+                    ordem.id
                 );
                 this.observability.emit({
                     msg: BusinessEvent.estoqueMovimentado,

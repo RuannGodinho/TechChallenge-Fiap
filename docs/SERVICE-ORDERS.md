@@ -13,12 +13,12 @@ Set `EXECUTION_SERVICE_URL` and `BILLING_SERVICE_URL` to service base URLs. Set 
 
 | Owner | Method and path | Request / response |
 | --- | --- | --- |
-| Execution | `GET /internal/parts/:id` | JSON `{id,nome,descricao,preco,tipo}`, or 404 |
-| Execution | `GET /internal/services/:id` | JSON `{id,nome,descricao,preco}`, or 404 |
+| Execution | `GET /api/pecas/:id` | JSON `{id,nome,descricao,preco,tipo}`, or 404 |
+| Execution | `GET /api/servicos/:id` | JSON `{id,nome,descricao,preco}`, or 404 |
 | Execution | `POST /internal/executions` | `{ordemServicoId,servicoIds}` |
 | Execution | `POST /internal/inventory/check` | `{pecaId,quantidade}`; non-2xx if unavailable |
 | Execution | `POST /internal/inventory/consume` | `{pecaId,quantidade}` |
-| Billing | `POST /internal/estimates` | `{ordemServicoId,valorTotal,pecas,servicos}` |
+| Billing | `POST /api/orcamentos` | `{ordemServicoId,valorTotal,pecas,servicos}` |
 | Billing | `GET /internal/orders/:id/estimate-approval` | `{approved: boolean}` |
 
 Successful commands may return any 2xx response; their bodies are ignored. Successful GET requests must return JSON. Estimate `pecas` entries contain `id`, `nome`, `descricao`, `preco`, `tipo`, and `quantidade`; `servicos` entries contain `id`, `nome`, `descricao`, and `preco`. If order creation saves the order but the execution call fails, its 502 response contains `orderId`: the caller should reconcile that existing order before retrying creation. Service-to-service authentication, idempotency keys, retry and reconciliation contracts are not yet implemented. The current synchronous flow can persist an order before an execution request fails, or partially consume stock before a later operation fails. Do not rely on it for recoverable production workflows: the planned saga, outbox, reservations and compensation remain necessary. Payment gating is also a later milestone.
@@ -29,7 +29,7 @@ Copy `.env.example` to `.env`, configure the service URLs and secrets, then run 
 
 ## Delivery payment check
 
-Before moving an order from `FINALIZADA` to `ENTREGUE`, Service Orders calls Billing `GET /internal/orders/:id/payment-status`. Delivery is rejected when the result is unpaid or Billing cannot be reached. Billing rechecks the payment with Mercado Pago. Execution completion still needs a reliable producer to call Billing's authenticated execution-completion endpoint; until that integration exists, checkout cannot proceed through the intended workflow.
+Before moving an order from `FINALIZADA` to `ENTREGUE`, Service Orders calls Billing `GET /internal/orders/:id/payment-status`. Delivery is rejected when the result is unpaid or Billing cannot be reached. Billing rechecks the payment with Mercado Pago. Execution now completes the order through `PATCH /internal/ordensServico/:id/finalizar`; this endpoint notifies Billing with a stable message ID and can be retried after a downstream failure. Configure `SERVICE_ORDERS_INTERNAL_API_KEY` in both services. See `docs/ENDPOINT-MIGRATION.md`.
 
 ## Billing events consumer
 

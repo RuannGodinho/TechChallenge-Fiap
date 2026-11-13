@@ -40,29 +40,30 @@ export class ExecutionHttpAdapter implements IExecucaoServicoPort, IEstoqueMovim
     async createExecucoesParaServicos(ordemServicoId: string, servicoIds: string[]): Promise<void> {
         await this.client.request('/internal/executions', 'POST', { ordemServicoId, servicoIds });
     }
-    async assertQuantidadeDisponivel(pecaId: string, quantidade: number): Promise<void> {
-        await this.client.request('/internal/inventory/check', 'POST', { pecaId, quantidade });
+    async assertQuantidadeDisponivel(pecaId: string, quantidade: number, ordemServicoId?: string): Promise<void> {
+        await this.client.request('/internal/inventory/check', 'POST', { pecaId, quantidade, ...(ordemServicoId ? { ordemServicoId } : {}) });
     }
-    async registrarSaidaOS(pecaId: string, quantidade: number): Promise<void> {
-        await this.client.request('/internal/inventory/consume', 'POST', { pecaId, quantidade });
+    async registrarSaidaOS(pecaId: string, quantidade: number, ordemServicoId?: string): Promise<void> {
+        if (!ordemServicoId) throw new Error('order ID is required for inventory consumption');
+        await this.client.request('/internal/inventory/consume', 'POST', { pecaId, quantidade, ordemServicoId });
     }
 }
 export class PecaHttpAdapter implements IPecaLookupPort {
     constructor(private readonly client: ServiceHttpClient) {}
     findById(id: string): Promise<PecaLookupData | null> {
-        return this.client.request(`/internal/parts/${encodeURIComponent(id)}`, 'GET', undefined, true);
+        return this.client.request(`/api/pecas/${encodeURIComponent(id)}`, 'GET', undefined, true);
     }
 }
 export class ServicoHttpAdapter implements IServicoLookupPort {
     constructor(private readonly client: ServiceHttpClient) {}
     findById(id: string): Promise<ServicoLookupData | null> {
-        return this.client.request(`/internal/services/${encodeURIComponent(id)}`, 'GET', undefined, true);
+        return this.client.request(`/api/servicos/${encodeURIComponent(id)}`, 'GET', undefined, true);
     }
 }
 export class BillingHttpAdapter implements IOrcamentoPort {
     constructor(private readonly client: ServiceHttpClient) {}
     async createPendente(input: CriarOrcamentoPendenteInput): Promise<void> {
-        await this.client.request('/internal/estimates', 'POST', { ...input });
+        await this.client.request('/api/orcamentos', 'POST', { ...input });
     }
     async isPaymentConfirmed(ordemServicoId: string): Promise<boolean> {
         const result = await this.client.request<{ paid: boolean }>(`/internal/orders/${encodeURIComponent(ordemServicoId)}/payment-status`);

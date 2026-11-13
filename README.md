@@ -1,3 +1,5 @@
+> Endpoint migration update: original Portuguese `/api` paths are restored in their owning service. See [restored endpoints and configuration](docs/ENDPOINT-MIGRATION.md). The extraction notes below describe earlier limitations; the endpoint inventory and execution-completion behavior are superseded by that document.
+
 # TechChallenge-Fiap
 
 > **Service Orders extraction in progress:** this repository now mounts customer, vehicle, authentication, and order routes. Billing and Execution routes belong to separate services. See [Service Orders contracts and setup](docs/SERVICE-ORDERS.md) for required configuration, API changes, and current limitations. The historical monolith documentation below has not yet been fully updated.

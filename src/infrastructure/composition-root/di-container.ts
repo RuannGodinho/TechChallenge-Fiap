@@ -609,7 +609,7 @@ export class DIContainer {
             if (this.execucaoServicoPortInjected) {
                 throw new Error('Execução serviço port not injected.');
             }
-            this.execucaoServicoPort = new ExecutionHttpAdapter(new ServiceHttpClient(process.env.EXECUTION_SERVICE_URL, 'Execution'));
+            this.execucaoServicoPort = new ExecutionHttpAdapter(new ServiceHttpClient(process.env.EXECUTION_SERVICE_URL, 'Execution', process.env.EXECUTION_INTERNAL_API_KEY));
         }
         return this.execucaoServicoPort;
     }
@@ -667,21 +667,21 @@ export class DIContainer {
 
     getPecaLookupPort(): IPecaLookupPort {
         if (!this.pecaLookupPort) {
-            this.pecaLookupPort = new PecaHttpAdapter(new ServiceHttpClient(process.env.EXECUTION_SERVICE_URL, 'Execution'));
+            this.pecaLookupPort = new PecaHttpAdapter(new ServiceHttpClient(process.env.EXECUTION_SERVICE_URL, 'Execution', process.env.EXECUTION_INTERNAL_API_KEY));
         }
         return this.pecaLookupPort;
     }
 
     getServicoLookupPort(): IServicoLookupPort {
         if (!this.servicoLookupPort) {
-            this.servicoLookupPort = new ServicoHttpAdapter(new ServiceHttpClient(process.env.EXECUTION_SERVICE_URL, 'Execution'));
+            this.servicoLookupPort = new ServicoHttpAdapter(new ServiceHttpClient(process.env.EXECUTION_SERVICE_URL, 'Execution', process.env.EXECUTION_INTERNAL_API_KEY));
         }
         return this.servicoLookupPort;
     }
 
     getEstoqueMovimentacaoPort(): IEstoqueMovimentacaoPort {
         if (!this.estoqueMovimentacaoPort) {
-            this.estoqueMovimentacaoPort = new ExecutionHttpAdapter(new ServiceHttpClient(process.env.EXECUTION_SERVICE_URL, 'Execution'));
+            this.estoqueMovimentacaoPort = new ExecutionHttpAdapter(new ServiceHttpClient(process.env.EXECUTION_SERVICE_URL, 'Execution', process.env.EXECUTION_INTERNAL_API_KEY));
         }
         return this.estoqueMovimentacaoPort;
     }

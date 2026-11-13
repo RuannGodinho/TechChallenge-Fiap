@@ -69,8 +69,8 @@ describe('OrdemServico extended use cases', () => {
 
             await useCase.execute(ordem, 'EM EXECUCAO');
 
-            expect(estoquePort.assertQuantidadeDisponivel).toHaveBeenCalledWith(pecaId, 2);
-            expect(estoquePort.registrarSaidaOS).toHaveBeenCalledWith(pecaId, 2);
+            expect(estoquePort.assertQuantidadeDisponivel).toHaveBeenCalledWith(pecaId, 2, 'ordem-1');
+            expect(estoquePort.registrarSaidaOS).toHaveBeenCalledWith(pecaId, 2, 'ordem-1');
             expect(orcamentoPort.isLatestOrcamentoApproved).toHaveBeenCalledWith('ordem-1');
             expect(ordem.status.value).toBe('EM EXECUCAO');
             expect(observability.emit).toHaveBeenCalledWith(
