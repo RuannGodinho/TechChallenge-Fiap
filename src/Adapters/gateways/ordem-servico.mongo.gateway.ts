@@ -20,17 +20,6 @@ export class OrdemServicoMongoGateway implements IOrdemServicoGateway {
         this.collection = this.db.collection<OrdemServicoPersistenceModel>('OrdemServico');
     }
 
-    async finalizeExecution(id: string): Promise<OrdemServico | null> {
-        if (!ObjectId.isValid(id)) return null;
-        const now = new Date();
-        const row = await this.collection.findOneAndUpdate(
-            { _id: new ObjectId(id), status: 'EM EXECUCAO' },
-            { $set: { status: 'FINALIZADA', statusEnteredAt: now }, $push: { statusHistory: { status: 'FINALIZADA', enteredAt: now } } } as never,
-            { returnDocument: 'after' },
-        );
-        return row ? OrdemServicoMapper.toDomain(row) : this.findById(id);
-    }
-
     async findAll(): Promise<OrdemServico[]> {
         const rows = await this.collection.find().toArray();
         return rows.map((row) => OrdemServicoMapper.toDomain(row));

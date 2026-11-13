@@ -10,7 +10,8 @@
     "test": "jest",
     "coverage": "jest --coverage",
     "sonar": "node --env-file=.env -e \"process.env.SONAR_TOKEN && require('child_process').spawnSync('npx',['sonar-scanner',`-Dsonar.token=${process.env.SONAR_TOKEN}`,`-Dsonar.login=${process.env.SONAR_TOKEN}`],{stdio:'inherit',shell:true})\"",
-    "billing-consumer": "node --import tsx ./src/infrastructure/messaging/billing-consumer.ts"
+    "billing-consumer": "node --import tsx ./src/infrastructure/messaging/billing-consumer.ts",
+    "check:architecture": "node scripts/check-architecture.cjs"
   },
   "dependencies": {
     "amqplib": "^0.10.9",

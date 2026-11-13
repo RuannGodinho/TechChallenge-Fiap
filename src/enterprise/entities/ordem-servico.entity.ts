@@ -177,6 +177,11 @@ export class OrdemServico {
         return { from, to: novoStatus.value, durationMs };
     }
 
+    concluirExecucao(): StatusTransitionResult | null {
+        if (this.status.value === 'FINALIZADA' || this.status.value === 'ENTREGUE') return null;
+        return this.transicionarStatus(StatusOS.from('FINALIZADA'));
+    }
+
     promoverParaAguardandoAprovacao(): StatusTransitionResult {
         return this.transicionarStatus(StatusOS.from("AGUARDANDO APROVACAO"));
     }

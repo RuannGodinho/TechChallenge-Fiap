@@ -416,7 +416,7 @@ export class DIContainer {
 
     getListarClientesUseCase(): ListarClientesUseCase {
         if (!this.listarClientesUseCase) {
-            this.listarClientesUseCase = new ListarClientesUseCase(this.getClienteGateway());
+            this.listarClientesUseCase = new ListarClientesUseCase(this.getClienteGateway(), this.getObservabilityPort());
         }
         return this.listarClientesUseCase;
     }

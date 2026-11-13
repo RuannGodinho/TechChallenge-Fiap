@@ -1,7 +1,6 @@
 import { OrdemServico } from '../../enterprise/entities/ordem-servico.entity';
 
 export interface IOrdemServicoGateway {
-    finalizeExecution?(id: string): Promise<OrdemServico | null>;
     findAll(): Promise<OrdemServico[]>;
     findById(id: string): Promise<OrdemServico | null>;
     findByCpfCnpj(cpfCnpj: string): Promise<OrdemServico[]>;

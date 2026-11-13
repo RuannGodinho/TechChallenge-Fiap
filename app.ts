@@ -1,4 +1,5 @@
-import executionOrderRoutes from './src/infrastructure/http/execution-order-routes';
+import { createExecutionOrderRoutes } from './src/infrastructure/http/execution-order-routes';
+import { createExecutionOrderController } from './src/infrastructure/composition-root/execution-order-container';
 import express from 'express';
 import clienteRoutes from './src/infrastructure/http/cliente-routes';
 import veiculoRoutes from './src/infrastructure/http/veiculo-routes';
@@ -15,7 +16,7 @@ app.use(healthRoutes);
 app.use(requestLogging);
 app.use(normalizeBodyCase);
 
-app.use('/internal', executionOrderRoutes);
+app.use('/internal', createExecutionOrderRoutes(createExecutionOrderController));
 app.use('/api', clienteRoutes);
 app.use('/api', veiculoRoutes);
 app.use('/api', authRoutes);
