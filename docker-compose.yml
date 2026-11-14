@@ -21,6 +21,8 @@ services:
         max-file: "3"
 
   api:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     build: .
     container_name: oficina-api
     restart: on-failure:5
@@ -56,13 +58,28 @@ services:
         max-file: "3"
 
   billing-consumer:
-    profiles: ["messaging"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     build: .
     env_file: .env
     environment:
       MONGODB_URI: mongodb://mongodb:27017/Node-Fiap
       NODE_ENV: production
     command: npm run billing-consumer
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  execution-consumer:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    build: .
+    env_file: .env
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/Node-Fiap
+      NODE_ENV: production
+    command: npm run execution-consumer
     depends_on:
       mongodb:
         condition: service_healthy

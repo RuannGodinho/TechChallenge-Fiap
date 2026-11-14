@@ -1,3 +1,7 @@
+> `docker compose up -d --build` starts this repository's MongoDB, API, billing consumer, and execution consumer. Set `RABBITMQ_URL` to the shared broker (`host.docker.internal:5672` locally after starting Billing, or the deployed broker hostname). No startup script, shared Docker network, or Compose profile is required. See [messaging setup](docs/RABBITMQ.md).
+
+> RabbitMQ setup and asynchronous execution completion are implemented. See [local messaging setup, queues and tests](docs/RABBITMQ.md). Older extraction notes below are historical.
+
 > Endpoint migration update: original Portuguese `/api` paths are restored in their owning service. See [restored endpoints and configuration](docs/ENDPOINT-MIGRATION.md). The extraction notes below describe earlier limitations; the endpoint inventory and execution-completion behavior are superseded by that document.
 
 # TechChallenge-Fiap
