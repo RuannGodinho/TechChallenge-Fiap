@@ -1,4 +1,4 @@
-import { TipoItem } from '../../../validators/tipo-item';
+import { TipoItem } from '../../../enterprise/value-objects/tipo-item';
 
 export interface CreatePecaInputDto {
     nome: string;

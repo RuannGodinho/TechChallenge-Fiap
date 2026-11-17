@@ -58,8 +58,9 @@ export class FinalizarExecucaoUseCase {
                 );
             }
 
+            const expectedStatus = ordem.status.value;
             const transition = ordem.transicionarStatus(StatusOS.from(StatusOSValues.FINALIZADA));
-            await this.ordemServicoGateway.update(ordemServicoId, ordem);
+            await this.ordemServicoGateway.update(ordemServicoId, ordem, expectedStatus);
 
             this.observability.emit({
                 msg: BusinessEvent.osAutoFinalized,

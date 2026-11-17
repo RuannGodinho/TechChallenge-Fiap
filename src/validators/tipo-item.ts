@@ -1,6 +1,2 @@
-export const TipoItem = {
-  PECA: "PECA",
-  INSUMO: "INSUMO"
-} as const;
-
-export type TipoItem = typeof TipoItem[keyof typeof TipoItem];
+// Compatibility export; the item type belongs to the domain.
+export { TipoItem } from '../enterprise/value-objects/tipo-item';

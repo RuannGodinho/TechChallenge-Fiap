@@ -1,3 +1,4 @@
+import { DownstreamServiceError } from '../../application/errors/downstream-service.error';
 import { Router, Request, Response } from 'express';
 import { authMiddleware } from './middlewares/auth-middleware';
 import { DIContainer } from '../composition-root/di-container';
@@ -53,6 +54,8 @@ async function getOrdemServicoController() {
  *         description: Ordem de serviço criada com sucesso
  *       400:
  *         description: Cliente e veículo são obrigatórios
+ *       502:
+ *         description: Serviço dependente indisponível; orderId identifica uma ordem já criada, quando aplicável
  */
 router.post('/ordensServico', authMiddleware, async (req: Request, res: Response) => {
     const { cpfCnpj, veiculoId, veiculo, pecas, servicos } = req.body;
@@ -69,12 +72,15 @@ router.post('/ordensServico', authMiddleware, async (req: Request, res: Response
             veiculoId: resolvedVeiculoId,
             pecas: pecas || [],
             servicos: servicos || [],
-        });
+        }, req.header('Idempotency-Key'));
 
         return res.status(201).json(ordem);
     } catch (error: unknown) {
+        if (error instanceof DownstreamServiceError) {
+            return res.status(502).json({ error: error.message, service: error.service, ...(error.orderId ? { orderId: error.orderId } : {}) });
+        }
         const message = error instanceof Error ? error.message : 'Internal server error';
-        return res.status(500).json({ error: message });
+        return res.status(message.startsWith('Conflito:') ? 409 : 500).json({ error: message });
     }
 });
 
@@ -96,8 +102,11 @@ router.get('/ordensServico', authMiddleware, async (_req: Request, res: Response
         const ordens = await controller.listaOrdensServico();
         return res.json(ordens);
     } catch (error: unknown) {
+        if (error instanceof DownstreamServiceError) {
+            return res.status(502).json({ error: error.message, service: error.service, ...(error.orderId ? { orderId: error.orderId } : {}) });
+        }
         const message = error instanceof Error ? error.message : 'Internal server error';
-        return res.status(500).json({ error: message });
+        return res.status(message.startsWith('Conflito:') ? 409 : 500).json({ error: message });
     }
 });
 
@@ -166,7 +175,7 @@ router.put('/ordensServico/:id', authMiddleware, async (req: Request, res: Respo
         }
 
         const controller = await getOrdemServicoController();
-        const ordem = await controller.updateOrdemServico(id, updates);
+        const ordem = await controller.updateOrdemServico(id, updates,req.header('Idempotency-Key'));
 
         if (!ordem) {
             return res.status(404).json({ error: 'Ordem de serviço não encontrada' });
@@ -174,8 +183,11 @@ router.put('/ordensServico/:id', authMiddleware, async (req: Request, res: Respo
 
         return res.json(ordem);
     } catch (error: unknown) {
+        if (error instanceof DownstreamServiceError) {
+            return res.status(502).json({ error: error.message, service: error.service, ...(error.orderId ? { orderId: error.orderId } : {}) });
+        }
         const message = error instanceof Error ? error.message : 'Internal server error';
-        return res.status(500).json({ error: message });
+        return res.status(message.startsWith('Conflito:') ? 409 : 500).json({ error: message });
     }
 });
 
@@ -212,13 +224,16 @@ router.get('/ordensServico/:cpfCnpj/detalhes', async (req: Request, res: Respons
 
         return res.json(ordens);
     } catch (error: unknown) {
+        if (error instanceof DownstreamServiceError) {
+            return res.status(502).json({ error: error.message, service: error.service, ...(error.orderId ? { orderId: error.orderId } : {}) });
+        }
         const message = error instanceof Error ? error.message : 'Internal server error';
 
         if (message.includes('não encontrada')) {
             return res.status(404).json({ error: message });
         }
 
-        return res.status(500).json({ error: message });
+        return res.status(message.startsWith('Conflito:') ? 409 : 500).json({ error: message });
     }
 });
 

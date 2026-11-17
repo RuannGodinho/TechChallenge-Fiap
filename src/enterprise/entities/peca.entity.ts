@@ -1,4 +1,4 @@
-import { TipoItem } from '../../validators/tipo-item';
+import { TipoItem } from '../value-objects/tipo-item';
 
 export class Peca {
     id?: string;

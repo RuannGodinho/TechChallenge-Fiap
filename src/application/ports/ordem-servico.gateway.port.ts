@@ -5,5 +5,5 @@ export interface IOrdemServicoGateway {
     findById(id: string): Promise<OrdemServico | null>;
     findByCpfCnpj(cpfCnpj: string): Promise<OrdemServico[]>;
     save(ordem: OrdemServico): Promise<OrdemServico>;
-    update(id: string, ordem: Partial<OrdemServico>): Promise<OrdemServico | null>;
+    update(id: string, ordem: Partial<OrdemServico>, expectedStatus: string): Promise<OrdemServico | null>;
 }

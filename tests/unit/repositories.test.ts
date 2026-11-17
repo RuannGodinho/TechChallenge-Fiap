@@ -455,7 +455,7 @@ describe('Repository coverage', () => {
 
       const result = await gateway.update(id, {
         status: StatusOS.from('EM DIAGNOSTICO'),
-      } as Partial<OrdemServico>);
+      } as Partial<OrdemServico>, 'RECEBIDA');
 
       expect(result?.status.value).toBe('EM DIAGNOSTICO');
       expect(collection.findOneAndUpdate).toHaveBeenCalled();

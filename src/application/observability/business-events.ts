@@ -4,6 +4,7 @@ export const BusinessEvent = {
     osStatusChanged: 'os_status_changed',
     osProcessingFailed: 'os_processing_failed',
     osAutoFinalized: 'os_auto_finalized',
+    osAutoDelivered: 'os_auto_delivered',
     orcamentoCreated: 'orcamento_created',
     orcamentoStatusChanged: 'orcamento_status_changed',
     execucaoStarted: 'execucao_started',

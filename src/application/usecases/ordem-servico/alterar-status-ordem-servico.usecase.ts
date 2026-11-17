@@ -49,7 +49,8 @@ export class AlterarStatusOrdemServicoUseCase {
                 try {
                     await this.estoqueMovimentacaoPort.assertQuantidadeDisponivel(
                         item.pecaId.value,
-                        item.quantidade
+                        item.quantidade,
+                        ordem.id
                     );
                 } catch (error) {
                     this.observability.emit({
@@ -66,7 +67,8 @@ export class AlterarStatusOrdemServicoUseCase {
             for (const item of ordem.pecas) {
                 await this.estoqueMovimentacaoPort.registrarSaidaOS(
                     item.pecaId.value,
-                    item.quantidade
+                    item.quantidade,
+                    ordem.id
                 );
                 this.observability.emit({
                     msg: BusinessEvent.estoqueMovimentado,
@@ -75,6 +77,12 @@ export class AlterarStatusOrdemServicoUseCase {
                     quantidade: item.quantidade,
                     origem: 'OS',
                 });
+            }
+        }
+
+        if (status.value === StatusOSValues.ENTREGUE) {
+            if (!ordem.id || !this.orcamentoPort.isPaymentConfirmed || !(await this.orcamentoPort.isPaymentConfirmed(ordem.id))) {
+                throw new Error('Não é possível entregar uma ordem sem pagamento confirmado.');
             }
         }
 

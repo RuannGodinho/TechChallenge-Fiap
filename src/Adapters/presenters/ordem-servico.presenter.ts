@@ -13,6 +13,7 @@ export class OrdemServicoPresenter {
             cpfCnpj: ordem.cpfCnpj.value,
             veiculoId: ordem.veiculoId.value,
             status: ordem.status.value,
+            statusHistory: ordem.statusHistory,
             dataAbertura: ordem.dataAbertura,
 
             pecas: ordem.pecas.map((item) => ({
@@ -38,6 +39,7 @@ export class OrdemServicoPresenter {
         const response: OrdemServicoDetalhesResponseDto = {
             cpfCnpj: input.ordem.cpfCnpj.value,
             status: input.ordem.status.value,
+            statusHistory: input.ordem.statusHistory,
             dataAbertura: input.ordem.dataAbertura,
             veiculo: input.veiculo
                 ? {

@@ -24,8 +24,8 @@ export class OrdemServicoController {
         private readonly getPresenter: UseCaseFactory<OrdemServicoPresenter>
     ) {}
 
-    async createOrdemServico(input: CriarOrdemServicoInputDto): Promise<OrdemServicoResponseDto> {
-        const ordem = await this.getCriarOrdemServicoUseCase().execute(input);
+    async createOrdemServico(input: CriarOrdemServicoInputDto,key?:string): Promise<OrdemServicoResponseDto> {
+        const ordem = await this.getCriarOrdemServicoUseCase().execute(input,key);
         return this.getPresenter().present(ordem);
     }
 
@@ -43,7 +43,7 @@ export class OrdemServicoController {
 
     async updateOrdemServico(
         id: string,
-        updates: Record<string, unknown>
+        updates: Record<string, unknown>, key?:string
     ): Promise<OrdemServicoResponseDto> {
         const input: AtualizarOrdemServicoInputDto = {
 
@@ -59,7 +59,7 @@ export class OrdemServicoController {
 
         };
 
-        const ordem = await this.getAtualizarOrdemServicoUseCase().execute(id, input);
+        const ordem = await this.getAtualizarOrdemServicoUseCase().execute(id, input,key);
 
         return this.getPresenter().present(ordem);
     }

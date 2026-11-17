@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-orders-billing-consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-orders-billing-consumer
+  template:
+    metadata:
+      labels:
+        app: service-orders-billing-consumer
+    spec:
+      containers:
+        - name: consumer
+          image: 'ruanngodinho/techchallenge:latest'
+          imagePullPolicy: Always
+          command:
+            - node
+            - run-workers.cjs
+            - src/infrastructure/messaging/billing-consumer.ts
+            - src/infrastructure/messaging/execution-consumer.ts
+            - src/infrastructure/messaging/saga-worker.ts
+          envFrom:
+            - configMapRef:
+                name: api-config
+            - secretRef:
+                name: api-secrets
+      imagePullSecrets:
+        - name: dockerhub-cred
