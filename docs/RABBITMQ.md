@@ -14,9 +14,9 @@ docker compose up -d --build
 
 | Repository | Starts by default |
 | --- | --- |
-| Billing | PostgreSQL, migrations/API, outbox publisher, execution consumer, email worker, RabbitMQ, Mailpit |
-| Execution | MongoDB, replica-set initializer, API, execution publisher |
-| Service Orders | MongoDB, API, billing consumer, execution consumer |
+| Billing | PostgreSQL, migrations/API, grouped workers (outbox, execution consumer, email, Saga), RabbitMQ, Mailpit |
+| Execution | MongoDB, temporary replica-set initializer, API, grouped workers (execution publisher, Saga) |
+| Service Orders | MongoDB, temporary replica-set initializer, API, grouped workers (billing consumer, execution consumer, Saga) |
 
 For local development, start Billing first because its Compose owns the one shared RabbitMQ broker. Execution and Service Orders connect through the published AMQP port; their Compose files do not reference Billing's files or Docker network. They can also start before the broker: messaging workers retry the connection until it becomes available. APIs retain their existing HTTP contracts and cross-service HTTP URL configuration.
 
@@ -26,7 +26,7 @@ For local development, start Billing first because its Compose owns the one shar
 - Management UI: http://localhost:15672. Credentials are Billing's `RABBITMQ_USER`, `RABBITMQ_PASSWORD`, and `RABBITMQ_VHOST`.
 - Local email inbox: http://localhost:8025. Mailpit captures development mail; it does not deliver it to external recipients. Use `SMTP_HOST=mailpit`, `SMTP_PORT=1025`, `SMTP_SECURE=false`, with empty SMTP credentials. Configure another SMTP host explicitly for real delivery. [Mailpit Docker documentation](https://mailpit.axllent.org/docs/install/docker/).
 
-Billing's messaging workers wait for healthy RabbitMQ and for API migrations to finish. Its email worker waits for migrations and Mailpit. All workers start by default and restart automatically; no Compose profiles are required. Workers that connect to an external broker reconnect independently of API startup.
+Billing's grouped workers container waits for healthy RabbitMQ, Mailpit, and for API migrations to finish. All workers start by default; no Compose profiles are required. If one worker exits, its group stops and Docker restarts the container. Workers that connect to an external broker reconnect independently of API startup. During migration, use `docker compose up -d --build --remove-orphans` to replace the previous individual worker containers, preserving volumes. Inspect all worker logs with `docker compose logs -f workers`.
 
 ### Existing local broker migration
 
@@ -46,7 +46,7 @@ Billing owns the local broker lifecycle: stopping Billing's entire Compose proje
 
 | Publisher | Exchange | Binding | Queue | Consumer behavior |
 | --- | --- | --- | --- | --- |
-| Billing outbox worker | `billing.events` | `estimate.#`, `payment.#` | `service-orders.billing` | Record estimate/payment events on the order with message-ID deduplication |
+| Billing outbox worker | `billing.events` | `estimate.#`, `payment.#` | `service-orders.billing` | Record events with message-ID deduplication; confirmed payment triggers delivery after execution and a fresh Billing check |
 | Execution outbox worker | `execution.events` | `execution.completed` | `service-orders.execution` | Apply the order aggregate's completion transition and record the inbox receipt |
 | Execution outbox worker | `execution.events` | `execution.completed` | `billing.execution` | Register completion against the latest eligible approved estimate |
 
@@ -58,12 +58,15 @@ The exchanges `billing.events.dlx` and `execution.events.dlx` route exhausted/re
 
 | Repository | Compose service | npm command |
 | --- | --- | --- |
-| Billing | `outbox-worker` | `npm run outbox-worker` |
-| Billing | `execution-consumer` | `npm run execution-consumer` |
-| Billing | `email-worker` | `npm run email-worker` |
-| Execution | `execution-publisher` | `npm run execution-publisher` |
-| Service Orders | `billing-consumer` | `npm run billing-consumer` |
-| Service Orders | `execution-consumer` | `npm run execution-consumer` |
+| Billing | `workers` | `npm run outbox-worker` |
+| Billing | `workers` | `npm run execution-consumer` |
+| Billing | `workers` | `npm run email-worker` |
+| Execution | `workers` | `npm run execution-publisher` |
+| Service Orders | `workers` | `npm run billing-consumer` |
+| Service Orders | `workers` | `npm run execution-consumer` |
+| Billing | `workers` | `npm run saga-worker` |
+| Execution | `workers` | `npm run saga-worker` |
+| Service Orders | `workers` | `npm run saga-worker` |
 
 All workers start with their owning repository's default Compose command and restart automatically. The APIs keep their existing HTTP contracts.
 

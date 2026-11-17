@@ -1,4 +1,8 @@
-> `docker compose up -d --build` starts this repository's MongoDB, API, billing consumer, and execution consumer. Set `RABBITMQ_URL` to the shared broker (`host.docker.internal:5672` locally after starting Billing, or the deployed broker hostname). No startup script, shared Docker network, or Compose profile is required. See [messaging setup](docs/RABBITMQ.md).
+> Saga orquestrada: [fluxo, compensações, configuração e testes](docs/SAGA.md).
+
+> Pagamento confirmado entrega automaticamente a OS após a execução: [teste local completo com Mercado Pago](docs/TESTE-MERCADO-PAGO.md).
+
+> `docker compose up -d --build` starts this repository's MongoDB, API, and one supervised `workers` container (billing consumer, execution consumer, and Saga). Set `RABBITMQ_URL` to the shared broker (`host.docker.internal:5672` locally after starting Billing, or the deployed broker hostname). No startup script, shared Docker network, or Compose profile is required. See [messaging setup](docs/RABBITMQ.md).
 
 > RabbitMQ setup and asynchronous execution completion are implemented. See [local messaging setup, queues and tests](docs/RABBITMQ.md). Older extraction notes below are historical.
 
@@ -265,3 +269,18 @@ docs/                    arquitetura, RFCs, ADRs
 | [GitHub Actions](docs/GITHUB-ACTIONS.md) | CI/CD deste repo |
 | [Quatro repositórios](docs/REPOS.md) | Split e ordem de deploy |
   [Contrato auth CPF](docs/CONTRATO-AUTH-CPF.md) | Login por CPF, lookup da Lambda, branches `release`/`main` |
+
+## Compact Docker Compose
+
+The default Compose groups this service's background workers in one `workers` container, separate from the API. `run-workers.cjs` launches each worker as its own Node process, forwards shutdown signals, and stops the group if any worker exits. Docker restarts the group on failure. The shutdown timeout is 25 seconds; Compose allows 35 seconds. Individual npm worker commands remain available for separate Kubernetes workloads.
+
+To replace the previous individual worker containers, run inside this repository:
+
+```bash
+docker compose up -d --build --remove-orphans
+docker compose logs -f workers
+```
+
+Database volumes, API ports, seeds, migrations, broker and queue contracts are unchanged. The two MongoDB replica sets remain separate to preserve existing data and transactions. The MongoDB initializer containers are temporary; they exit after configuration.
+
+Across Service Orders, Execution and Billing, this changes the number of permanent containers from 17 to 11 (3 + 3 + 5), plus two temporary MongoDB initializers. Worker processes still have their own memory and database connections. This reduces container count without guaranteeing proportional RAM or AWS cost savings. Workers in the same group restart together and cannot scale independently through Compose. Size Kubernetes requests and replicas from measurements; the Kubernetes manifests have not been changed by this Compose optimization.

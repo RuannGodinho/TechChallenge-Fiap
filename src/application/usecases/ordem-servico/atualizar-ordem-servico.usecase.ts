@@ -1,3 +1,4 @@
+import { ISagaPreparacaoPort } from '../../ports/saga-preparacao.port';
 import { AtualizarOrdemServicoInputDto } from "../../dtos/ordem-servico/ordem-servico.dtos";
 
 import { OrdemServico } from "../../../enterprise/entities/ordem-servico.entity";
@@ -27,11 +28,12 @@ export class AtualizarOrdemServicoUseCase {
         private readonly alterarStatusOrdemServicoUseCase: AlterarStatusOrdemServicoUseCase,
 
         private readonly atualizarItensOrdemServicoUseCase: AtualizarItensOrdemServicoUseCase,
+        private readonly saga?: ISagaPreparacaoPort,
     ) { }
 
     async execute(
         id: string,
-        input: AtualizarOrdemServicoInputDto,
+        input: AtualizarOrdemServicoInputDto, key?:string,
     ): Promise<OrdemServico> {
         const ordem = await this.ordemServicoGateway.findById(id);
 
@@ -39,6 +41,11 @@ export class AtualizarOrdemServicoUseCase {
             throw new Error(`Ordem de serviço não encontrada para o id ${id}.`);
         }
 
+        const owned = !!this.saga && await this.saga.gerenciada(id);
+        if(owned && ['EM EXECUCAO','FINALIZADA','ENTREGUE'].includes(ordem.status.value) && (input.pecas || input.servicos)) throw new Error('Conflito: itens da preparação concluída são imutáveis');
+        const gerenciada = owned && !['EM EXECUCAO','FINALIZADA','ENTREGUE'].includes(ordem.status.value);
+        if(gerenciada && key){const replay=await this.saga!.repetirDiagnostico(id,key,input);if(replay)return replay;}
+        if (gerenciada) { await this.saga!.validarEdicao(id,key); if (input.status && !['EM DIAGNOSTICO'].includes(input.status)) throw new Error('Conflito: status controlado pela Saga'); }
         const servicosOriginais = ordem.servicos.map((servicoId) =>
             servicoId.toString(),
         );
@@ -79,10 +86,11 @@ export class AtualizarOrdemServicoUseCase {
         }
 
         if (OrdemServico.temItensParaAtualizar(input.pecas, input.servicos)) {
-            await this.atualizarItensOrdemServicoUseCase.execute(ordem, input);
+            const snapshot = await this.atualizarItensOrdemServicoUseCase.execute(ordem, input, gerenciada);
+            if (gerenciada && snapshot) return this.saga!.salvarDiagnostico(ordem, snapshot,key,input);
         }
 
-        await this.sincronizarExecucoes(id, servicosOriginais, ordem.servicos);
+        if (!gerenciada) await this.sincronizarExecucoes(id, servicosOriginais, ordem.servicos);
 
         const updated = await this.ordemServicoGateway.update(id, ordem);
 

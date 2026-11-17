@@ -16,7 +16,7 @@ const billing = new BillingExecutionCompletionAdapter(new ServiceHttpClient('htt
 const repository = { findById: find, saveTransition: save };
 const complete = new ConcluirExecucaoOrdemUseCase(repository, billing, {emit() {}});
 const controller = new ExecutionOrderController(repository, complete);
-const app = express(); app.use('/internal', createExecutionOrderRoutes(async () => controller));
+const app = express(); app.use('/internal', createExecutionOrderRoutes(async () => controller, async()=>true));
 beforeEach(() => {
     process.env.SERVICE_ORDERS_INTERNAL_API_KEY = 'orders-key';
     find.mockResolvedValue(order); save.mockReset();

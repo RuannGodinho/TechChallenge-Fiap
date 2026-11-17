@@ -1,13 +1,6 @@
 import { Collection, ObjectId } from 'mongodb';
-
-export interface BillingEvent {
- messageId: string;
- eventType: string;
- eventVersion: 1;
- orderId: string;
- occurredAt: string;
- data: { orderId: string; estimateId: string; attemptId?: string };
-}
+import { BillingEvent } from '../../application/ports/billing-event.port';
+export type { BillingEvent } from '../../application/ports/billing-event.port';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const allowed = new Set(['estimate.created', 'estimate.approved', 'estimate.rejected', 'payment.confirmed', 'payment.reversed']);
 export function parseBillingEvent(raw: Buffer): BillingEvent {

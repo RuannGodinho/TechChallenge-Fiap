@@ -18,7 +18,7 @@ export class AtualizarItensOrdemServicoUseCase {
         private readonly observability: IObservabilityPort
     ) {}
 
-    async execute(ordem: OrdemServico, input: AtualizarOrdemServicoInputDto): Promise<void> {
+    async execute(ordem: OrdemServico, input: AtualizarOrdemServicoInputDto, gerenciada = false): Promise<any> {
         if (!OrdemServico.temItensParaAtualizar(input.pecas, input.servicos)) {
             return;
         }
@@ -74,6 +74,7 @@ export class AtualizarItensOrdemServicoUseCase {
         ordem.aplicarItens(pecasProcessadas, servicosProcessados, valorTotal);
 
         if (ordem.status.value === StatusOSValues.EM_DIAGNOSTICO) {
+            if (gerenciada) return { ordemServicoId: ordem.id!, valorTotal, pecas: pecasOrcamento, servicos: servicosOrcamento };
             await this.orcamentoPort.createPendente({
                 ordemServicoId: ordem.id!,
                 valorTotal,

@@ -1,3 +1,4 @@
+import { createSagaRoutes } from './src/infrastructure/http/saga-routes';
 import { createExecutionOrderRoutes } from './src/infrastructure/http/execution-order-routes';
 import { createExecutionOrderController } from './src/infrastructure/composition-root/execution-order-container';
 import express from 'express';
@@ -23,3 +24,5 @@ app.use('/api', authRoutes);
 app.use('/api', ordemServicoRoutes);
 
 export default app;
+
+app.use('/api', createSagaRoutes());

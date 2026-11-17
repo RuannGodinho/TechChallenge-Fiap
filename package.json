@@ -12,7 +12,8 @@
     "sonar": "node --env-file=.env -e \"process.env.SONAR_TOKEN && require('child_process').spawnSync('npx',['sonar-scanner',`-Dsonar.token=${process.env.SONAR_TOKEN}`,`-Dsonar.login=${process.env.SONAR_TOKEN}`],{stdio:'inherit',shell:true})\"",
     "billing-consumer": "node --import tsx ./src/infrastructure/messaging/billing-consumer.ts",
     "check:architecture": "node scripts/check-architecture.cjs",
-    "execution-consumer": "node --import tsx ./src/infrastructure/messaging/execution-consumer.ts"
+    "execution-consumer": "node --import tsx ./src/infrastructure/messaging/execution-consumer.ts",
+    "saga-worker": "node --import tsx ./src/infrastructure/messaging/saga-worker.ts"
   },
   "dependencies": {
     "amqplib": "^0.10.9",

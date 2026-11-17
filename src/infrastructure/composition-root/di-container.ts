@@ -1,3 +1,4 @@
+import { SagaPreparacaoMongoGateway } from '../../Adapters/gateways/saga-preparacao.mongo.gateway';
 import { ServiceHttpClient, ExecutionHttpAdapter, PecaHttpAdapter, ServicoHttpAdapter, BillingHttpAdapter } from '../../Adapters/adapters/service-http.adapter';
 import { Db } from 'mongodb';
 import { connectDatabase } from '../database';
@@ -767,7 +768,8 @@ export class DIContainer {
                 this.getVeiculoLookupPort(),
                 this.getExecucaoServicoPort(),
                 this.getAlterarStatusOrdemServicoUseCase(),
-                this.getAtualizarItensOrdemServicoUseCase()
+                this.getAtualizarItensOrdemServicoUseCase(),
+                this.db ? new SagaPreparacaoMongoGateway(this.getDb()) : undefined
             );
         }
         return this.atualizarOrdemServicoUseCase;
@@ -801,7 +803,8 @@ export class DIContainer {
                 this.getClienteLookupPort(),
                 this.getVeiculoLookupPort(),
                 this.getExecucaoServicoPort(),
-                this.getObservabilityPort()
+                this.getObservabilityPort(),
+                process.env.SAGA_ENABLED === 'true' ? new SagaPreparacaoMongoGateway(this.getDb()) : undefined
             );
         }
         return this.criarOrdemServicoUseCase;

@@ -1,10 +1,12 @@
+import { createSagaController } from '../composition-root/saga-container';
+
 import { Router, Request, Response, NextFunction } from 'express';
 import { timingSafeEqual } from 'node:crypto';
 import { ObjectId } from 'mongodb';
 import { ExecutionOrderController } from '../../Adapters/controllers/execution-order.controller';
 import { OrderCompletionConflict } from '../../application/ports/order-completion.port';
 
-export function createExecutionOrderRoutes(getController: () => Promise<ExecutionOrderController>) {
+export function createExecutionOrderRoutes(getController: () => Promise<ExecutionOrderController>, podeIniciar: (id:string)=>Promise<boolean> = async id => (await createSagaController()).podeIniciar(id)) {
     const router = Router();
     router.use((req: Request, res: Response, next: NextFunction) => {
         const expected = process.env.SERVICE_ORDERS_INTERNAL_API_KEY;
@@ -12,17 +14,20 @@ export function createExecutionOrderRoutes(getController: () => Promise<Executio
         if (!expected || !provided || Buffer.byteLength(expected) !== Buffer.byteLength(provided) || !timingSafeEqual(Buffer.from(expected), Buffer.from(provided))) return res.status(401).json({ error: 'unauthorized' });
         return next();
     });
+    router.post('/sagas/:sagaId/retry', async(req,res)=>{try{await (await createSagaController()).retomar(String(req.params.sagaId));res.status(202).json({message:'Recuperação solicitada'});}catch(e){res.status(409).json({error:e instanceof Error?e.message:'Falha'});}});
     router.param('id', (_req, res, next, id) => ObjectId.isValid(id) ? next() : res.status(400).json({ error: 'ID inválido' }));
     router.get('/ordensServico/:id', async (req, res) => {
         try {
             const order = await (await getController()).buscarOrdemServicoPorId(String(req.params.id));
-            return order ? res.json(order) : res.status(404).json({ error: 'Ordem não encontrada' });
+            const canStart=order?.status==='EM EXECUCAO'?await podeIniciar(String(req.params.id)):false;
+            return order ? res.json({...order,canStart}) : res.status(404).json({ error: 'Ordem não encontrada' });
         } catch { return res.status(503).json({ error: 'database unavailable' }); }
     });
     router.patch('/ordensServico/:id/finalizar', async (req, res) => {
         try {
             const order = await (await getController()).finalizar(String(req.params.id));
-            return order ? res.json(order) : res.status(404).json({ error: 'Ordem não encontrada' });
+            const canStart=order?.status==='EM EXECUCAO'?await podeIniciar(String(req.params.id)):false;
+            return order ? res.json({...order,canStart}) : res.status(404).json({ error: 'Ordem não encontrada' });
         } catch (error) {
             return res.status(error instanceof OrderCompletionConflict ? 409 : 502).json({ error: error instanceof Error ? error.message : 'Finalização indisponível; repita a operação' });
         }

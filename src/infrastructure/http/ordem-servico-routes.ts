@@ -72,7 +72,7 @@ router.post('/ordensServico', authMiddleware, async (req: Request, res: Response
             veiculoId: resolvedVeiculoId,
             pecas: pecas || [],
             servicos: servicos || [],
-        });
+        }, req.header('Idempotency-Key'));
 
         return res.status(201).json(ordem);
     } catch (error: unknown) {
@@ -80,7 +80,7 @@ router.post('/ordensServico', authMiddleware, async (req: Request, res: Response
             return res.status(502).json({ error: error.message, service: error.service, ...(error.orderId ? { orderId: error.orderId } : {}) });
         }
         const message = error instanceof Error ? error.message : 'Internal server error';
-        return res.status(500).json({ error: message });
+        return res.status(message.startsWith('Conflito:') ? 409 : 500).json({ error: message });
     }
 });
 
@@ -106,7 +106,7 @@ router.get('/ordensServico', authMiddleware, async (_req: Request, res: Response
             return res.status(502).json({ error: error.message, service: error.service, ...(error.orderId ? { orderId: error.orderId } : {}) });
         }
         const message = error instanceof Error ? error.message : 'Internal server error';
-        return res.status(500).json({ error: message });
+        return res.status(message.startsWith('Conflito:') ? 409 : 500).json({ error: message });
     }
 });
 
@@ -175,7 +175,7 @@ router.put('/ordensServico/:id', authMiddleware, async (req: Request, res: Respo
         }
 
         const controller = await getOrdemServicoController();
-        const ordem = await controller.updateOrdemServico(id, updates);
+        const ordem = await controller.updateOrdemServico(id, updates,req.header('Idempotency-Key'));
 
         if (!ordem) {
             return res.status(404).json({ error: 'Ordem de serviço não encontrada' });
@@ -187,7 +187,7 @@ router.put('/ordensServico/:id', authMiddleware, async (req: Request, res: Respo
             return res.status(502).json({ error: error.message, service: error.service, ...(error.orderId ? { orderId: error.orderId } : {}) });
         }
         const message = error instanceof Error ? error.message : 'Internal server error';
-        return res.status(500).json({ error: message });
+        return res.status(message.startsWith('Conflito:') ? 409 : 500).json({ error: message });
     }
 });
 
@@ -233,7 +233,7 @@ router.get('/ordensServico/:cpfCnpj/detalhes', async (req: Request, res: Respons
             return res.status(404).json({ error: message });
         }
 
-        return res.status(500).json({ error: message });
+        return res.status(message.startsWith('Conflito:') ? 409 : 500).json({ error: message });
     }
 });
 

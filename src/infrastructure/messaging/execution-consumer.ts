@@ -6,11 +6,12 @@ import { FinalizarOrdemAposExecucaoUseCase } from '../../application/usecases/or
 import { ConsumeExecutionCompletedUseCase } from '../../application/usecases/consume-execution-completed.usecase';
 import { parseExecutionCompleted } from './execution-event';
 import { runConsumer, workerControl } from './rabbitmq';
+import { createPaymentDelivery } from '../composition-root/payment-delivery-container';
 async function main() {
     if(!process.env.RABBITMQ_URL) throw new Error('RABBITMQ_URL is required');
     const db=await connectDatabase();
     const finalize=new FinalizarOrdemAposExecucaoUseCase(new OrderCompletionMongoGateway(db),{emit:event=>logger.info(event)});
-    const useCase=new ConsumeExecutionCompletedUseCase(new ExecutionInboxMongoGateway(db),finalize);
+    const useCase=new ConsumeExecutionCompletedUseCase(new ExecutionInboxMongoGateway(db),finalize,createPaymentDelivery(db).delivery);
     try { await runConsumer(process.env.RABBITMQ_URL,'service-orders.execution',parseExecutionCompleted,event=>useCase.execute(event),workerControl()); }
     finally { await closeDatabase(); }
 }
