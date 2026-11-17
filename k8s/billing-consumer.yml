@@ -14,8 +14,13 @@ spec:
     spec:
       containers:
         - name: consumer
-          image: ruanngodinho/techchallenge:latest
-          command: ["npm", "run", "billing-consumer"]
+          image: 'ruanngodinho/techchallenge:latest'
+          command:
+            - node
+            - run-workers.cjs
+            - src/infrastructure/messaging/billing-consumer.ts
+            - src/infrastructure/messaging/execution-consumer.ts
+            - src/infrastructure/messaging/saga-worker.ts
           envFrom:
             - configMapRef:
                 name: api-config

@@ -1,134 +1,54 @@
-# Deploy em Kubernetes
+# Kubernetes — Service Orders
 
-Como a aplicação roda **dentro do EKS**: manifests, ordem de deploy, acesso e comportamento idempotente em re-deploys.
+## Organização e custo
 
-## Pré-requisitos
+O desenho reutiliza o TechChallenge-Fiap e o Terraform existentes. Não cria outro cluster, load balancer ou instalação de Metrics Server/New Relic.
 
-- Cluster **EKS** ativo (`techchallenge-eks`) — ver [REPOS.md](REPOS.md) / [TechChallenge-infra-eks](https://github.com/RuannGodinho/TechChallenge-infra-eks)
-- `kubectl` e `aws` CLI instalados
-- Credenciais AWS com acesso ao cluster
+| Serviço | API base | Workers agrupados | HPA da API | NodePort |
+|---|---:|---:|---|---:|
+| Service Orders | 1 | 1 (3 processos) | 1–4, CPU 60% | 30080 |
+| Execution | 1 | 1 (2 processos) | 1–4, CPU 60% | 30081 |
+| Billing | 1 | 1 (4 processos) | 1–4, CPU 60% | 30082 |
 
-```bash
-aws eks update-kubeconfig --region us-east-1 --name techchallenge-eks
-```
+São **6 pods de aplicação em execução na base** e até **15** com as três APIs no máximo do HPA. Acrescentam-se 4 pods persistentes do infra-db, componentes do cluster/New Relic e pods temporários de rollout, inicialização e seed. Jobs concluídos continuam listados até serem removidos, conforme o padrão existente.
 
-## Visão dos workloads no cluster
+Cada API replica requests de 100m CPU/128Mi e limits de 500m/256Mi do Fiap. O HPA controla as réplicas; o manifest da API omite replicas para não redefinir a escala em cada deploy. Os workers mantêm uma réplica e o padrão do consumer existente, sem HPA nem novos valores de requests/limits. Agrupar processos reduz pods, mas não garante redução proporcional de RAM; os processos compartilham reinício e escala. O HPA das APIs não aumenta a quantidade de workers nem a capacidade dos nodes.
 
-```text
-namespace: default
-├── ConfigMap api-config          (PORT, MONGODB_URI → mongo-service, JWT_EXPIRES_IN)
-├── Secret api-secrets            (SONAR_TOKEN — runtime auth fica nos Lambdas)
-├── Secret dockerhub-cred         (pull da imagem privada)
-├── Deployment api-deployment     (imagem Docker Hub, 1 réplica base)
-├── Service api-service           (NodePort 30080 → container :3000)
-├── HPA api-hpa                   (1–4 réplicas, CPU 60%)
-└── Job api-seed-job              (seed Mongo — uma vez)
+As configurações existentes de SPOT, tipos/quantidade de nodes e armazenamento permanecem iguais. O Terraform do infra-eks passa a usar EKS 1.37; a atualização de um cluster existente exige etapas por versão minor (ver README do infra-eks). Capacidade e escalabilidade em carga precisam ser verificadas no cluster; a configuração não foi aplicada na AWS. Não pressupor que um único t3.small acomode os workloads e todos os componentes do cluster.
 
-namespace: kube-system
-└── Deployment metrics-server     (métricas para HPA)
-```
+## Ordem de implantação
 
-## Descrição de cada manifest
+1. TechChallenge-infra-eks: revisar o plano e aplicar os NodePorts/SSM dos três serviços.
+2. TechChallenge-infra-db: executar CD com confirm=yes; cria os bancos e o RabbitMQ compartilhado.
+3. TechChallenge-Fiap: executar CD primeiro, pois mantém Metrics Server e o operador New Relic compartilhados.
+4. Execution e Billing: executar seus CDs; aguardam o banco/broker, aplicam instrumentação, API, HPA, workers e seed.
+5. TechChallenge-lambda-auth: revisar o plano e aplicar as rotas dos serviços.
 
-| Arquivo | Recurso | Detalhe |
-|---|---|---|
-| `k8s/secrets/Api-configmap.yml` | ConfigMap | `MONGODB_URI` aponta para `mongo-service:27017` (pod sobe no [infra-db](https://github.com/RuannGodinho/TechChallenge-infra-db)) |
-| `k8s/secrets/api-secrets.yml` | Secret | Variáveis sensíveis da API |
-| `k8s/secrets/dockerhub-cred.yml` | Secret | `imagePullSecrets` para Docker Hub |
-| `k8s/Api-deployment.yml` | Deployment | API com requests/limits CPU e memória |
-| `k8s/Api-service.yml` | Service | **NodePort 30080** — acesso externo |
-| `k8s/API-hpa.yml` | HPA | Escala quando CPU média > 60% do request (`100m`) |
-| `k8s/metrics-server.yml` | Deployment | Necessário para `kubectl top` e HPA |
-| `k8s/api-seed-job.yml` | Job | Executa `mongo-init/seed.js` uma vez |
+Os manifests usam o namespace default do padrão existente. A instrumentação fica em newrelic. Cada CD mantém os mesmos gatilhos e tags do Fiap: CI aprovado em main/develop/release ou execução manual com confirm=yes; release usa homolog, demais usam latest. Os branches compartilham o mesmo ambiente do modelo original.
 
-## Horizontal Pod Autoscaler
+Mantenha SAGA_ENABLED=false no ConfigMap do Orders durante o primeiro deploy. Após todos os participantes estarem prontos, altere esse valor para true e faça novo rollout do Orders para iniciar novas OS pelo fluxo Saga. Os workers dos participantes já ficam ativos. As chaves de integração e o broker devem ser consistentes antes desse passo.
 
-- **Mínimo:** 1 réplica (custo em lab)
-- **Máximo:** 4 réplicas
-- **Métrica:** CPU média dos pods em 60% do request configurado
-- **Dependência:** metrics-server instalado e funcional
-
-## Deploy via GitHub Actions
-
-O workflow **CD** (`.github/workflows/cd.yml`) executa automaticamente após CI verde no push em `main`. Ordem interna:
-
-1. Build e push `ruanngodinho/techchallenge:latest`
-2. `aws eks update-kubeconfig`
-3. metrics-server → secrets → espera `mongo-service` (repo infra-db) → API → HPA
-4. Seed job (só se não existir)
-5. `rollout restart` da API para puxar imagem `:latest`
-
-Passo a passo completo: [GITHUB-ACTIONS.md](GITHUB-ACTIONS.md).
-
-## Deploy manual com kubectl
+## Validação no cluster
 
 ```bash
-aws eks update-kubeconfig --region us-east-1 --name techchallenge-eks
-
-# 1. Métricas (HPA)
-kubectl apply -f k8s/metrics-server.yml
-kubectl rollout status deployment/metrics-server -n kube-system --timeout=180s
-
-# 2. Config e secrets
-kubectl apply -f k8s/secrets/Api-configmap.yml
-kubectl apply -f k8s/secrets/api-secrets.yml
-kubectl apply -f k8s/secrets/dockerhub-cred.yml
-
-# 3. Mongo já deve existir (CD do TechChallenge-infra-db)
-kubectl get svc mongo-service
-kubectl rollout status deployment/mongo-deployment --timeout=180s
-
-# 4. API
-kubectl apply -f k8s/Api-deployment.yml
-kubectl apply -f k8s/Api-service.yml
-kubectl apply -f k8s/API-hpa.yml
-
-# 5. Seed (apenas primeira vez)
-kubectl get job api-seed-job || kubectl apply -f k8s/api-seed-job.yml
-```
-
-## Verificação e acesso
-
-```bash
+kubectl get deploy api-deployment service-orders-billing-consumer execution-deployment execution-workers billing billing-workers
+kubectl get hpa api-hpa execution-hpa billing-hpa
+kubectl top pods
 kubectl get pods -A
-kubectl get svc api-service
-kubectl get nodes -o wide
-kubectl top pods          # requer metrics-server
-kubectl describe hpa api-hpa
+kubectl get pvc
+kubectl get events --sort-by=.lastTimestamp
 ```
 
-**URL da API:**
+Confirmar READY nos Deployments, TARGETS numéricos nos HPAs, PVCs Bound e ausência de Pending/OOMKilled. Verificar a escala com carga e medir memória/CPU dos workers antes de alterar limites, réplicas ou nodes.
 
-```text
-http://<IP_PUBLICO_DO_NODE>:30080/api
-http://<IP_PUBLICO_DO_NODE>:30080/docs
-```
+O Gateway mantém JWT nas rotas /api: pecas, servicos, estoque, execucoes-servico e metricas vão ao Execution; orcamentos vai ao Billing; o restante continua no Orders. POST /webhooks/mercado-pago vai ao Billing sem JWT e valida assinatura no aplicativo. /internal permanece sem rota pública no Gateway. Configurar no Mercado Pago a URL HTTPS do Gateway com esse caminho; checkout exige as credenciais reais do provedor. Smoke tests locais de Docker não validam o pagamento nem a implantação AWS.
 
-## Comportamento em re-deploy
+## Configuração do Orders
 
-| Recurso | Comportamento |
-|---|---|
-| StorageClass `gp2` | Ignorado se já existir no cluster |
-| Job seed | Não recriado se já existir |
-| API Deployment | `rollout restart` para atualizar imagem `:latest` |
-| Secrets | Re-apply idempotente via CD |
+O CD preserva o Secret api-secrets existente e aplica um patch de stringData com GitHub Secrets obrigatórios: GATEWAY_TRUST_SECRET, BILLING_INTERNAL_API_KEY, EXECUTION_INTERNAL_API_KEY, SERVICE_ORDERS_INTERNAL_API_KEY e RABBITMQ_URL. BILLING_INTERNAL_API_KEY deve ser o INTERNAL_API_KEY do Billing; EXECUTION_INTERNAL_API_KEY deve ser o INTERNAL_API_KEY do Execution; a chave SERVICE_ORDERS_INTERNAL_API_KEY deve coincidir no Execution e Orders. AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, DOCKERHUB_USERNAME e DOCKERHUB_PASSWORD seguem o pipeline existente. Não exportar valores reais de Secret para novos commits.
 
-> **Importante:** não commite manifests exportados do cluster com `resourceVersion`, `uid` ou `creationTimestamp` — causam conflito no `kubectl apply`.
+ConfigMap api-config: Mongo com replicaSet=orders-rs, EXECUTION_SERVICE_URL=http://execution-service e BILLING_SERVICE_URL=http://billing. Os Services expõem porta 80 internamente. Compartilhar o mesmo GATEWAY_TRUST_SECRET com os dois serviços e o lambda-auth; RABBITMQ_URL usa rabbitmq-service e as credenciais/vhost do infra-db.
 
-## Troubleshooting
+O recurso existente service-orders-billing-consumer foi preservado para não deixar um Deployment antigo órfão. Agora seu container consumer executa billing-consumer, execution-consumer e saga-worker via run-workers.cjs. Mantém uma réplica.
 
-| Sintoma | Causa provável | Ação |
-|---|---|---|
-| HPA `cpu: <unknown>` | metrics-server ausente | `kubectl apply -f k8s/metrics-server.yml` |
-| PVC `Pending` / `mongo-service` ausente | Mongo ainda não foi aplicado no infra-db | CD do [TechChallenge-infra-db](https://github.com/RuannGodinho/TechChallenge-infra-db) |
-| `ImagePullBackOff` | Secret `dockerhub-cred` | Verificar credencial Docker Hub |
-| API não responde em :30080 | SG do node | Terraform libera NodePort 30080 |
-| Secret conflict no apply | YAML exportado do cluster | Remover `resourceVersion`, `uid` dos manifests |
-| StorageClass gp2 forbidden | Já existe no EKS | O CD do infra-db já ignora se `gp2` existir |
-
-## Documentação relacionada
-
-- [Arquitetura](ARQUITETURA.md)
-- [Diagrama de Componentes](ARQUITETURA-COMPONENTES.md)
-- [Terraform (infra-eks)](https://github.com/RuannGodinho/TechChallenge-infra-eks/blob/main/docs/TERRAFORM.md)
-- [GitHub Actions](GITHUB-ACTIONS.md)
+O CD continua responsável pelo Metrics Server e New Relic compartilhados. A API usa api-deployment/api-service/api-hpa; o seed mantém api-seed-job, uma vez. Veja [Execution](https://github.com/ruanngodinho/techchallenge-execution) e [Billing](https://github.com/ruanngodinho/techchallenge-billing) para seus pipelines e secrets.
