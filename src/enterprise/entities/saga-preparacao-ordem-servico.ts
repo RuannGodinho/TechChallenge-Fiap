@@ -19,6 +19,16 @@ export interface EstadoSaga {
 const compensations = ['execution.CancelarPreparacao', 'execution.LiberarEstoque', 'billing.CancelarOrcamento'];
 export class SagaPreparacaoOrdemServico {
     constructor(readonly state: EstadoSaga) { }
+    retomar(now: Date) {
+        const index = this.state.compensation;
+        if (this.state.stage !== 'INTERVENCAO_MANUAL' || typeof index !== 'number' || !Number.isInteger(index)
+            || index < 0 || index >= compensations.length) {
+            throw Error('Saga não recuperável');
+        }
+        this.state.stage = 'COMPENSANDO';
+        this.state.compensationStartedAt = now;
+        this.state.commandType = compensations[index];
+    }
     cancelar(reason: string, now: Date) {
         if (['CONCLUIDA', 'COMPENSADA'].includes(this.state.stage))
             throw Error('Saga encerrada');

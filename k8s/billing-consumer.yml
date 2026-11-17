@@ -15,6 +15,7 @@ spec:
       containers:
         - name: consumer
           image: 'ruanngodinho/techchallenge:latest'
+          imagePullPolicy: Always
           command:
             - node
             - run-workers.cjs

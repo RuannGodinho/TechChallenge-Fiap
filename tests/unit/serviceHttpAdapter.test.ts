@@ -25,3 +25,36 @@ describe('downstream HTTP adapters', () => {
         expect(fetchMock).not.toHaveBeenCalled();
     });
 });
+
+describe('unused downstream response bodies', () => {
+    afterEach(() => jest.restoreAllMocks());
+    test.each([
+        { status: 201, method: 'POST', allowNotFound: false, rejects: false },
+        { status: 404, method: 'GET', allowNotFound: true, rejects: false },
+        { status: 404, method: 'GET', allowNotFound: false, rejects: true },
+        { status: 503, method: 'POST', allowNotFound: false, rejects: true },
+    ])('releases a $status response for $method', async ({ status, method, allowNotFound, rejects }) => {
+        const response = new Response('{"message":"ignored"}', { status });
+        const cancel = jest.spyOn(response.body!, 'cancel');
+        jest.spyOn(globalThis, 'fetch').mockResolvedValue(response);
+        const client = new ServiceHttpClient('http://service.test', 'test', 'internal-key');
+        const request = client.request('/resource', method, undefined, allowNotFound);
+        if (rejects) await expect(request).rejects.toThrow(String(status));
+        else await expect(request).resolves.toBe(status === 404 ? null : undefined);
+        expect(cancel).toHaveBeenCalledTimes(1);
+    });
+    test('keeps a successful GET body available for JSON parsing', async () => {
+        const response = new Response('{"id":"part"}', { status: 200 });
+        const cancel = jest.spyOn(response.body!, 'cancel');
+        const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue(response);
+        await expect(new ServiceHttpClient('http://execution.test', 'Execution', 'internal-key').request('/api/pecas/part')).resolves.toEqual({ id: 'part' });
+        expect(cancel).not.toHaveBeenCalled();
+        expect(fetchMock.mock.calls[0][1]?.headers).toMatchObject({ 'x-internal-api-key': 'internal-key' });
+    });
+    test('does not mask the HTTP error if body cancellation fails', async () => {
+        const response = new Response('ignored', { status: 502 });
+        jest.spyOn(response.body!, 'cancel').mockRejectedValue(new Error('already closed'));
+        jest.spyOn(globalThis, 'fetch').mockResolvedValue(response);
+        await expect(new ServiceHttpClient('http://service.test', 'test').request('/resource')).rejects.toThrow('502');
+    });
+});

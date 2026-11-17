@@ -66,7 +66,7 @@ export class OrdemServicoMongoGateway implements IOrdemServicoGateway {
         }
     }
 
-    async update(id: string, ordem: Partial<OrdemServico>): Promise<OrdemServico | null> {
+    async update(id: string, ordem: Partial<OrdemServico>, expectedStatus: string): Promise<OrdemServico | null> {
         if (!ObjectId.isValid(id)) {
             return null;
         }
@@ -113,18 +113,21 @@ export class OrdemServicoMongoGateway implements IOrdemServicoGateway {
             updates.servicos = ordem.servicos.map((servicoId) => new ObjectId(servicoId));
         }
 
+        let result;
         try {
-            const result = await this.collection.findOneAndUpdate(
-                { _id: new ObjectId(id) },
+            result = await this.collection.findOneAndUpdate(
+                { _id: new ObjectId(id), status: expectedStatus },
                 { $set: updates },
                 { returnDocument: 'after' }
             );
-
-            return result ? OrdemServicoMapper.toDomain(result) : null;
         } catch (error) {
             this.emitMongoFailure(id, error);
             throw error;
         }
+        if (!result && await this.collection.findOne({ _id: new ObjectId(id) }, { projection: { _id: 1 } })) {
+            throw new Error('Conflito: ordem de serviço alterada concorrentemente');
+        }
+        return result ? OrdemServicoMapper.toDomain(result) : null;
     }
 
     private emitMongoFailure(ordemServicoId: string | undefined, error: unknown): void {

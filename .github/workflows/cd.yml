@@ -109,6 +109,7 @@ jobs:
 
       - name: Deploy service-orders secrets and config
         env:
+          SAGA_ENABLED: ${{ vars.SAGA_ENABLED }}
           GATEWAY_TRUST_SECRET: ${{ secrets.GATEWAY_TRUST_SECRET }}
           BILLING_INTERNAL_API_KEY: ${{ secrets.BILLING_INTERNAL_API_KEY }}
           EXECUTION_INTERNAL_API_KEY: ${{ secrets.EXECUTION_INTERNAL_API_KEY }}
@@ -128,7 +129,10 @@ jobs:
           with open(os.path.join(os.environ['RUNNER_TEMP'], 'service-orders-secrets.json'), 'w') as output:
               json.dump(payload, output)
           PY
-          kubectl apply -f k8s/secrets/
+          kubectl get configmap api-config --ignore-not-found -o json > "$RUNNER_TEMP/current-api-config.json"
+          kubectl create --dry-run=client --validate=false -f k8s/secrets/Api-configmap.yml -o json | \
+            node scripts/render-api-config.cjs "$RUNNER_TEMP/current-api-config.json" | kubectl apply -f -
+          kubectl apply -f k8s/secrets/api-secrets.yml -f k8s/secrets/dockerhub-cred.yml
           kubectl patch secret api-secrets --type merge --patch-file "$RUNNER_TEMP/service-orders-secrets.json"
           kubectl create secret docker-registry dockerhub-cred \
             --docker-username="$DOCKERHUB_USERNAME" \

@@ -240,7 +240,8 @@ describe('ExecucaoServico use cases', () => {
             ordemId,
             expect.objectContaining({
                 status: expect.objectContaining({ value: StatusOSValues.FINALIZADA }),
-            })
+            }),
+            StatusOSValues.EM_EXECUCAO
         );
         expect(observability.emit).toHaveBeenCalledWith(
             expect.objectContaining({

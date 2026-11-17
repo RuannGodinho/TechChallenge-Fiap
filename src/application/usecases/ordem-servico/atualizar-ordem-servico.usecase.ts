@@ -41,10 +41,14 @@ export class AtualizarOrdemServicoUseCase {
             throw new Error(`Ordem de serviço não encontrada para o id ${id}.`);
         }
 
+        const expectedStatus = ordem.status.value;
         const owned = !!this.saga && await this.saga.gerenciada(id);
+        if (owned && key) {
+            const replay = await this.saga!.repetirDiagnostico(id, key, input);
+            if (replay) return replay;
+        }
         if(owned && ['EM EXECUCAO','FINALIZADA','ENTREGUE'].includes(ordem.status.value) && (input.pecas || input.servicos)) throw new Error('Conflito: itens da preparação concluída são imutáveis');
         const gerenciada = owned && !['EM EXECUCAO','FINALIZADA','ENTREGUE'].includes(ordem.status.value);
-        if(gerenciada && key){const replay=await this.saga!.repetirDiagnostico(id,key,input);if(replay)return replay;}
         if (gerenciada) { await this.saga!.validarEdicao(id,key); if (input.status && !['EM DIAGNOSTICO'].includes(input.status)) throw new Error('Conflito: status controlado pela Saga'); }
         const servicosOriginais = ordem.servicos.map((servicoId) =>
             servicoId.toString(),
@@ -92,7 +96,7 @@ export class AtualizarOrdemServicoUseCase {
 
         if (!gerenciada) await this.sincronizarExecucoes(id, servicosOriginais, ordem.servicos);
 
-        const updated = await this.ordemServicoGateway.update(id, ordem);
+        const updated = await this.ordemServicoGateway.update(id, ordem, expectedStatus);
 
         if (!updated) {
             throw new Error(`Ordem de serviço não encontrada para o id ${id}.`);

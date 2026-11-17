@@ -26,7 +26,9 @@ As configurações existentes de SPOT, tipos/quantidade de nodes e armazenamento
 
 Os manifests usam o namespace default do padrão existente. A instrumentação fica em newrelic. Cada CD mantém os mesmos gatilhos e tags do Fiap: CI aprovado em main/develop/release ou execução manual com confirm=yes; release usa homolog, demais usam latest. Os branches compartilham o mesmo ambiente do modelo original.
 
-Mantenha SAGA_ENABLED=false no ConfigMap do Orders durante o primeiro deploy. Após todos os participantes estarem prontos, altere esse valor para true e faça novo rollout do Orders para iniciar novas OS pelo fluxo Saga. Os workers dos participantes já ficam ativos. As chaves de integração e o broker devem ser consistentes antes desse passo.
+Sem a GitHub Variable SAGA_ENABLED, o primeiro CD usa false e os próximos preservam o valor já existente no ConfigMap api-config. Após todos os participantes estarem prontos, defina a Variable SAGA_ENABLED=true neste repositório e execute o CD para ativar novas OS pelo fluxo Saga. Um valor explícito false desativa o fluxo; remover a Variable mantém a última configuração do cluster. Somente as strings true e false são aceitas. Os workers dos participantes já ficam ativos. As chaves de integração e o broker devem ser consistentes antes desse passo.
+
+O CD renderiza o ConfigMap com scripts/render-api-config.cjs antes de aplicá-lo. Aplicar diretamente o manifest de bootstrap k8s/secrets/Api-configmap.yml continua configurando false; use o CD para preservar a ativação em redeploys.
 
 ## Validação no cluster
 

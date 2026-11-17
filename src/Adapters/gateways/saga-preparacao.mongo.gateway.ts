@@ -128,7 +128,7 @@ export class SagaPreparacaoMongoGateway implements ISagaPreparacaoPort, IResulta
     async cancelar(orderId: string, reason = 'Cancelamento solicitado') { return this.tx(async (session) => { const row = await this.sagas.findOne({ orderId, active: true }, { session }); if (!row)
         throw Error('Conflito: nenhuma Saga ativa'); new SagaPreparacaoOrdemServico(row).cancelar(reason, new Date()); await this.persist(row, session); }); }
     async retomar(id: string) { await this.tx(async (session) => { const row = await this.sagas.findOne({ id, stage: 'INTERVENCAO_MANUAL' }, { session }); if (!row)
-        throw Error('Saga não recuperável'); row.stage = 'COMPENSANDO'; row.compensationStartedAt = new Date(); await this.persist(row, session); }); }
+        throw Error('Saga não recuperável'); new SagaPreparacaoOrdemServico(row).retomar(new Date()); await this.persist(row, session); }); }
     async verificarPrazos() {
         const rows = await this.sagas.find({ active: true, deadline: { $lte: new Date() }, stage: { $nin: ['INTERVENCAO_MANUAL', 'AGUARDANDO_DIAGNOSTICO'] } }).toArray();
         for (const row of rows)

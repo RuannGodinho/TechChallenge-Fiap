@@ -30,7 +30,14 @@ export class OrderCompletionMongoGateway implements OrderCompletionRepository, O
         const entry = order.statusHistory[order.statusHistory.length - 1];
         const row = await this.collection.findOneAndUpdate(
             { _id: new ObjectId(id), status: expectedStatus },
-            { $set: { status: order.status.value, statusEnteredAt: order.statusEnteredAt }, $push: { statusHistory: entry } } as never,
+            [{ $set: {
+                status: { $literal: order.status.value },
+                statusEnteredAt: { $literal: order.statusEnteredAt },
+                statusHistory: { $concatArrays: [
+                    { $ifNull: ['$statusHistory', { $literal: order.statusHistory.slice(0, -1) }] },
+                    { $literal: [entry] },
+                ] },
+            } }],
             { returnDocument: 'after' },
         );
         return row ? OrdemServicoMapper.toDomain(row) : null;

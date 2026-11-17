@@ -24,9 +24,13 @@ export class ServiceHttpClient {
         } catch {
             throw new DownstreamServiceError(this.service, `${this.service} is unavailable`);
         }
-        if (allowNotFound && response.status === 404) return null as T;
-        if (!response.ok) throw new DownstreamServiceError(this.service, `${this.service} request failed (${response.status})`);
-        if (response.status === 204 || method !== 'GET') return undefined as T;
+        if (!response.ok || response.status === 204 || method !== 'GET') {
+            // Unused bodies must release their connection even on errors and allowed 404s.
+            await response.body?.cancel().catch(() => undefined);
+            if (allowNotFound && response.status === 404) return null as T;
+            if (!response.ok) throw new DownstreamServiceError(this.service, `${this.service} request failed (${response.status})`);
+            return undefined as T;
+        }
         try {
             return await response.json() as T;
         } catch {
