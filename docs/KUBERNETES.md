@@ -1,5 +1,7 @@
 # Kubernetes — Service Orders
 
+Cobertura de APM, logs das APIs/workers, implantação e consultas NRQL: [New Relic](NEW-RELIC.md).
+
 ## Organização e custo
 
 O desenho reutiliza o TechChallenge-Fiap e o Terraform existentes. Não cria outro cluster, load balancer ou instalação de Metrics Server/New Relic.

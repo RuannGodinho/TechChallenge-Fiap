@@ -103,6 +103,8 @@ jobs:
       - name: Deploy New Relic
         run: |
           kubectl apply -f newrelic.yaml
+          kubectl rollout restart daemonset/nri-bundle-newrelic-logging -n newrelic
+          kubectl rollout status daemonset/nri-bundle-newrelic-logging -n newrelic --timeout=180s
           kubectl wait --for=condition=established crd/instrumentations.newrelic.com --timeout=60s
           kubectl rollout status deployment/nri-bundle-k8s-agents-operator -n newrelic --timeout=180s
           kubectl apply -f k8s/instrumentation.yaml
@@ -172,8 +174,10 @@ jobs:
         run: |
           kubectl get svc rabbitmq-service
           kubectl rollout status deployment/rabbitmq-deployment --timeout=180s
-          kubectl set image --local -f k8s/billing-consumer.yml \
-            consumer=ruanngodinho/techchallenge:${{ steps.image.outputs.tag }} -o yaml | kubectl apply -f -
+          kubectl patch --local -f k8s/billing-consumer.yml --type=strategic \
+            -p '{"spec":{"template":{"spec":{"containers":[{"name":"consumer","image":"ruanngodinho/techchallenge:${{ steps.image.outputs.tag }}"}]}}}}' \
+            -o yaml > "$RUNNER_TEMP/orders-workers.yml"
+          kubectl apply -f "$RUNNER_TEMP/orders-workers.yml"
           kubectl rollout restart deployment/service-orders-billing-consumer
           kubectl rollout status deployment/service-orders-billing-consumer --timeout=180s
 
