@@ -5288,9 +5288,16 @@ data:
         Kube_URL       https://kubernetes.default.svc.cluster.local:443
         Buffer_Size    ${K8S_BUFFER_SIZE}
         K8S-Logging.Exclude ${K8S_LOGGING_EXCLUDE}
+        Merge_Log      On
+        Keep_Log       Off
         Labels         Off
         Annotations    Off
     
+    [FILTER]
+        Name           modify
+        Match          kube.*
+        Copy           msg message
+
     [FILTER]
         Name           nest
         Match          *
@@ -5309,6 +5316,51 @@ data:
         Allowlist_key  stream
         Allowlist_key  message
         Allowlist_key  log
+        Allowlist_key  cluster_name
+        Allowlist_key  service
+        Allowlist_key  event
+        Allowlist_key  msg
+        Allowlist_key  level
+        Allowlist_key  time
+        Allowlist_key  requestId
+        Allowlist_key  orderId
+        Allowlist_key  ordemServicoId
+        Allowlist_key  sagaId
+        Allowlist_key  messageId
+        Allowlist_key  commandId
+        Allowlist_key  commandType
+        Allowlist_key  resultOk
+        Allowlist_key  decision
+        Allowlist_key  eventType
+        Allowlist_key  attempt
+        Allowlist_key  sagaAttempt
+        Allowlist_key  queue
+        Allowlist_key  exchange
+        Allowlist_key  durationMs
+        Allowlist_key  status
+        Allowlist_key  method
+        Allowlist_key  path
+        Allowlist_key  reason
+        Allowlist_key  alert
+        Allowlist_key  integration
+        Allowlist_key  orcamentoId
+        Allowlist_key  execucaoId
+        Allowlist_key  pecaId
+        Allowlist_key  from
+        Allowlist_key  to
+        Allowlist_key  quantidade
+        Allowlist_key  origem
+        Allowlist_key  versao
+        Allowlist_key  paymentAttemptId
+        Allowlist_key  providerOrderId
+        Allowlist_key  notificationId
+        Allowlist_key  error
+        Allowlist_key  err
+        Allowlist_key  trace.id
+        Allowlist_key  span.id
+        Allowlist_key  entity.guid
+        Allowlist_key  entity.name
+        Allowlist_key  entity.type
     
     [OUTPUT]
         Name           newrelic
@@ -5374,7 +5426,7 @@ metadata:
   name: nri-bundle-newrelic-logging
   namespace: newrelic
 ---
-# Source: lab/newrelic-logging-daemonset (mínimo, só API)
+# Source: lab/newrelic-logging-daemonset (APIs e workers)
 # Fluent Bit mínimo: só stdout da API (default), 1 pod por node.
 # Reusa SA, ConfigMaps e Secret já criados pelo nri-bundle.
 apiVersion: apps/v1
@@ -5435,9 +5487,9 @@ spec:
                   fieldPath: spec.nodeName
             - name: FB_DB
               value: /var/log/flb_kube.db
-            # Só pods da API no namespace default — não lê Mongo nem newrelic.
+            # Somente APIs e workers dos três serviços; exclui bancos, jobs e agentes.
             - name: PATH
-              value: /var/log/containers/api-deployment*_default_*.log
+              value: /var/log/containers/api-deployment-*_default_api-*.log,/var/log/containers/execution-deployment-*_default_api-*.log,/var/log/containers/billing-*_default_api-*.log,/var/log/containers/service-orders-billing-consumer-*_default_consumer-*.log,/var/log/containers/execution-workers-*_default_workers-*.log,/var/log/containers/billing-workers-*_default_workers-*.log
             - name: K8S_BUFFER_SIZE
               value: 16k
             - name: K8S_LOGGING_EXCLUDE

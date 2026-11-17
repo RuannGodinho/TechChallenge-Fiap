@@ -1,4 +1,4 @@
-# Fluent Bit mínimo: só stdout da API (default), 1 pod por node.
+# Fluent Bit: stdout das APIs e workers (default), 1 pod por node.
 # Reusa SA, ConfigMaps e Secret já criados pelo nri-bundle.
 apiVersion: apps/v1
 kind: DaemonSet
@@ -58,9 +58,9 @@ spec:
                   fieldPath: spec.nodeName
             - name: FB_DB
               value: /var/log/flb_kube.db
-            # Só pods da API no namespace default — não lê Mongo nem newrelic.
+            # Somente APIs e workers dos três serviços; exclui bancos, jobs e agentes.
             - name: PATH
-              value: /var/log/containers/api-deployment*_default_*.log
+              value: /var/log/containers/api-deployment-*_default_api-*.log,/var/log/containers/execution-deployment-*_default_api-*.log,/var/log/containers/billing-*_default_api-*.log,/var/log/containers/service-orders-billing-consumer-*_default_consumer-*.log,/var/log/containers/execution-workers-*_default_workers-*.log,/var/log/containers/billing-workers-*_default_workers-*.log
             - name: K8S_BUFFER_SIZE
               value: 16k
             - name: K8S_LOGGING_EXCLUDE
