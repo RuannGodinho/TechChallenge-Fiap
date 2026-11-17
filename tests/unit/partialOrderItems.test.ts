@@ -24,10 +24,10 @@ describe.each([false, true])('partial diagnosis items with managed = %s', manage
         expect(c.order.pecas.map(item => item.pecaId.value)).toEqual([newPart]);
         expect(c.order.valorTotal).toBe(190);
         expect(c.services.findById).toHaveBeenCalledWith(oldService);
-        const budget = managed ? snapshot : c.billing.createPendente.mock.calls[0][0];
+        const budget = snapshot!;
         expect(budget.valorTotal).toBe(190);
         expect(budget.servicos.map((item: { id: string }) => item.id)).toEqual([oldService]);
-        expect(c.billing.createPendente).toHaveBeenCalledTimes(managed ? 0 : 1);
+        expect(c.billing.createPendente).not.toHaveBeenCalled();
         expect(c.order.status.value).toBe(managed ? 'EM DIAGNOSTICO' : 'AGUARDANDO APROVACAO');
     });
     test('retains omitted parts and recomputes their prices on a services-only edit', async () => {
@@ -39,7 +39,7 @@ describe.each([false, true])('partial diagnosis items with managed = %s', manage
         expect(c.order.valorTotal).toBe(190);
         expect(c.parts.findById).toHaveBeenCalledWith(oldPart);
         expect(c.stock.assertQuantidadeDisponivel).toHaveBeenCalledWith(oldPart, 2);
-        const budget = managed ? snapshot : c.billing.createPendente.mock.calls[0][0];
+        const budget = snapshot!;
         expect(budget.valorTotal).toBe(190);
         expect(budget.pecas.map((item: { id: string }) => item.id)).toEqual([oldPart]);
     });

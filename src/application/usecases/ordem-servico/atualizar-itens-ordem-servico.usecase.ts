@@ -5,7 +5,7 @@ import { StatusOSValues } from '../../../enterprise/value-objects/status-os.vo';
 import { IPecaLookupPort, PecaLookupData } from '../../ports/peca-lookup.port';
 import { IServicoLookupPort, ServicoLookupData } from '../../ports/servico-lookup.port';
 import { IEstoqueMovimentacaoPort } from '../../ports/estoque-movimentacao.port';
-import { IOrcamentoPort } from '../../ports/orcamento.port';
+import { IOrcamentoPort, CriarOrcamentoPendenteInput } from '../../ports/orcamento.port';
 import { IObservabilityPort } from '../../ports/observability.port';
 import { BusinessEvent, BusinessReason } from '../../observability/business-events';
 
@@ -18,7 +18,7 @@ export class AtualizarItensOrdemServicoUseCase {
         private readonly observability: IObservabilityPort
     ) {}
 
-    async execute(ordem: OrdemServico, input: AtualizarOrdemServicoInputDto, gerenciada = false): Promise<any> {
+    async execute(ordem: OrdemServico, input: AtualizarOrdemServicoInputDto, gerenciada = false): Promise<CriarOrcamentoPendenteInput | undefined> {
         if (!OrdemServico.temItensParaAtualizar(input.pecas, input.servicos)) {
             return;
         }
@@ -78,12 +78,6 @@ export class AtualizarItensOrdemServicoUseCase {
 
         if (ordem.status.value === StatusOSValues.EM_DIAGNOSTICO) {
             if (gerenciada) return { ordemServicoId: ordem.id!, valorTotal, pecas: pecasOrcamento, servicos: servicosOrcamento };
-            await this.orcamentoPort.createPendente({
-                ordemServicoId: ordem.id!,
-                valorTotal,
-                pecas: pecasOrcamento,
-                servicos: servicosOrcamento,
-            });
 
             const transition = ordem.promoverParaAguardandoAprovacao();
             this.observability.emit({
@@ -93,6 +87,11 @@ export class AtualizarItensOrdemServicoUseCase {
                 to: transition.to,
                 durationMs: transition.durationMs,
             });
+            return { ordemServicoId: ordem.id!, valorTotal, pecas: pecasOrcamento, servicos: servicosOrcamento };
         }
+    }
+
+    async criarOrcamento(input: CriarOrcamentoPendenteInput): Promise<void> {
+        await this.orcamentoPort.createPendente(input);
     }
 }

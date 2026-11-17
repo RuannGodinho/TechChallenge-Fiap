@@ -1,4 +1,5 @@
 import { ISagaPreparacaoPort } from '../../ports/saga-preparacao.port';
+import { CriarOrcamentoPendenteInput } from '../../ports/orcamento.port';
 import { AtualizarOrdemServicoInputDto } from "../../dtos/ordem-servico/ordem-servico.dtos";
 
 import { OrdemServico } from "../../../enterprise/entities/ordem-servico.entity";
@@ -90,9 +91,10 @@ export class AtualizarOrdemServicoUseCase {
             await this.alterarStatusOrdemServicoUseCase.execute(ordem, input.status);
         }
 
+        let orcamento: CriarOrcamentoPendenteInput | undefined;
         if (OrdemServico.temItensParaAtualizar(input.pecas, input.servicos)) {
-            const snapshot = await this.atualizarItensOrdemServicoUseCase.execute(ordem, input, gerenciada);
-            if (gerenciada && snapshot) return this.saga!.salvarDiagnostico(ordem, snapshot,key,input);
+            orcamento = await this.atualizarItensOrdemServicoUseCase.execute(ordem, input, gerenciada);
+            if (gerenciada && orcamento) return this.saga!.salvarDiagnostico(ordem, orcamento,key,input);
         }
 
         if (!gerenciada) await this.sincronizarExecucoes(id, servicosOriginais, ordem.servicos);
@@ -119,6 +121,9 @@ export class AtualizarOrdemServicoUseCase {
         if (!updated) {
             throw new Error(`Ordem de serviço não encontrada para o id ${id}.`);
         }
+
+        // Only committed item changes may create/supersede a Billing quote.
+        if (orcamento) await this.atualizarItensOrdemServicoUseCase.criarOrcamento(orcamento);
 
         return updated;
     }
