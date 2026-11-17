@@ -42,6 +42,7 @@ export class AtualizarOrdemServicoUseCase {
         }
 
         const expectedStatus = ordem.status.value;
+        const originalHistoryLength = ordem.statusHistory.length;
         const owned = !!this.saga && await this.saga.gerenciada(id);
         if (owned && key) {
             const replay = await this.saga!.repetirDiagnostico(id, key, input);
@@ -96,7 +97,19 @@ export class AtualizarOrdemServicoUseCase {
 
         if (!gerenciada) await this.sincronizarExecucoes(id, servicosOriginais, ordem.servicos);
 
-        const updated = await this.ordemServicoGateway.update(id, ordem, expectedStatus);
+        // A managed diagnosis can commit without changing status. Do not overwrite its
+        // items or total with the entity read before the customer/vehicle lookups.
+        const changes: Partial<OrdemServico> = owned ? {} : ordem;
+        if (owned) {
+            if (input.cpfCnpj) changes.cpfCnpj = ordem.cpfCnpj;
+            if (input.veiculoId) changes.veiculoId = ordem.veiculoId;
+            if (ordem.statusHistory.length !== originalHistoryLength) {
+                changes.status = ordem.status;
+                changes.statusEnteredAt = ordem.statusEnteredAt;
+                changes.statusHistory = ordem.statusHistory;
+            }
+        }
+        const updated = await this.ordemServicoGateway.update(id, changes, expectedStatus);
 
         if (!updated) {
             throw new Error(`Ordem de serviço não encontrada para o id ${id}.`);

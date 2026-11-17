@@ -7,6 +7,7 @@ import { AtualizarOrdemServicoUseCase } from '../../src/application/usecases/ord
 import { AlterarStatusOrdemServicoUseCase } from '../../src/application/usecases/ordem-servico/alterar-status-ordem-servico.usecase';
 import { AtualizarItensOrdemServicoUseCase } from '../../src/application/usecases/ordem-servico/atualizar-itens-ordem-servico.usecase';
 import { StatusOS } from '../../src/enterprise/value-objects/status-os.vo';
+import { OrdemPecaItem } from '../../src/enterprise/value-objects/ordem-peca-item.vo';
 
 const integration = process.env.TEST_ORDERS_MONGO_URL ? describe : describe.skip;
 integration('order persistence and Saga concurrency with MongoDB', () => {
@@ -43,6 +44,58 @@ integration('order persistence and Saga concurrency with MongoDB', () => {
         const persisted = await db.collection('OrdemServico').findOne({ _id: row._id });
         expect(persisted?.status).toBe('FINALIZADA');
         expect(persisted?.statusHistory.map((entry: { status: string }) => entry.status)).toEqual(['EM EXECUCAO', 'FINALIZADA']);
+    });
+
+    test.each(['cpfCnpj', 'veiculoId'] as const)('a managed %s edit preserves a diagnosis committed while its lookup is pending', async field => {
+        const row = { ...base(), status: 'EM DIAGNOSTICO', sagaManaged: true };
+        await db.collection('OrdemServico').insertOne(row);
+        const orders = new OrdemServicoMongoGateway(db), saga = new SagaPreparacaoMongoGateway(db);
+        await saga.initialize();
+        let release!: () => void, reached!: () => void;
+        const blocked = new Promise<void>(resolve => { release = resolve; });
+        const loaded = new Promise<void>(resolve => { reached = resolve; });
+        const lookup = async () => { reached(); await blocked; return true; };
+        const useCase = new AtualizarOrdemServicoUseCase(orders, { existsByCpf: lookup }, { existsById: lookup },
+            { createExecucoesParaServicos: jest.fn() }, { execute: jest.fn() } as unknown as AlterarStatusOrdemServicoUseCase,
+            { execute: jest.fn() } as unknown as AtualizarItensOrdemServicoUseCase, saga);
+        const newVehicle = new ObjectId().toString();
+        const input = field === 'cpfCnpj' ? { cpfCnpj: '81788455045' } : { veiculoId: newVehicle };
+        const pending = useCase.execute(row._id.toString(), input);
+        await loaded;
+        const partId = new ObjectId().toString(), serviceId = new ObjectId().toString();
+        const snapshot = { ordemServicoId: row._id.toString(), valorTotal: 140,
+            pecas: [{ id: partId, nome: 'Filtro', preco: 20, quantidade: 2 }],
+            servicos: [{ id: serviceId, nome: 'Troca', preco: 100 }] };
+        try {
+            const diagnosis = (await orders.findById(row._id.toString()))!;
+            diagnosis.aplicarItens([OrdemPecaItem.create(partId, 2, 20)], [serviceId], 140);
+            await saga.salvarDiagnostico(diagnosis, snapshot, 'diagnosis-key', { pecas: [{ pecaId: partId, quantidade: 2 }], servicos: [serviceId] });
+        } finally { release(); }
+        const updated = await pending;
+        expect(updated.status.value).toBe('EM DIAGNOSTICO');
+        expect(updated.pecas.map(item => item.pecaId.value)).toEqual([partId]);
+        expect(updated.servicos).toEqual([serviceId]);
+        expect(updated.valorTotal).toBe(snapshot.valorTotal);
+        expect(updated.cpfCnpj.value).toBe(field === 'cpfCnpj' ? input.cpfCnpj : row.cpfCnpj);
+        expect(updated.veiculoId.value).toBe(field === 'veiculoId' ? newVehicle : row.veiculo.toString());
+        const state = (await db.collection('SagasPreparacao').findOne({ orderId: row._id.toString() }))!;
+        const outbox = (await db.collection('SagaOutbox').findOne({}))!;
+        expect(state.snapshot).toEqual(snapshot);
+        expect(outbox.event.data.snapshot).toEqual(snapshot);
+    });
+
+    test('a managed status-only edit still persists the transition and its history', async () => {
+        const row = { ...base(), status: 'RECEBIDA', sagaManaged: true };
+        await db.collection('OrdemServico').insertOne(row);
+        const orders = new OrdemServicoMongoGateway(db), saga = new SagaPreparacaoMongoGateway(db);
+        const stock = { assertQuantidadeDisponivel: jest.fn(), registrarSaidaOS: jest.fn() };
+        const status = new AlterarStatusOrdemServicoUseCase({ createPendente: jest.fn(), isLatestOrcamentoApproved: jest.fn() }, stock, { emit() {} });
+        const useCase = new AtualizarOrdemServicoUseCase(orders, { existsByCpf: jest.fn() }, { existsById: jest.fn() },
+            { createExecucoesParaServicos: jest.fn() }, status, { execute: jest.fn() } as unknown as AtualizarItensOrdemServicoUseCase, saga);
+        const saved = await useCase.execute(row._id.toString(), { status: 'EM DIAGNOSTICO' });
+        expect(saved.status.value).toBe('EM DIAGNOSTICO');
+        expect(saved.statusHistory.map(entry => entry.status)).toEqual(['RECEBIDA', 'EM DIAGNOSTICO']);
+        expect((await orders.findById(row._id.toString()))?.statusHistory).toEqual(saved.statusHistory);
     });
 
     test('ordinary updates still save their own transitions and history', async () => {
