@@ -103,6 +103,11 @@ export class AtualizarOrdemServicoUseCase {
         if (owned) {
             if (input.cpfCnpj) changes.cpfCnpj = ordem.cpfCnpj;
             if (input.veiculoId) changes.veiculoId = ordem.veiculoId;
+            if (OrdemServico.temItensParaAtualizar(input.pecas, input.servicos)) {
+                changes.pecas = ordem.pecas;
+                changes.servicos = ordem.servicos;
+                changes.valorTotal = ordem.valorTotal;
+            }
             if (ordem.statusHistory.length !== originalHistoryLength) {
                 changes.status = ordem.status;
                 changes.statusEnteredAt = ordem.statusEnteredAt;
