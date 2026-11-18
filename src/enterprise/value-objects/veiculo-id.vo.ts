@@ -1,4 +1,3 @@
-import { ObjectId } from 'mongodb';
 
 export class VeiculoId {
     private readonly _value: string;
@@ -12,7 +11,7 @@ export class VeiculoId {
             throw new Error('ID do veículo é obrigatório');
         }
 
-        if (!ObjectId.isValid(id.trim())) {
+        if (!/^[0-9a-f]{24}$/i.test(id.trim())) {
             throw new Error('ID do veículo inválido');
         }
 

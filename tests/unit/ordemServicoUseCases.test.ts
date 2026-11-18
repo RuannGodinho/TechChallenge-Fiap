@@ -317,7 +317,7 @@ describe('OrdemServico use cases', () => {
 
         expect(updated.status.value).toBe('EM DIAGNOSTICO');
         expect(alterarStatusUseCase.execute).toHaveBeenCalled();
-        expect(ordemGateway.update).toHaveBeenCalled();
+        expect(ordemGateway.update).toHaveBeenCalledWith(ordemId, ordem, 'RECEBIDA');
     });
 
     test('deve rejeitar atualização quando ordem não existe', async () => {

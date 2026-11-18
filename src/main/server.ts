@@ -1,3 +1,4 @@
+import { SagaPreparacaoMongoGateway } from '../Adapters/gateways/saga-preparacao.mongo.gateway';
 import app from '../../app';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from '../config/swagger';
@@ -14,6 +15,7 @@ const PORT = Number(process.env.PORT ?? 3000);
 
 async function bootstrap() {
     await DIContainer.getInstance().initialize();
+    await new SagaPreparacaoMongoGateway(DIContainer.getInstance().getDb()).initialize();
 
     app.listen(PORT, '0.0.0.0', () => {
         logger.info({ msg: 'server_started', port: PORT });

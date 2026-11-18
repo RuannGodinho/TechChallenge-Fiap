@@ -1,3 +1,5 @@
+import { ISagaPreparacaoPort } from '../../ports/saga-preparacao.port';
+import { DownstreamServiceError } from '../../errors/downstream-service.error';
 import { CriarOrdemServicoInputDto } from '../../dtos/ordem-servico/ordem-servico.dtos';
 import { OrdemServico } from '../../../enterprise/entities/ordem-servico.entity';
 import { IOrdemServicoGateway } from '../../ports/ordem-servico.gateway.port';
@@ -13,10 +15,11 @@ export class CriarOrdemServicoUseCase {
         private readonly clienteLookupPort: IClienteLookupPort,
         private readonly veiculoLookupPort: IVeiculoLookupPort,
         private readonly execucaoServicoPort: IExecucaoServicoPort,
-        private readonly observability: IObservabilityPort
+        private readonly observability: IObservabilityPort,
+        private readonly saga?: ISagaPreparacaoPort
     ) {}
 
-    async execute(input: CriarOrdemServicoInputDto): Promise<OrdemServico> {
+    async execute(input: CriarOrdemServicoInputDto, key?:string): Promise<OrdemServico> {
         const ordem = OrdemServico.create({
             cpfCnpj: input.cpfCnpj,
             veiculoId: input.veiculoId,
@@ -44,7 +47,7 @@ export class CriarOrdemServicoUseCase {
             throw new Error('Veículo não encontrado para o ID fornecido.');
         }
 
-        const saved = await this.ordemServicoGateway.save(ordem);
+        const saved = await (this.saga ? this.saga.criar(ordem,key) : this.ordemServicoGateway.save(ordem));
 
         this.observability.emit({
             msg: BusinessEvent.osCreated,
@@ -52,8 +55,15 @@ export class CriarOrdemServicoUseCase {
             status: saved.status.value,
         });
 
-        if (saved.id && saved.servicos.length > 0) {
-            await this.execucaoServicoPort.createExecucoesParaServicos(saved.id, saved.servicos);
+        if (!this.saga && saved.id && saved.servicos.length > 0) {
+            try {
+                await this.execucaoServicoPort.createExecucoesParaServicos(saved.id, saved.servicos);
+            } catch (error) {
+                if (error instanceof DownstreamServiceError) {
+                    throw new DownstreamServiceError(error.service, error.message, saved.id);
+                }
+                throw error;
+            }
         }
 
         return saved;

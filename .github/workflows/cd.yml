@@ -103,20 +103,43 @@ jobs:
       - name: Deploy New Relic
         run: |
           kubectl apply -f newrelic.yaml
+          kubectl rollout restart daemonset/nri-bundle-newrelic-logging -n newrelic
+          kubectl rollout status daemonset/nri-bundle-newrelic-logging -n newrelic --timeout=180s
           kubectl wait --for=condition=established crd/instrumentations.newrelic.com --timeout=60s
           kubectl rollout status deployment/nri-bundle-k8s-agents-operator -n newrelic --timeout=180s
           kubectl apply -f k8s/instrumentation.yaml
 
-      - name: Deploy secrets and config
+      - name: Deploy service-orders secrets and config
         env:
+          SAGA_ENABLED: ${{ vars.SAGA_ENABLED }}
           GATEWAY_TRUST_SECRET: ${{ secrets.GATEWAY_TRUST_SECRET }}
+          BILLING_INTERNAL_API_KEY: ${{ secrets.BILLING_INTERNAL_API_KEY }}
+          EXECUTION_INTERNAL_API_KEY: ${{ secrets.EXECUTION_INTERNAL_API_KEY }}
+          SERVICE_ORDERS_INTERNAL_API_KEY: ${{ secrets.SERVICE_ORDERS_INTERNAL_API_KEY }}
+          RABBITMQ_URL: ${{ secrets.RABBITMQ_URL }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
         run: |
-          kubectl apply -f k8s/secrets/
-          if [ -n "$GATEWAY_TRUST_SECRET" ]; then
-            TRUST_B64=$(printf '%s' "$GATEWAY_TRUST_SECRET" | base64 -w 0)
-            kubectl patch secret api-secrets --type merge \
-              -p "{\"data\":{\"GATEWAY_TRUST_SECRET\":\"$TRUST_B64\"}}"
-          fi
+          python3 - <<'PY'
+          import json, os
+          required = ["GATEWAY_TRUST_SECRET","BILLING_INTERNAL_API_KEY","EXECUTION_INTERNAL_API_KEY","SERVICE_ORDERS_INTERNAL_API_KEY","RABBITMQ_URL"]
+          missing = [key for key in required if not os.environ.get(key)]
+          if missing:
+              raise SystemExit('Missing GitHub secrets: ' + ', '.join(missing))
+          data = {key: os.environ.get(key, '') for key in ["GATEWAY_TRUST_SECRET","BILLING_INTERNAL_API_KEY","EXECUTION_INTERNAL_API_KEY","SERVICE_ORDERS_INTERNAL_API_KEY","RABBITMQ_URL"]}
+          payload = {'stringData': data}
+          with open(os.path.join(os.environ['RUNNER_TEMP'], 'service-orders-secrets.json'), 'w') as output:
+              json.dump(payload, output)
+          PY
+          kubectl get configmap api-config --ignore-not-found -o json > "$RUNNER_TEMP/current-api-config.json"
+          kubectl create --dry-run=client --validate=false -f k8s/secrets/Api-configmap.yml -o json | \
+            node scripts/render-api-config.cjs "$RUNNER_TEMP/current-api-config.json" | kubectl apply -f -
+          kubectl apply -f k8s/secrets/api-secrets.yml -f k8s/secrets/dockerhub-cred.yml
+          kubectl patch secret api-secrets --type merge --patch-file "$RUNNER_TEMP/service-orders-secrets.json"
+          kubectl create secret docker-registry dockerhub-cred \
+            --docker-username="$DOCKERHUB_USERNAME" \
+            --docker-password="$DOCKERHUB_PASSWORD" \
+            --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Wait for Mongo from TechChallenge-infra-db
         run: |
@@ -146,6 +169,17 @@ jobs:
         run: |
           kubectl rollout restart deployment/api-deployment
           kubectl rollout status deployment/api-deployment --timeout=180s
+
+      - name: Deploy grouped Service Orders workers
+        run: |
+          kubectl get svc rabbitmq-service
+          kubectl rollout status deployment/rabbitmq-deployment --timeout=180s
+          kubectl patch --local -f k8s/billing-consumer.yml --type=strategic \
+            -p '{"spec":{"template":{"spec":{"containers":[{"name":"consumer","image":"ruanngodinho/techchallenge:${{ steps.image.outputs.tag }}"}]}}}}' \
+            -o yaml > "$RUNNER_TEMP/orders-workers.yml"
+          kubectl apply -f "$RUNNER_TEMP/orders-workers.yml"
+          kubectl rollout restart deployment/service-orders-billing-consumer
+          kubectl rollout status deployment/service-orders-billing-consumer --timeout=180s
 
       - name: Write job summary
         run: |

@@ -41,7 +41,7 @@ flowchart LR
 | `DOCKERHUB_PASSWORD` | Token Docker Hub |
 | `GATEWAY_TRUST_SECRET` | Patch do Secret K8s (`X-Gateway-Trust`) — o mesmo valor do repo Lambda |
 
-Variables: `TF_AWS_REGION` (default `us-east-1`), `TF_CLUSTER_NAME` (default `techchallenge-eks`).
+Variables: `TF_AWS_REGION` (default `us-east-1`), `TF_CLUSTER_NAME` (default `techchallenge-eks`) e `SAGA_ENABLED` (opcional, `true` ou `false`). Quando `SAGA_ENABLED` não é definida, o CD preserva a ativação atual do ConfigMap; somente o primeiro deploy assume `false`.
 
 Terraform e JWT_SECRET ficam no [TechChallenge-infra-eks](https://github.com/RuannGodinho/TechChallenge-infra-eks) e no [TechChallenge-lambda-auth](https://github.com/RuannGodinho/TechChallenge-lambda-auth).
 

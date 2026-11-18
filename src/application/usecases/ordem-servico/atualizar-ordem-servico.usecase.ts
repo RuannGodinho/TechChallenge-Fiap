@@ -1,3 +1,5 @@
+import { ISagaPreparacaoPort } from '../../ports/saga-preparacao.port';
+import { CriarOrcamentoPendenteInput } from '../../ports/orcamento.port';
 import { AtualizarOrdemServicoInputDto } from "../../dtos/ordem-servico/ordem-servico.dtos";
 
 import { OrdemServico } from "../../../enterprise/entities/ordem-servico.entity";
@@ -27,11 +29,12 @@ export class AtualizarOrdemServicoUseCase {
         private readonly alterarStatusOrdemServicoUseCase: AlterarStatusOrdemServicoUseCase,
 
         private readonly atualizarItensOrdemServicoUseCase: AtualizarItensOrdemServicoUseCase,
+        private readonly saga?: ISagaPreparacaoPort,
     ) { }
 
     async execute(
         id: string,
-        input: AtualizarOrdemServicoInputDto,
+        input: AtualizarOrdemServicoInputDto, key?:string,
     ): Promise<OrdemServico> {
         const ordem = await this.ordemServicoGateway.findById(id);
 
@@ -39,6 +42,16 @@ export class AtualizarOrdemServicoUseCase {
             throw new Error(`Ordem de serviço não encontrada para o id ${id}.`);
         }
 
+        const expectedStatus = ordem.status.value;
+        const originalHistoryLength = ordem.statusHistory.length;
+        const owned = !!this.saga && await this.saga.gerenciada(id);
+        if (owned && key) {
+            const replay = await this.saga!.repetirDiagnostico(id, key, input);
+            if (replay) return replay;
+        }
+        if(owned && ['EM EXECUCAO','FINALIZADA','ENTREGUE'].includes(ordem.status.value) && (input.pecas || input.servicos)) throw new Error('Conflito: itens da preparação concluída são imutáveis');
+        const gerenciada = owned && !['EM EXECUCAO','FINALIZADA','ENTREGUE'].includes(ordem.status.value);
+        if (gerenciada) { await this.saga!.validarEdicao(id,key); if (input.status && !['EM DIAGNOSTICO'].includes(input.status)) throw new Error('Conflito: status controlado pela Saga'); }
         const servicosOriginais = ordem.servicos.map((servicoId) =>
             servicoId.toString(),
         );
@@ -78,17 +91,39 @@ export class AtualizarOrdemServicoUseCase {
             await this.alterarStatusOrdemServicoUseCase.execute(ordem, input.status);
         }
 
+        let orcamento: CriarOrcamentoPendenteInput | undefined;
         if (OrdemServico.temItensParaAtualizar(input.pecas, input.servicos)) {
-            await this.atualizarItensOrdemServicoUseCase.execute(ordem, input);
+            orcamento = await this.atualizarItensOrdemServicoUseCase.execute(ordem, input, gerenciada);
+            if (gerenciada && orcamento) return this.saga!.salvarDiagnostico(ordem, orcamento,key,input);
         }
 
-        await this.sincronizarExecucoes(id, servicosOriginais, ordem.servicos);
+        if (!gerenciada) await this.sincronizarExecucoes(id, servicosOriginais, ordem.servicos);
 
-        const updated = await this.ordemServicoGateway.update(id, ordem);
+        // A managed diagnosis can commit without changing status. Do not overwrite its
+        // items or total with the entity read before the customer/vehicle lookups.
+        const changes: Partial<OrdemServico> = owned ? {} : ordem;
+        if (owned) {
+            if (input.cpfCnpj) changes.cpfCnpj = ordem.cpfCnpj;
+            if (input.veiculoId) changes.veiculoId = ordem.veiculoId;
+            if (OrdemServico.temItensParaAtualizar(input.pecas, input.servicos)) {
+                changes.pecas = ordem.pecas;
+                changes.servicos = ordem.servicos;
+                changes.valorTotal = ordem.valorTotal;
+            }
+            if (ordem.statusHistory.length !== originalHistoryLength) {
+                changes.status = ordem.status;
+                changes.statusEnteredAt = ordem.statusEnteredAt;
+                changes.statusHistory = ordem.statusHistory;
+            }
+        }
+        const updated = await this.ordemServicoGateway.update(id, changes, expectedStatus);
 
         if (!updated) {
             throw new Error(`Ordem de serviço não encontrada para o id ${id}.`);
         }
+
+        // Only committed item changes may create/supersede a Billing quote.
+        if (orcamento) await this.atualizarItensOrdemServicoUseCase.criarOrcamento(orcamento);
 
         return updated;
     }

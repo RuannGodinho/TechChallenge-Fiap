@@ -69,8 +69,8 @@ describe('OrdemServico extended use cases', () => {
 
             await useCase.execute(ordem, 'EM EXECUCAO');
 
-            expect(estoquePort.assertQuantidadeDisponivel).toHaveBeenCalledWith(pecaId, 2);
-            expect(estoquePort.registrarSaidaOS).toHaveBeenCalledWith(pecaId, 2);
+            expect(estoquePort.assertQuantidadeDisponivel).toHaveBeenCalledWith(pecaId, 2, 'ordem-1');
+            expect(estoquePort.registrarSaidaOS).toHaveBeenCalledWith(pecaId, 2, 'ordem-1');
             expect(orcamentoPort.isLatestOrcamentoApproved).toHaveBeenCalledWith('ordem-1');
             expect(ordem.status.value).toBe('EM EXECUCAO');
             expect(observability.emit).toHaveBeenCalledWith(
@@ -187,7 +187,7 @@ describe('OrdemServico extended use cases', () => {
             expect(orcamentoPort.createPendente).not.toHaveBeenCalled();
         });
 
-        test('deve atualizar itens e criar orçamento pendente em diagnóstico', async () => {
+        test('deve atualizar itens e preparar orçamento para envio após a gravação da OS', async () => {
             const ordem = OrdemServico.restore({
                 id: 'ordem-1',
                 cpfCnpj: '11144477735',
@@ -198,7 +198,7 @@ describe('OrdemServico extended use cases', () => {
                 servicos: [],
             });
 
-            await useCase.execute(ordem, {
+            const snapshot = await useCase.execute(ordem, {
                 pecas: [{ pecaId, quantidade: 2 }],
                 servicos: [servicoId],
             });
@@ -206,7 +206,8 @@ describe('OrdemServico extended use cases', () => {
             expect(ordem.pecas).toHaveLength(1);
             expect(ordem.servicos).toEqual([servicoId]);
             expect(ordem.valorTotal).toBe(170);
-            expect(orcamentoPort.createPendente).toHaveBeenCalled();
+            expect(snapshot).toMatchObject({ ordemServicoId: 'ordem-1', valorTotal: 170 });
+            expect(orcamentoPort.createPendente).not.toHaveBeenCalled();
             expect(ordem.status.value).toBe('AGUARDANDO APROVACAO');
         });
 
