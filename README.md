@@ -1,3 +1,5 @@
+> Documentação integrada: [arquitetura final dos microsserviços](docs/ARQUITETURA-FINAL-MICROSSERVICOS.md) e [fluxograma da ordem de serviço (Mermaid)](docs/FLUXO-ORDEM-DE-SERVICO.mmd).
+
 > Saga orquestrada: [fluxo, compensações, configuração e testes](docs/SAGA.md).
 
 > Pagamento confirmado entrega automaticamente a OS após a execução: [teste local completo com Mercado Pago](docs/TESTE-MERCADO-PAGO.md).
